@@ -81,7 +81,7 @@ export const thirdPartyPackages: ThirdPartyPackageNotice[] = [
   },
   {
     "name": "expo",
-    "version": "57.0.25",
+    "version": "57.0.32",
     "license": "MIT",
     "repository": "https://github.com/expo/expo",
     "copyright": [
@@ -93,7 +93,7 @@ export const thirdPartyPackages: ThirdPartyPackageNotice[] = [
   },
   {
     "name": "expo-asset",
-    "version": "57.0.18",
+    "version": "57.0.21",
     "license": "MIT",
     "repository": "https://github.com/expo/expo",
     "copyright": [
@@ -117,7 +117,7 @@ export const thirdPartyPackages: ThirdPartyPackageNotice[] = [
   },
   {
     "name": "expo-constants",
-    "version": "57.0.19",
+    "version": "57.0.23",
     "license": "MIT",
     "repository": "https://github.com/expo/expo",
     "copyright": [
@@ -129,7 +129,7 @@ export const thirdPartyPackages: ThirdPartyPackageNotice[] = [
   },
   {
     "name": "expo-dev-client",
-    "version": "57.0.19",
+    "version": "57.0.21",
     "license": "MIT",
     "repository": "https://github.com/expo/expo",
     "copyright": [
@@ -141,7 +141,7 @@ export const thirdPartyPackages: ThirdPartyPackageNotice[] = [
   },
   {
     "name": "expo-document-picker",
-    "version": "57.0.2",
+    "version": "57.0.3",
     "license": "MIT",
     "repository": "https://github.com/expo/expo",
     "copyright": [
@@ -189,7 +189,7 @@ export const thirdPartyPackages: ThirdPartyPackageNotice[] = [
   },
   {
     "name": "expo-linking",
-    "version": "57.0.11",
+    "version": "57.0.13",
     "license": "MIT",
     "repository": "https://github.com/expo/expo",
     "copyright": [
@@ -201,7 +201,7 @@ export const thirdPartyPackages: ThirdPartyPackageNotice[] = [
   },
   {
     "name": "expo-network",
-    "version": "57.0.2",
+    "version": "57.0.3",
     "license": "MIT",
     "repository": "https://github.com/expo/expo",
     "copyright": [
@@ -213,7 +213,7 @@ export const thirdPartyPackages: ThirdPartyPackageNotice[] = [
   },
   {
     "name": "expo-router",
-    "version": "57.0.23",
+    "version": "57.0.30",
     "license": "MIT",
     "repository": "https://github.com/expo/expo",
     "copyright": [],
@@ -233,7 +233,7 @@ export const thirdPartyPackages: ThirdPartyPackageNotice[] = [
   },
   {
     "name": "expo-sqlite",
-    "version": "57.0.3",
+    "version": "57.0.4",
     "license": "MIT",
     "repository": "https://github.com/expo/expo",
     "copyright": [
@@ -512,19 +512,19 @@ export const thirdPartyNoticeGroups: ThirdPartyNoticeGroup[] = [
     "id": "mit-223b647ce074",
     "license": "MIT",
     "packages": [
-      "expo@57.0.25",
-      "expo-asset@57.0.18",
+      "expo@57.0.32",
+      "expo-asset@57.0.21",
       "expo-brightness@57.0.2",
-      "expo-constants@57.0.19",
-      "expo-dev-client@57.0.19",
-      "expo-document-picker@57.0.2",
+      "expo-constants@57.0.23",
+      "expo-dev-client@57.0.21",
+      "expo-document-picker@57.0.3",
       "expo-file-system@57.0.7",
       "expo-font@57.0.4",
       "expo-linear-gradient@57.0.2",
-      "expo-linking@57.0.11",
-      "expo-network@57.0.2",
+      "expo-linking@57.0.13",
+      "expo-network@57.0.3",
       "expo-sensors@57.0.3",
-      "expo-sqlite@57.0.3"
+      "expo-sqlite@57.0.4"
     ],
     "text": "--- LICENSE ---\nThe MIT License (MIT)\n\nCopyright (c) 2015-present 650 Industries, Inc. (aka Expo)\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software\"), to deal\nin the Software without restriction, including without limitation the rights\nto use, copy, modify, merge, publish, distribute, sublicense, and/or sell\ncopies of the Software, and to permit persons to whom the Software is\nfurnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all\ncopies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\nFITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\nAUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\nLIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\nOUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\nSOFTWARE."
   },
@@ -534,7 +534,7 @@ export const thirdPartyNoticeGroups: ThirdPartyNoticeGroup[] = [
     "packages": [
       "@react-native-community/slider@5.2.0",
       "@react-native/js-polyfills@0.76.9",
-      "expo-router@57.0.23"
+      "expo-router@57.0.30"
     ],
     "text": "O pacote não forneceu um arquivo LICENSE/NOTICE na instalação auditada; consulte os metadados e o repositório do pacote antes da distribuição."
   },

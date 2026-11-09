@@ -89,6 +89,12 @@ Persistência (legado mantido, não renomear `kindle-*`/`@kindle/*`): Native SQL
   `a1399ef0a57e`, dirty=true); diff-check PASS. Chromium: `test:reader:{browser,epub:web,study:web,pdf:web,settings:web,concentration:web,
   markings:web}` PASS; `reflow:web` FAIL só pelo BUG 20 (mesmos valores: total 24, visible 0, scrollWidth 10073); `test:source-library:browser`
   e `test:auth:web` PASS. Ondas aprovadas 0–5 concluídas; 6 e 7 seguem fora até decisão do usuário.
+- **Patches do SDK 57 (09/11, sobre `eef30e6`)**: typecheck PASS; `test:critical` 93/93 (após `legal:notices`); `export:web` PASS (build
+  `eef30e6f125c`, dirty=true, `dist` 110,5 MB); diff-check PASS. Chromium PASS: 7 `test:reader:*:web` (reflow FAIL só BUG 20, mesmos valores),
+  `test:library:{bulk:web,web}`, `test:source-library:browser`, `test:auth:web`, `test:saas:web`, `test:admin:web`, `test:marketing:web` (2/2 com
+  `CINEMATIC_CHROME_ANGLE=d3d11`). `test:marketing:web` com SwiftShader FALHA neste PC também no baseline `eef30e6` (worktree temporário,
+  lockfile antigo, mesmo erro de quadro na rolagem): ambiente, não regressão. `test:legal:browser` NÃO EXECUTADO: exige Chrome de prévia
+  em `127.0.0.1:9333` e a porta está ocupada por outro processo (não tocado). **APK não compilado**: o aparelho segue com `ae98991`.
 - Validação local de 09/11 ("Continue lendo", sobre `cb45b71`): typecheck PASS; `test:critical` 90/90 (nova `library-last-read`); `export:web` PASS;
   `test:library:bulk:web` e `test:library:web` PASS; diff-check PASS.
 - Validação anterior (Fase 5, sobre `bb9d5dd`): typecheck PASS; `test:critical` 89/89; `export:web` PASS (build `bb9d5dd4597e`, dirty=true);
@@ -227,8 +233,8 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
    no novo visual (`docs/context/design-system.md`).
    **Acervo**: etapa 1 (contas novas só domínio público) pronta em `claude/acervo-dominio-publico-ae9294` (`11cf66c`), aguardando decisão de integrar; etapa 2 (cópia por usuário + nuvem privada, aprovada pelo usuário)
    e etapa 3 (remover os 33 arquivos do APK/`dist`) pendentes.
-   **Revisão de qualidade (09/11)**: Ondas 0–5 aprovadas concluídas (commits locais, sem push); 6 e 7 fora. R5: proposta de dependências no BUG 13
-   (alinhar patches do SDK 57 e remover `js-polyfills` 0.76/`metro-cache` 0.81 exigem novo APK), aguardando decisão. Levantamento do
+   **Revisão de qualidade (09/11)**: Ondas 0–5 aprovadas concluídas (commits locais, sem push); 6 e 7 fora. R5: patches do SDK 57 aplicados
+   (BUG 13; **precisam de novo APK**, não compilado); remover `js-polyfills` 0.76/`metro-cache` 0.81 segue pendente. Levantamento do
    acervo entregue ao usuário (34 arquivos, 92,7 MB; 8 usados como fixture de teste), aguardando decisão do que sai; nada removido.
    Candidatos de bundle (sem decisão): pdfjs-dist duplicado no entry, reanimated só para motion cues, `react-native-render-html` em `ChapterRenderer`.
    Abertos da revisão: BUG 17 (EPUB sem `lang`/justificar; onda 6, fora), **BUG 20** (Reflow com página final em branco; motor do Reader,
@@ -259,6 +265,14 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
 - **IA externa:** não enviar livros/trechos a serviço de IA sem pedido e consentimento explícito do usuário final.
 
 ## 10. Log (mais recente primeiro; máx. 5 entradas, resto → docs/context/historico/)
+
+### 09/11/2026 — Dependências: patches do SDK 57 (Claude)
+- IMPLEMENTADO por decisão do usuário (opção 1 do BUG 13): `npx expo install --fix` alinhou 9 pacotes do Expo ao patch esperado do SDK 57;
+  `package.json` só com essas faixas; lockfile só com a família Expo (+ `react-native-gesture-handler` 3.5.0). Audit de produção 6→3 altos.
+  `THIRD_PARTY_NOTICES.md`/`thirdPartyNotices.generated.ts` regenerados (só versões).
+- `test-marketing-web`: base `prefers-reduced-motion: no-preference` emulada (este Windows reporta `reduce` e a cena 3D não iniciava; o caminho
+  `reduce` continua testado) e rota autenticada verificada por `/library` + busca da Biblioteca (o texto "Sua Biblioteca" saiu da tela em `02bb6f4`).
+- VALIDADO: ver §3. NÃO TESTADO: Android/Hermes com os módulos nativos novos (exige APK + Redmi), `test:legal:browser`.
 
 ### 09/11/2026 — Revisão de qualidade: Onda 5, erros silenciosos e dependências (Claude)
 - R4 classificado (86 `catch` que engolem erro por `rg` amplo; lista e critérios no BUG 21). IMPLEMENTADO só onde havia perda de dado:
@@ -297,20 +311,6 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
   "Voltar para …"). VALIDADO: ver §3. NÃO TESTADO: Android/Hermes e `fontScale` real; Drive real. Captura `remove-confirmation` pega o
   menu ainda saindo por animação sobre o diálogo (o teste confirma e remove normalmente).
 
-### 09/11/2026 — Revisão de qualidade: Onda 2, Biblioteca e export Web (Claude)
-- IMPLEMENTADO P1: `app/(tabs)/library.tsx` com célula memoizada `LibraryBookCell` e callbacks estáveis (`renderBook`, `openBook`,
-  `toggleSelection`, `organizeBook`); mesma árvore/estilos/rótulos. Medição `scripts/measure-library-renders.cjs` (fixture Chromium do
-  `test:library:bulk:web`, 1000 livros, 72 cartões montados; render = objeto de fiber diferente do commit anterior), 2 execuções cada:
-  busca que mantém todos 72→0 renders (~41→~16 ms), abrir "⋯" 72→0 (~42→~19 ms), marcar/desmarcar 1 livro 72→1 (~51→~34 / ~23→~7 ms);
-  limpar busca e entrar em seleção 144→72 (montagens legítimas). JSON em `.expo/perf/library-renders-{before,after}-*.json`.
-- IMPLEMENTADO P2: `copy-books-to-dist.mjs` deixou de copiar `assets/Livros` para `dist/assets/Livros` (93 MB sem hash, nenhuma referência
-  no bundle; o app usa só `dist/assets/assets/Livros/<hash>` do Metro). `dist` 207,6→110,5 MB (−47%), 154→120 arquivos; os 34 livros
-  referenciados existem. Mesmos livros publicados. **Conflito previsto** com o branch do acervo, que também edita esse script.
-- MEDIDO P3 (sem dividir): `scripts/measure-web-bundle.cjs`; entry 5,54 MiB (1,48 MB gzip): reanimated 733 KiB (só motion cues), pdfjs-dist
-  536 KiB **no entry** além do chunk `pdfjs` (imports estáticos em `PdfPageViewer.web`, `PdfReflowProcessor.web`, `PdfThumbnailGenerator.web`),
-  expo-router 429, entities 369 + ramda 122 (via `react-native-render-html` em `ChapterRenderer`), src/presentation 319. `.expo/perf/web-bundle-composition.json`.
-- VALIDADO: ver §3. NÃO TESTADO: Android/Hermes (medição só no Chromium com fixture sintética).
-
 ### 06/11/2026 — Entradas anteriores
 - Fechamento UX/UI e Onboarding 1: ver `docs/context/historico/2026-11-06-ux-fechamento-e-onboarding-1.md`.
 - Onboarding 2 (auditoria e reescrita do contexto): ver `docs/context/historico/2026-11-06-onboarding-2.md`.
@@ -321,3 +321,4 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
 - Redesign Fase 5 (moldura do Reader, 09/11): ver `docs/context/historico/2026-11-09-redesign-fase-5.md`.
 - Revisão de qualidade, Etapa A e Onda 0 (09/11): ver `docs/context/historico/2026-11-09-qualidade-etapa-a-onda-0.md`.
 - Revisão de qualidade, Onda 1 (09/11): ver `docs/context/historico/2026-11-09-qualidade-onda-1.md`.
+- Revisão de qualidade, Onda 2 (09/11): ver `docs/context/historico/2026-11-09-qualidade-onda-2.md`.

@@ -539,6 +539,12 @@ e 7f50a90^:DIAGNOSTICO_BUGS_APK.md. Não restaurar esses arquivos como contexto.
   nativo, **exige novo APK** e regressão completa (critical, export, Chromium, Redmi); (2) remover as duas declarações antigas após confirmar
   qual `js-polyfills` o Metro resolve (hipótese: o da raiz, 0.76.9) e regenerar os avisos de licença — também exige novo APK; (3) SDK 58
   (resolve `decode-uri-component`) só como projeto próprio. Não usar `audit fix --force`.
+- **Opção (1) aplicada em 09/11 por decisão do usuário** (`npx expo install --fix`): `expo` 57.0.32, `expo-router` 57.0.30, `expo-asset` 57.0.21,
+  `expo-constants` 57.0.23, `expo-dev-client` 57.0.21, `expo-document-picker` 57.0.3, `expo-linking` 57.0.13, `expo-network` 57.0.3,
+  `expo-sqlite` 57.0.4; `expo install --check` = em dia. Transitivas mudaram só na família Expo (+ `react-native-gesture-handler` 3.3.0→3.5.0,
+  nativo). `npm audit --omit=dev`: 6 altos/11 moderados/1 baixo → **3 altos/6 moderados/0** (`node-forge` 1.4.3; `zod` saiu); os 3 altos
+  restantes são a cadeia `decode-uri-component` do `expo-router` (só SDK 58). Avisos de licença regenerados (`npm run legal:notices`).
+  **Exige novo APK** para chegar ao aparelho (módulos nativos mudaram); APK NÃO compilado. Opção (2) segue pendente.
 
 ### SaaS Etapa 2 — quotas de Sync/Storage e validação remota pendente
 
