@@ -94,7 +94,16 @@ Persistência (legado mantido, não renomear `kindle-*`/`@kindle/*`): Native SQL
   `test:library:{bulk:web,web}`, `test:source-library:browser`, `test:auth:web`, `test:saas:web`, `test:admin:web`, `test:marketing:web` (2/2 com
   `CINEMATIC_CHROME_ANGLE=d3d11`). `test:marketing:web` com SwiftShader FALHA neste PC também no baseline `eef30e6` (worktree temporário,
   lockfile antigo, mesmo erro de quadro na rolagem): ambiente, não regressão. `test:legal:browser` NÃO EXECUTADO: exige Chrome de prévia
-  em `127.0.0.1:9333` e a porta está ocupada por outro processo (não tocado). **APK não compilado**: o aparelho segue com `ae98991`.
+  em `127.0.0.1:9333` e a porta está ocupada por outro processo (não tocado).
+- **APK de ensaio do HEAD `6883532` (09/11, primeiro build Android deste PC)**: `ALDUS_ALLOW_DEVELOPMENT_SIGNING=device-rehearsal npm run build:apk:local`,
+  árvore limpa, Gradle 14 min 16 s (log `.expo/apk-6883532-build.log`). `artifacts/apk/Aldus-6883532-device-rehearsal.apk` (ignorado; cópia de
+  `android/app/build/outputs/apk/release/app-release.apk`), 253.255.362 bytes, SHA-256 `6fecb41c…6931812f5c`. `aapt`: `com.aldus.reader`
+  1.0.0-beta.2/code 3, min 24/target 36, sem debuggable, ABIs arm64-v8a/armeabi-v7a/x86/x86_64. `apksigner`: v2, 1 signatário, certificado
+  `fac61745…033b9c` (debug/`device-rehearsal`, o mesmo da instalação do Redmi) — **não é o Beta privado**. Conteúdo: 34 livros (92,6 MiB),
+  bundle Hermes de 8,5 MB com textos das ondas 0–5 e "Continue lendo". Tamanho igual aos APKs de outubro (251,4–251,6 MB); os 346 MB do
+  `ae98991` (PC antigo) ficam INCONCLUSIVOS (arquivo não está neste PC). **NÃO instalado**: o Redmi segue com `ae98991`.
+  Primeira tentativa falhou na configuração do Gradle: `android/local.properties` (criado nesta sessão) tinha `C\:\Android\sdk` com barras simples
+  (lido como `C:Androidsdk`); corrigido para `sdk.dir=C:/Android/sdk` (arquivo ignorado pelo Git).
 - Validação local de 09/11 ("Continue lendo", sobre `cb45b71`): typecheck PASS; `test:critical` 90/90 (nova `library-last-read`); `export:web` PASS;
   `test:library:bulk:web` e `test:library:web` PASS; diff-check PASS.
 - Validação anterior (Fase 5, sobre `bb9d5dd`): typecheck PASS; `test:critical` 89/89; `export:web` PASS (build `bb9d5dd4597e`, dirty=true);
@@ -234,7 +243,7 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
    **Acervo**: etapa 1 (contas novas só domínio público) pronta em `claude/acervo-dominio-publico-ae9294` (`11cf66c`), aguardando decisão de integrar; etapa 2 (cópia por usuário + nuvem privada, aprovada pelo usuário)
    e etapa 3 (remover os 33 arquivos do APK/`dist`) pendentes.
    **Revisão de qualidade (09/11)**: Ondas 0–5 aprovadas concluídas (commits locais, sem push); 6 e 7 fora. R5: patches do SDK 57 aplicados
-   (BUG 13; **precisam de novo APK**, não compilado); remover `js-polyfills` 0.76/`metro-cache` 0.81 segue pendente. Levantamento do
+   (BUG 13); APK de ensaio `6883532` compilado e conferido (§3), **não instalado**; remover `js-polyfills` 0.76/`metro-cache` 0.81 segue pendente. Levantamento do
    acervo entregue ao usuário (34 arquivos, 92,7 MB; 8 usados como fixture de teste), aguardando decisão do que sai; nada removido.
    Candidatos de bundle (sem decisão): pdfjs-dist duplicado no entry, reanimated só para motion cues, `react-native-render-html` em `ChapterRenderer`.
    Abertos da revisão: BUG 17 (EPUB sem `lang`/justificar; onda 6, fora), **BUG 20** (Reflow com página final em branco; motor do Reader,
@@ -272,7 +281,8 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
   `THIRD_PARTY_NOTICES.md`/`thirdPartyNotices.generated.ts` regenerados (só versões).
 - `test-marketing-web`: base `prefers-reduced-motion: no-preference` emulada (este Windows reporta `reduce` e a cena 3D não iniciava; o caminho
   `reduce` continua testado) e rota autenticada verificada por `/library` + busca da Biblioteca (o texto "Sua Biblioteca" saiu da tela em `02bb6f4`).
-- VALIDADO: ver §3. NÃO TESTADO: Android/Hermes com os módulos nativos novos (exige APK + Redmi), `test:legal:browser`.
+- VALIDADO: ver §3. Depois, por pedido do usuário, APK de ensaio `6883532` compilado e conferido (pacote/versão/assinatura/ABIs/bundle; §3),
+  sem instalar. NÃO TESTADO: execução no Android/Hermes com os módulos nativos novos (exige instalar no Redmi), `test:legal:browser`.
 
 ### 09/11/2026 — Revisão de qualidade: Onda 5, erros silenciosos e dependências (Claude)
 - R4 classificado (86 `catch` que engolem erro por `rg` amplo; lista e critérios no BUG 21). IMPLEMENTADO só onde havia perda de dado:

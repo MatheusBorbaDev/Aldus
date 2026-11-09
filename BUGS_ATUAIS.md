@@ -544,7 +544,8 @@ e 7f50a90^:DIAGNOSTICO_BUGS_APK.md. Não restaurar esses arquivos como contexto.
   `expo-sqlite` 57.0.4; `expo install --check` = em dia. Transitivas mudaram só na família Expo (+ `react-native-gesture-handler` 3.3.0→3.5.0,
   nativo). `npm audit --omit=dev`: 6 altos/11 moderados/1 baixo → **3 altos/6 moderados/0** (`node-forge` 1.4.3; `zod` saiu); os 3 altos
   restantes são a cadeia `decode-uri-component` do `expo-router` (só SDK 58). Avisos de licença regenerados (`npm run legal:notices`).
-  **Exige novo APK** para chegar ao aparelho (módulos nativos mudaram); APK NÃO compilado. Opção (2) segue pendente.
+  **Exige novo APK** para chegar ao aparelho (módulos nativos mudaram): APK de ensaio `6883532` compilado e conferido em 09/11
+  (PROJECT_CONTEXT §3), **não instalado**; execução em Android NÃO TESTADA. Opção (2) segue pendente.
 
 ### SaaS Etapa 2 — quotas de Sync/Storage e validação remota pendente
 
