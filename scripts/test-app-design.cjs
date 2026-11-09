@@ -1,6 +1,6 @@
-// Actual app palette. Reader palettes have separate contracts and are not changed here.
+// Actual app palette plus the five book themes (BUG 16). Does not prove physical displays.
 const assert = require('node:assert/strict');
-const { appThemeTokens } = require('./community-test-loader.cjs')()('src/theme/tokens.ts');
+const { appThemeTokens, readerThemes, pdfReaderThemes } = require('./community-test-loader.cjs')()('src/theme/tokens.ts');
 const luminance = hex => {
   const rgb = hex.slice(1).match(/../g).map(part => parseInt(part, 16) / 255)
     .map(value => value <= .04045 ? value / 12.92 : ((value + .055) / 1.055) ** 2.4);
@@ -25,4 +25,14 @@ for (const [mode, palette] of Object.entries(appThemeTokens)) {
     assert(contrast(palette.focus, palette[surface]) >= 3, `${mode}: focus ring/${surface} non-text contrast`);
   }
 }
+// Book themes (Reader chrome/panels): text, secondary and accent ink on page and panel; text on a selected accent fill.
+assert.deepEqual(Object.keys(readerThemes).sort(), ['black', 'dark', 'light', 'paper', 'sepia']);
+for (const [name, theme] of Object.entries(readerThemes)) {
+  for (const surface of ['background', 'panel']) for (const ink of ['text', 'secondaryText', 'accent']) {
+    assert(contrast(theme[ink], theme[surface]) >= 4.5, `reader ${name}: ${ink}/${surface} must meet 4.5:1 (got ${contrast(theme[ink], theme[surface]).toFixed(2)})`);
+  }
+  assert(contrast(theme.onAccent, theme.accent) >= 4.5, `reader ${name}: onAccent/accent selected control text`);
+  assert.deepEqual(pdfReaderThemes[name], theme, `reader ${name}: PDF themes stay equal to EPUB themes`);
+}
+console.log('PASS reader themes: 5 book themes meet 4.5:1 for text/secondary/accent on page and panel, and onAccent on accent.');
 console.log('PASS actual light/dark app palette: body, secondary/link text and primary action ink, selected chip, danger/success >= 4.5:1; focus >= 3:1. Does not prove physical display or disabled controls.');

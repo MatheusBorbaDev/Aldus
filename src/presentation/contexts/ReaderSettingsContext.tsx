@@ -30,6 +30,9 @@ interface ReaderSettingsValue {
 }
 
 const READER_SETTINGS_STORAGE_KEY = "@kindle/reader-settings.v1";
+/** Padrões do EPUB; o painel usa estes valores como opção "Médio" (BUG 15). Alterar muda a leitura de quem nunca ajustou. */
+export const DEFAULT_READER_LINE_HEIGHT = 1.65;
+export const DEFAULT_READER_PARAGRAPH_SPACING = 1;
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
 const ReaderSettingsContext = createContext<ReaderSettingsValue | null>(null);
 
@@ -38,8 +41,8 @@ export function ReaderSettingsProvider({ children }: PropsWithChildren) {
   const [font, setFont] = useState<ReaderFont>("serif");
   const [fontSize, setFontSize] = useState(16);
   const [margin, setMargin] = useState<ReaderMargin>("medium");
-  const [lineHeight, setLineHeight] = useState(1.65);
-  const [paragraphSpacing, setParagraphSpacing] = useState(1);
+  const [lineHeight, setLineHeight] = useState(DEFAULT_READER_LINE_HEIGHT);
+  const [paragraphSpacing, setParagraphSpacing] = useState(DEFAULT_READER_PARAGRAPH_SPACING);
   const [maxWidth, setMaxWidth] = useState(900);
   const [brightness, setBrightness] = useState(65);
   const [useSystemBrightness, setUseSystemBrightness] = useState(true);

@@ -82,12 +82,17 @@ export function resolveAppThemeName(mode: AppThemeMode, systemScheme?: "light" |
   return mode;
 }
 
+/**
+ * Temas do livro. BUG 16: `text`, `secondaryText` e `accent` têm contraste AA (4,5:1) sobre `background` e `panel`, e `onAccent` sobre
+ * `accent` (texto de segmento/botão selecionado). Contrato em `scripts/test-app-design.cjs`. Claro, Sépia e Papel escureceram `accent`
+ * (e Sépia o `secondaryText`); Escuro e Preto já passavam e só ganharam `onAccent` escuro.
+ */
 export const readerThemes = {
-  light: { background: "#F7F4EE", text: "#1F2D2B", secondaryText: "#68716D", separator: "#DDD8CF", accent: "#D97757", panel: "#FFFDF9" },
-  dark: { background: "#151918", text: "#E8E6DD", secondaryText: "#9DA7A1", separator: "#343B38", accent: "#E59A76", panel: "#202725" },
-  sepia: { background: "#F3E5C8", text: "#57463A", secondaryText: "#8A7561", separator: "#D7C5A6", accent: "#B65F42", panel: "#F9EED9" },
-  paper: { background: "#F5F1E7", text: "#111111", secondaryText: "#37372F", separator: "#D8D0C2", accent: "#B76C3E", panel: "#F8F4EC" },
-  black: { background: "#000000", text: "#E8E8E8", secondaryText: "#A0A0A0", separator: "#303030", accent: "#E59A76", panel: "#151515" },
+  light: { background: "#F7F4EE", text: "#1F2D2B", secondaryText: "#68716D", separator: "#DDD8CF", accent: "#A64E32", onAccent: "#FFFFFF", panel: "#FFFDF9" },
+  dark: { background: "#151918", text: "#E8E6DD", secondaryText: "#9DA7A1", separator: "#343B38", accent: "#E59A76", onAccent: "#151918", panel: "#202725" },
+  sepia: { background: "#F3E5C8", text: "#57463A", secondaryText: "#6E5A47", separator: "#D7C5A6", accent: "#8F4528", onAccent: "#FFFFFF", panel: "#F9EED9" },
+  paper: { background: "#F5F1E7", text: "#111111", secondaryText: "#37372F", separator: "#D8D0C2", accent: "#9A5530", onAccent: "#FFFFFF", panel: "#F8F4EC" },
+  black: { background: "#000000", text: "#E8E8E8", secondaryText: "#A0A0A0", separator: "#303030", accent: "#E59A76", onAccent: "#000000", panel: "#151515" },
 } as const;
 
 export const pdfReaderThemes: Record<PdfReaderTheme, ReaderPalette> = {
@@ -102,5 +107,7 @@ export interface ReaderPalette {
   secondaryText: string;
   separator: string;
   accent: string;
+  /** Texto sobre um preenchimento `accent`. */
+  onAccent: string;
   panel: string;
 }

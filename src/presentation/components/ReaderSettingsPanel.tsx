@@ -3,8 +3,8 @@ import { ReaderSettingsSlider as Slider } from "./ReaderSettingsSlider";
 import { Modal, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from "react-native";
 import { useEffect, useRef, useState } from "react";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useReaderSettings } from "@/src/presentation/contexts/ReaderSettingsContext";
-import { PdfReaderSettings, PdfReadingMode } from "@/src/domain/types/pdfReader";
+import { DEFAULT_READER_LINE_HEIGHT, DEFAULT_READER_PARAGRAPH_SPACING, useReaderSettings } from "@/src/presentation/contexts/ReaderSettingsContext";
+import { defaultPdfReaderSettings, PdfReaderSettings, PdfReadingMode } from "@/src/domain/types/pdfReader";
 import { pdfReaderThemes } from "@/src/theme/tokens";
 import { PdfReaderTheme } from "@/src/domain/types/pdfReader";
 import { readerUiDiagnostic } from "@/src/utils/readerUiDiagnostics";
@@ -90,7 +90,7 @@ export function ReaderSettingsPanel({
               <Text accessibilityRole="header" style={[styles.title, { color: palette.text }]}>{panelMode === 'contents' ? 'Sumário' : panelMode === 'search' ? 'Buscar no livro' : 'Ajustes de leitura'}</Text>
               <Pressable accessibilityRole="button" accessibilityLabel="Fechar ajustes de leitura" onPress={onClose} style={styles.closeButton}><Text style={{color: palette.text, fontSize: 24}}>×</Text></Pressable>
             </View>
-            {panelMode === 'appearance' ? <View style={styles.categories}>{categories.map(item => <Pressable key={item.id} accessibilityRole="button" accessibilityState={{selected: category === item.id}} aria-pressed={category === item.id} onPress={() => {setCategory(item.id); scroll.current?.scrollTo({y: 0, animated: false});}} style={[styles.category, {borderColor: category === item.id ? palette.accent : palette.separator, backgroundColor: category === item.id ? palette.accent : 'transparent'}]}><Text style={{color: category === item.id ? '#fff' : palette.text, fontSize: 13, textAlign: 'center'}}>{item.label}</Text></Pressable>)}</View> : null}
+            {panelMode === 'appearance' ? <View style={styles.categories}>{categories.map(item => <Pressable key={item.id} accessibilityRole="button" accessibilityState={{selected: category === item.id}} aria-pressed={category === item.id} onPress={() => {setCategory(item.id); scroll.current?.scrollTo({y: 0, animated: false});}} style={[styles.category, {borderColor: category === item.id ? palette.accent : palette.separator, backgroundColor: category === item.id ? palette.accent : 'transparent'}]}><Text style={{color: category === item.id ? palette.onAccent : palette.text, fontSize: 13, textAlign: 'center'}}>{item.label}</Text></Pressable>)}</View> : null}
           </View>
           <ScrollView ref={scroll} style={styles.panelScroll} contentContainerStyle={styles.panelContent} keyboardShouldPersistTaps="handled"
             onLayout={event => readerUiDiagnostic("LAYOUT", "preferencesViewport", undefined, event.nativeEvent.layout)}
@@ -206,9 +206,9 @@ export function ReaderSettingsPanel({
             <>
               <Text style={[styles.label, { color: palette.secondaryText }]}>ZOOM</Text>
               <View style={styles.row}>
-                <ActionButton label="−" onPress={() => updatePdfSettings({ zoom: Math.max(0.5, pdfSettings.zoom - 0.25) })} palette={palette} />
+                <ActionButton label="−" accessibilityLabel="Diminuir zoom" onPress={() => updatePdfSettings({ zoom: Math.max(0.5, pdfSettings.zoom - 0.25) })} palette={palette} />
                 <Text style={[styles.value, { color: palette.text }]}>{Math.round(pdfSettings.zoom * 100)}%</Text>
-                <ActionButton label="+" onPress={() => updatePdfSettings({ zoom: Math.min(4, pdfSettings.zoom + 0.25) })} palette={palette} />
+                <ActionButton label="+" accessibilityLabel="Aumentar zoom" onPress={() => updatePdfSettings({ zoom: Math.min(4, pdfSettings.zoom + 0.25) })} palette={palette} />
               </View>
               <Text style={[styles.label, { color: palette.secondaryText }]}>AJUSTE</Text>
               <View style={styles.row}>
@@ -295,16 +295,16 @@ export function ReaderSettingsPanel({
 
               <Text style={[styles.label, { color: palette.secondaryText }]}>ESPAÇAMENTO ENTRE LINHAS</Text>
               <SegmentedControl
-                options={[{ label: "Pequeno", value: 1.2 }, { label: "Médio", value: 1.5 }, { label: "Grande", value: 1.8 }]}
-                selectedValue={closestValue(pdfSettings ? pdfSettings.lineHeight : settings.lineHeight, [1.2, 1.5, 1.8])}
+                options={spacingOptions(pdfSettings ? defaultPdfReaderSettings.lineHeight : DEFAULT_READER_LINE_HEIGHT, 0.25)}
+                selectedValue={pdfSettings ? pdfSettings.lineHeight : settings.lineHeight}
                 palette={palette}
                 onSelect={(value) => pdfSettings ? updatePdfSettings({ lineHeight: Number(value) }) : settings.setLineHeight(Number(value))}
               />
 
               <Text style={[styles.label, { color: palette.secondaryText }]}>ESPAÇO ENTRE PARÁGRAFOS</Text>
               <SegmentedControl
-                options={[{ label: "Pequeno", value: 0.4 }, { label: "Médio", value: 0.8 }, { label: "Grande", value: 1.2 }]}
-                selectedValue={closestValue(pdfSettings ? pdfSettings.paragraphSpacing : settings.paragraphSpacing, [0.4, 0.8, 1.2])}
+                options={spacingOptions(pdfSettings ? defaultPdfReaderSettings.paragraphSpacing : DEFAULT_READER_PARAGRAPH_SPACING, 0.5)}
+                selectedValue={pdfSettings ? pdfSettings.paragraphSpacing : settings.paragraphSpacing}
                 palette={palette}
                 onSelect={(value) => pdfSettings ? updatePdfSettings({ paragraphSpacing: Number(value) }) : settings.setParagraphSpacing(Number(value))}
               />
@@ -361,19 +361,19 @@ const styles = StyleSheet.create({
   row: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: 10 },
   inlineToggleRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 10 },
   eReaderCopy: { flex: 1, gap: 4 },
-  option: { borderWidth: 1, borderRadius: 10, paddingVertical: 10, paddingHorizontal: 13 },
+  option: { minHeight: 44, justifyContent: "center", borderWidth: 1, borderRadius: 10, paddingVertical: 10, paddingHorizontal: 13 },
   fontScaleRow: { flexDirection: "row", alignItems: "center", gap: 10 },
   fontScaleSmall: { fontSize: 14, fontWeight: "600" },
   fontScaleLarge: { fontSize: 24, fontWeight: "700" },
   fontSlider: { flex: 1, minWidth: 0, height: 38 },
   segmented: { flexDirection: "row", width: "100%", gap: 6 },
-  segment: { flex: 1, minWidth: 0, alignItems: "center", justifyContent: "center", paddingVertical: 10, paddingHorizontal: 4, borderWidth: 1, borderRadius: 9 },
+  segment: { flex: 1, minWidth: 0, minHeight: 44, alignItems: "center", justifyContent: "center", paddingVertical: 10, paddingHorizontal: 4, borderWidth: 1, borderRadius: 9 },
   segmentText: { fontSize: 12, textAlign: "center", flexShrink: 1 },
   value: { minWidth: 52, textAlign: "center", fontSize: 14, fontWeight: "600" },
-  pageInput: { minWidth: 88, height: 42, paddingHorizontal: 10, borderWidth: 1, borderRadius: 6 },
-  searchInput: { flex: 1, minWidth: 120, height: 42, paddingHorizontal: 10, borderWidth: 1, borderRadius: 6 },
+  pageInput: { minWidth: 88, height: 44, paddingHorizontal: 10, borderWidth: 1, borderRadius: 6 },
+  searchInput: { flex: 1, minWidth: 120, height: 44, paddingHorizontal: 10, borderWidth: 1, borderRadius: 6 },
   chapterList: { gap: 8 },
-  chapterItem: { paddingVertical: 10, paddingHorizontal: 12, borderWidth: 1, borderRadius: 6 },
+  chapterItem: { minHeight: 44, justifyContent: "center", paddingVertical: 10, paddingHorizontal: 12, borderWidth: 1, borderRadius: 6 },
 });
 
 function submitPage(value: string, totalPages: number, onGoToPage: (pageNumber: number) => void): void {
@@ -381,10 +381,13 @@ function submitPage(value: string, totalPages: number, onGoToPage: (pageNumber: 
   if (Number.isInteger(page) && page >= 1 && page <= totalPages) onGoToPage(page);
 }
 
-function closestValue(value: number, choices: number[]): number {
-  return choices.reduce((closest, choice) =>
-    Math.abs(choice - value) < Math.abs(closest - value) ? choice : closest
-  );
+/**
+ * BUG 15: a opção do meio é sempre o padrão do modo (EPUB 1,65 / PDF Reflow 1,6 de entrelinha; 1 de parágrafo), então o
+ * padrão aparece marcado e tocar nele não muda o texto. Valores salvos fora da lista não são reescritos: nenhum item fica marcado.
+ */
+export function spacingOptions(defaultValue: number, step: number): Array<{ label: string; value: number }> {
+  const round = (value: number) => Math.round(value * 100) / 100;
+  return [{ label: "Pequeno", value: round(defaultValue - step) }, { label: "Médio", value: defaultValue }, { label: "Grande", value: round(defaultValue + step) }];
 }
 
 function layoutPresetIndex(margin: number, maxWidth: number): number {
@@ -407,7 +410,7 @@ function SegmentedControl({
   return (
     <View style={styles.segmented}>
       {options.map((option) => {
-        const selected = option.value === selectedValue;
+        const selected = Math.abs(option.value - selectedValue) < 0.001;
         return (
           <Pressable
             accessibilityRole="button"
@@ -416,7 +419,7 @@ function SegmentedControl({
             onPress={() => onSelect(option.value)}
             style={[styles.segment, { backgroundColor: selected ? palette.accent : "transparent", borderColor: selected ? palette.accent : palette.separator }]}
           >
-            <Text style={[styles.segmentText, { color: selected ? "#FFF" : palette.text }]}>{option.label}</Text>
+            <Text style={[styles.segmentText, { color: selected ? palette.onAccent : palette.text }]}>{option.label}</Text>
           </Pressable>
         );
       })}
@@ -438,10 +441,11 @@ function ModeButton({
   return (
     <Pressable
       accessibilityRole="button"
+      accessibilityState={{ selected }} aria-pressed={selected}
       onPress={onPress}
       style={[styles.option, { backgroundColor: selected ? palette.accent : "transparent", borderColor: selected ? palette.accent : palette.separator }]}
     >
-      <Text style={{ color: selected ? "#FFF" : palette.text }}>{label}</Text>
+      <Text style={{ color: selected ? palette.onAccent : palette.text }}>{label}</Text>
     </Pressable>
   );
 }
@@ -450,13 +454,15 @@ function ActionButton({
   label,
   onPress,
   palette,
+  accessibilityLabel,
 }: {
   label: string;
   onPress: () => void;
   palette: ReturnType<typeof useReaderSettings>["palette"];
+  accessibilityLabel?: string;
 }) {
   return (
-    <Pressable accessibilityRole="button" onPress={onPress} style={[styles.option, { borderColor: palette.separator }]}>
+    <Pressable accessibilityRole="button" accessibilityLabel={accessibilityLabel ?? label} onPress={onPress} style={[styles.option, { borderColor: palette.separator }]}>
       <Text style={{ color: palette.text }}>{label}</Text>
     </Pressable>
   );

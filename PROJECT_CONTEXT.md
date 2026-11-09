@@ -71,8 +71,11 @@ Persistência (legado mantido, não renomear `kindle-*`/`@kindle/*`): Native SQL
 - **Revisão de qualidade — Onda 0 (09/11, sobre `3cc1107`)**: typecheck PASS; `test:critical` **91/91** (nova `error-boundary`); `export:web`
   PASS (build `3cc110708f88`, dirty=true); diff-check PASS. Chromium: `test:reader:{browser,epub:web,study:web,pdf:web,settings:web,
   concentration:web,markings:web}` PASS; **`test:reader:reflow:web` FAIL** (BUG 20, determinístico); `test:saas:web`, `test:admin:web` PASS.
-  Próximas ondas aprovadas: 1 (ajustes de leitura), 2 (Biblioteca/export + levantamento do acervo), 3 (tela de Fonte/Drive), 4 (Auth),
-  5 (erros silenciosos + proposta de dependências), cada uma só após OK do usuário.
+- **Onda 1 (09/11, sobre `290cfee`)**: typecheck PASS; `test:critical` 91/91; `export:web` PASS (build `290cfee58878`, dirty=true); diff-check
+  PASS. Chromium: os mesmos 7 `test:reader:*:web` PASS e `reflow:web` FAIL só pelo BUG 20 (mesmos valores da Onda 0). Capturas do painel com
+  temas reais em `.expo/research-cycle1-increment2/categories-{320,390,430,768,1440}-{light,dark}-{1,1.3,1.6}-*.png` (128).
+  Próximas ondas aprovadas: 2 (Biblioteca/export + levantamento do acervo), 3 (tela de Fonte/Drive), 4 (Auth), 5 (erros silenciosos +
+  proposta de dependências), cada uma só após OK do usuário.
 - Validação local de 09/11 ("Continue lendo", sobre `cb45b71`): typecheck PASS; `test:critical` 90/90 (nova `library-last-read`); `export:web` PASS;
   `test:library:bulk:web` e `test:library:web` PASS; diff-check PASS.
 - Validação anterior (Fase 5, sobre `bb9d5dd`): typecheck PASS; `test:critical` 89/89; `export:web` PASS (build `bb9d5dd4597e`, dirty=true);
@@ -210,9 +213,10 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
    no novo visual (`docs/context/design-system.md`).
    **Acervo**: etapa 1 (contas novas só domínio público) pronta em `claude/acervo-dominio-publico-ae9294` (`11cf66c`), aguardando decisão de integrar; etapa 2 (cópia por usuário + nuvem privada, aprovada pelo usuário)
    e etapa 3 (remover os 33 arquivos do APK/`dist`) pendentes.
-   **Revisão de qualidade (09/11)**: Onda 0 concluída; aguardando OK para a Onda 1 (BUG 15/16 e alvos do painel do Reader), depois 2–5.
-   Abertos da revisão: BUG 15, 16, 17 (EPUB sem `lang`/justificar; onda 6, fora), **BUG 20** (Reflow com página final em branco; motor do Reader,
-   fora das ondas aprovadas) e acervo embutido usado como fixture de testes.
+   **Revisão de qualidade (09/11)**: Ondas 0 e 1 concluídas; aguardando OK para a Onda 2 (Biblioteca/export + levantamento do acervo), depois 3–5.
+   Abertos da revisão: BUG 17 (EPUB sem `lang`/justificar; onda 6, fora), **BUG 20** (Reflow com página final em branco; motor do Reader,
+   fora das ondas aprovadas) e acervo embutido usado como fixture de testes. Botão OCR do Reflow (`PdfReflowProcessor.native.tsx`) ainda com
+   terracota fixa `#B65F42` + branco (4,46:1), fora do tema.
 3. **Backend remoto não comprovado**: Library Sync/Battle/Admin/SaaS (BUG 02, 11), `username-login` (BUG 09), cadastro/recovery (BUG 08),
    Drive real (BUG 03). Nada disto é verificável pelo código.
 4. **Geração de flashcards por livro** é só local determinística (pergunta fixa): não vender como IA; IA exige decisão do usuário (§5).
@@ -238,6 +242,15 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
 - **IA externa:** não enviar livros/trechos a serviço de IA sem pedido e consentimento explícito do usuário final.
 
 ## 10. Log (mais recente primeiro; máx. 5 entradas, resto → docs/context/historico/)
+
+### 09/11/2026 — Revisão de qualidade: Onda 1, ajustes de leitura (Claude)
+- IMPLEMENTADO (só painel e tokens; motor, documento, âncoras e posições intocados): BUG 15 — entrelinha/parágrafo com "Médio" = padrão do modo
+  (EPUB 1,65; PDF Reflow 1,6; parágrafo 1), Pequeno/Grande ±0,25/±0,5; valor salvo fora da lista não é reescrito nem marcado
+  (`spacingOptions`, `DEFAULT_READER_*`). BUG 16 — `readerThemes` com `onAccent`; Claro/Sépia/Papel com `accent` mais escuro e Sépia com
+  `secondaryText` mais escuro; texto selecionado (segmentos, modos, categorias) usa `onAccent` (antes branco fixo, 2,28:1 no Escuro).
+  C5 — opções/segmentos/capítulos ≥ 44 px, campos de página/busca 44 px, rótulos "Diminuir/Aumentar zoom", `accessibilityState` nos modos.
+- Testes: `test-app-design` cobre os 5 temas do livro (4,5:1); `test-reader-settings-categories` cobre padrões, valor legado, 44 px, `onAccent`
+  e rótulos; fixture Web do painel usa os temas reais (Papel/Escuro). VALIDADO: ver §3. NÃO TESTADO: Android; aparência dentro do documento.
 
 ### 09/11/2026 — Revisão de qualidade: Etapa A (diagnóstico) e Onda 0 (Claude)
 - Etapa A (só leitura) sobre `3cc1107`: achados em conforto, UX, desempenho e robustez; bugs 14–20 em BUGS_ATUAIS.md. Ondas 0–5 aprovadas
@@ -266,17 +279,9 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
 - Teste: loader compartilhado resolve pasta→`index.ts`; `test-settings-navigation`, `test-admin-web`, `redmi-qa` seguem os novos títulos.
   VALIDADO: ver §3. NÃO TESTADO: Android.
 
-### 06/11/2026 — Redesign Fase 3: Biblioteca enxuta com "+" (Claude)
-- IMPLEMENTADO: cabeçalho "Biblioteca" com só busca + dois botões: **"+" (Adicionar livros)** abre menu com Importar arquivo, Conectar Google Drive
-  (`/sources?add=drive`, abre o fluxo direto), Adicionar biblioteca por link (`/sources?add=link`) e Buscar em catálogos públicos; **"⋯"** reúne
-  Selecionar livros, Coleções, Minhas fontes e tema. Situação em chips, formato/ordenação em folhas (`ActionMenu`), "Continue lendo" em cartão,
-  "Organizar" virou ícone no card. `BookCard` reestilizado (capa protagonista, formato · progresso). Lógica de organização/seleção/Sync intacta.
-- CORRIGIDO no caminho: regex de acentos de `normalizeBookTitle` tinha virado caracteres literais na edição; o Chromium pegou (`SyntaxError`) e foi restaurado.
-- VALIDADO: ver §3 (89/89, export, 4 suítes Chromium). Testes atualizados aos novos rótulos/menus: `test-library-bulk-web`, `test-library-web`,
-  `test-saas-web`, `redmi-qa` ("Sua Biblioteca" → "Biblioteca"). NÃO TESTADO: Android.
-
 ### 06/11/2026 — Entradas anteriores
 - Fechamento UX/UI e Onboarding 1: ver `docs/context/historico/2026-11-06-ux-fechamento-e-onboarding-1.md`.
 - Onboarding 2 (auditoria e reescrita do contexto): ver `docs/context/historico/2026-11-06-onboarding-2.md`.
 - Redesign Fase 1 (fundação `src/ui`): ver `docs/context/historico/2026-11-06-redesign-fase-1.md`.
 - Redesign Fase 2 (navegação e Descobrir): ver `docs/context/historico/2026-11-06-redesign-fase-2.md`.
+- Redesign Fase 3 (Biblioteca com "+"): ver `docs/context/historico/2026-11-06-redesign-fase-3.md`.

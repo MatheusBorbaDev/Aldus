@@ -18,10 +18,13 @@ Diagnóstico sobre `main` `3cc1107`, neste PC (Windows). Evidência por código 
   `scripts/test-error-boundary.cjs` (renderer de teste + fiação estática; no `test:critical`). NÃO TESTADO: erro real disparado no app Web/Android.
 - **BUG 15 — Entrelinha/espaço entre parágrafos padrão não correspondem às opções.** `ReaderSettingsContext.tsx:41-42` (1,65 e 1) vs opções
   `ReaderSettingsPanel.tsx:298/307` (1,2/1,5/1,8 e 0,4/0,8/1,2) com `closestValue`. O painel marca "Médio" (1,5) para 1,65; tocar no item
-  já marcado **reduz** a entrelinha. Status: ABERTO (código). Validar: teste do painel com o valor padrão.
+  já marcado **reduz** a entrelinha. **Onda 1 (09/11): CORRIGIDO NO CÓDIGO** — "Médio" é o padrão do modo (EPUB 1,65 / Reflow 1,6; parágrafo 1);
+  valores salvos fora da lista não são reescritos e nenhum item fica marcado. VALIDADO: `test-reader-settings-categories`, `test:reader:settings:web`.
+  NÃO TESTADO: Android.
 - **BUG 16 — Contraste abaixo de AA em temas do Reader.** `src/theme/tokens.ts:86-90`, medido (WCAG): Claro `accent`/fundo 2,84:1; Sépia
-  `secondaryText` 3,51:1 e `accent` 3,58:1 (texto pequeno exige 4,5:1). Escuro/Preto/Papel passam. Status: ABERTO. Validar: estender
-  `test-app-design.cjs` aos `readerThemes`.
+  `secondaryText` 3,51:1 e `accent` 3,58:1 (texto pequeno exige 4,5:1). Escuro/Preto/Papel passam. Também: texto branco fixo sobre `accent`
+  em segmentos/modos/categorias selecionados (Escuro 2,28:1). **Onda 1 (09/11): CORRIGIDO NO CÓDIGO** — novos `accent`/`secondaryText` e `onAccent`
+  por tema; todos ≥ 4,5:1 em `background` e `panel`. VALIDADO: `test-app-design` (5 temas) e capturas Chromium. NÃO TESTADO: tela física.
 - **BUG 17 — Hifenização do EPUB inativa.** CSS pede `hyphens: auto` (`EpubReaderDocument.ts:171`), mas o documento gerado não tem `lang`
   (`<html>` na linha 46) e o parser não extrai `dc:language`; Chromium/WebView só hifenizam com idioma declarado. A opção de justificar existe
   no documento (`alignment`), mas nenhum chamador a passa ao EPUB (só o Reflow tem o controle). Status: ABERTO (código); efeito visual no
