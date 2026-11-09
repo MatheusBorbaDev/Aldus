@@ -1,5 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { PropsWithChildren, createContext, useContext, useEffect, useMemo, useState } from "react";
+import { PropsWithChildren, createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { latestWriteTracker } from "@/src/core/utils/latestWrite";
 import { ReaderFont, ReaderMargin, ReaderTheme } from "@/src/domain/types/reader";
 import { fontFamilies, marginSizes, readerThemes, ReaderPalette } from "@/src/theme/tokens";
 
@@ -27,12 +28,15 @@ interface ReaderSettingsValue {
   setBrightness: (value: number) => void;
   setUseSystemBrightness: (value: boolean) => void;
   setHideReadingCounts: (value: boolean) => void;
+  /** Mensagem quando a última gravação dos ajustes falhou (os ajustes valem só até fechar o app); null quando salvou. */
+  saveError: string | null;
 }
 
 const READER_SETTINGS_STORAGE_KEY = "@kindle/reader-settings.v1";
 /** Padrões do EPUB; o painel usa estes valores como opção "Médio" (BUG 15). Alterar muda a leitura de quem nunca ajustou. */
 export const DEFAULT_READER_LINE_HEIGHT = 1.65;
 export const DEFAULT_READER_PARAGRAPH_SPACING = 1;
+export const READER_SETTINGS_SAVE_ERROR = "Não foi possível salvar os ajustes de leitura neste aparelho. Eles valem até você fechar o app.";
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
 const ReaderSettingsContext = createContext<ReaderSettingsValue | null>(null);
 
@@ -48,6 +52,10 @@ export function ReaderSettingsProvider({ children }: PropsWithChildren) {
   const [useSystemBrightness, setUseSystemBrightness] = useState(true);
   const [ready, setReady] = useState(false);
   const [hideReadingCounts, setHideReadingCounts] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const trackSave = useMemo(() => latestWriteTracker(failed => setSaveError(failed ? READER_SETTINGS_SAVE_ERROR : null)), []);
+  // Leitura falhou: os padrões em memória não podem sobrescrever os ajustes salvos; só uma mudança do leitor grava (onda 5).
+  const skipUnchangedSave = useRef(false);
 
   useEffect(() => {
     let disposed = false;
@@ -88,7 +96,7 @@ export function ReaderSettingsProvider({ children }: PropsWithChildren) {
         if (!disposed) setReady(true);
       }
     }).catch(() => {
-      if (!disposed) setReady(true);
+      if (!disposed) { skipUnchangedSave.current = true; setReady(true); }
     });
 
     return () => {
@@ -98,7 +106,8 @@ export function ReaderSettingsProvider({ children }: PropsWithChildren) {
 
   useEffect(() => {
     if (!ready) return;
-    void AsyncStorage.setItem(READER_SETTINGS_STORAGE_KEY, JSON.stringify({
+    if (skipUnchangedSave.current) { skipUnchangedSave.current = false; return; }
+    trackSave(AsyncStorage.setItem(READER_SETTINGS_STORAGE_KEY, JSON.stringify({
       theme,
       font,
       fontSize,
@@ -109,8 +118,8 @@ export function ReaderSettingsProvider({ children }: PropsWithChildren) {
       brightness,
       useSystemBrightness,
       hideReadingCounts,
-    })).catch(() => undefined);
-  }, [brightness, font, fontSize, hideReadingCounts, lineHeight, margin, maxWidth, paragraphSpacing, ready, theme, useSystemBrightness]);
+    })));
+  }, [brightness, font, fontSize, hideReadingCounts, lineHeight, margin, maxWidth, paragraphSpacing, ready, theme, trackSave, useSystemBrightness]);
 
   const value = useMemo<ReaderSettingsValue>(() => ({
     theme,
@@ -136,7 +145,8 @@ export function ReaderSettingsProvider({ children }: PropsWithChildren) {
     setBrightness: (value) => setBrightness(clamp(value, 20, 100)),
     setUseSystemBrightness,
     setHideReadingCounts,
-  }), [brightness, font, fontSize, hideReadingCounts, lineHeight, margin, maxWidth, paragraphSpacing, theme, useSystemBrightness]);
+    saveError,
+  }), [brightness, font, fontSize, hideReadingCounts, lineHeight, margin, maxWidth, paragraphSpacing, saveError, theme, useSystemBrightness]);
 
   return <ReaderSettingsContext.Provider value={value}>{children}</ReaderSettingsContext.Provider>;
 }

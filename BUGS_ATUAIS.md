@@ -4,6 +4,22 @@
 
 Diagnóstico sobre `main` `3cc1107`, neste PC (Windows). Evidência por código e medição local; nada validado em Android.
 
+- **BUG 21 — Falha ao LER preferências sobrescrevia as salvas com os padrões; falhas ao GRAVAR eram engolidas.** Onda 5 (R4).
+  `ReaderSettingsContext` e `AppThemeContext`: se `AsyncStorage.getItem` rejeitava, o `.catch` marcava `ready` e o efeito de gravação
+  escrevia os valores em memória (padrões) por cima dos salvos. Reproduzido com a versão do HEAD `a1399ef` lida do Git e AsyncStorage
+  controlado: 1 gravação `fontSize=16 theme=sepia` logo após a leitura falhar. Além disso, as gravações de ajustes de leitura, tema e ajustes
+  do PDF (`ReaderScreen` → `pdfReaderSettings.save`) usavam `.catch(() => undefined)`: o leitor perdia a escolha ao reabrir sem aviso.
+  **CORRIGIDO NO CÓDIGO (09/11):** depois de leitura falha nada é gravado até o usuário mudar algo; `latestWriteTracker`
+  (`src/core/utils/latestWrite.ts`) expõe a falha só da gravação mais recente (`saveError`), mostrada no painel de ajustes do Reader
+  (ajustes do livro ou do PDF aberto) e em Aparência; o valor continua valendo em memória. Sem novo timeout/retry. VALIDADO por
+  `test-preference-persistence` (critical) e suítes Chromium do Reader (ver PROJECT_CONTEXT §3). NÃO TESTADO: Android/AsyncStorage real com falha.
+  Classificação dos demais `catch` que engolem erro (86 ocorrências por `rg` amplo; o diagnóstico citou 56 com padrão mais estrito): limpeza de
+  arquivos temporários/rollback, cancelamento de tarefas nativas e `destroy()` do pdf.js, encadeamento de filas (`queue.catch(()=>undefined).then`)
+  cujo erro chega a quem chamou, diagnósticos/métricas, leitura de cache opcional (CFI legado, cache de perfil/Reflow) e recarga com estado de
+  erro próprio (organização, biblioteca, Sync). `DownloadManager`: os catches são de cancelamento/limpeza; a falha do download é publicada como
+  estado `failed` com mensagem (não é silenciosa, ao contrário do que o diagnóstico supunha). Pistas de movimento já avisavam a falha. Resíduos
+  aceitos e não alterados: `AuthContext` não remove o cache de perfil da conta anterior se `removeItem` falhar; `SupabaseBookFileDriver` não
+  reporta falha ao cancelar a reserva de cota (Sync/SaaS fora do escopo).
 - **BUG 20 — Reflow: página final em branco (coluna fantasma).** Achado ao rodar `test:reader:reflow:web` neste PC com o PDF versionado
   `assets/Livros/sobre-o-ocio.pdf` (49 págs. fonte, 9 capítulos): na largura fracionária 419,72 px o documento tem 24 páginas
   (`scrollWidth` 10073), o último texto do livro termina na página 23 e a página 24 só contém o contêiner `section.epub-chapter`, sem texto
@@ -513,6 +529,16 @@ e 7f50a90^:DIAGNOSTICO_BUGS_APK.md. Não restaurar esses arquivos como contexto.
   alcançabilidade. Não aplicar downgrade Expo44 ou major upgrades só para zerar contador.
 - Arquivos: package-lock.json; CI mantém avisos visíveis e bloqueia novos críticos.
 - Não regredir: SDK57/RN0.86, build Web/Android e notices/licenças.
+- **Investigação 09/11 (onda 5, R5; nada instalado/atualizado):** `npm audit --omit=dev` = 0 críticos, 6 altos, 11 moderados, 1 baixo. Altos:
+  `node-forge` 1.4.0 e `zod` 3.25.76 só via `@expo/cli` (ferramenta de build, fora do bundle do app); `decode-uri-component` 0.2.2 via
+  `expo-router` → `query-string` 7 (**no bundle**, DoS por URL malformada no próprio cliente), correção só em `expo-router` 58 (SDK 58, major).
+  `expo install --check`: 9 pacotes atrás do patch esperado do SDK 57 (`expo` ~57.0.32, `expo-router` ~57.0.30, `expo-asset`, `expo-constants`,
+  `expo-dev-client`, `expo-document-picker`, `expo-linking`, `expo-network`, `expo-sqlite`). Declarações diretas fora de linha: `@react-native/js-polyfills`
+  0.76.9 em `dependencies` (RN 0.86 traz 0.86.3) e `metro-cache` ^0.81.5 em `devDependencies` (Expo usa 0.84.5), sem referência em
+  `metro.config.js`/código; origem no commit inicial. **Proposta (aguarda decisão):** (1) alinhar os 9 patches do SDK 57 — vários têm código
+  nativo, **exige novo APK** e regressão completa (critical, export, Chromium, Redmi); (2) remover as duas declarações antigas após confirmar
+  qual `js-polyfills` o Metro resolve (hipótese: o da raiz, 0.76.9) e regenerar os avisos de licença — também exige novo APK; (3) SDK 58
+  (resolve `decode-uri-component`) só como projeto próprio. Não usar `audit fix --force`.
 
 ### SaaS Etapa 2 — quotas de Sync/Storage e validação remota pendente
 

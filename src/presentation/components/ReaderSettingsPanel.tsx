@@ -18,6 +18,8 @@ interface Props {
   pdfSettings?: PdfReaderSettings | null;
   onPdfModeChange?: (mode: PdfReadingMode) => void;
   onPdfSettingsChange?: (settings: PdfReaderSettings) => void;
+  /** Falha ao gravar os ajustes do PDF aberto (ver ReaderScreen). */
+  pdfSettingsSaveError?: string | null;
   onToggleFullscreen?: () => void;
   pageNumber?: number;
   totalPages?: number;
@@ -52,6 +54,7 @@ export function ReaderSettingsPanel({
   pdfSettings,
   onPdfModeChange,
   onPdfSettingsChange,
+  pdfSettingsSaveError,
   onToggleFullscreen,
   pageNumber,
   totalPages,
@@ -75,6 +78,8 @@ export function ReaderSettingsPanel({
     if (pdfSettings) onPdfSettingsChange?.({ ...pdfSettings, ...patch });
   };
   const isOriginalPdf = pdfSettings && pdfMode === "original";
+  // Falha de gravação visível só nos ajustes (onde o leitor mexe); não fecha o painel nem altera o documento.
+  const saveError = pdfSettings ? pdfSettingsSaveError : settings.saveError;
 
   useEffect(() => {
     if (visible) setPageInput(String(pageNumber ?? 1));
@@ -97,6 +102,7 @@ export function ReaderSettingsPanel({
             onContentSizeChange={(width, height) => readerUiDiagnostic("LAYOUT", "preferencesContent", undefined, { x: 0, y: 0, width, height })}
             onScroll={event => readerUiDiagnostic("LAYOUT", "preferencesScroll", undefined, { x: event.nativeEvent.contentOffset.x, y: event.nativeEvent.contentOffset.y, width: event.nativeEvent.layoutMeasurement.width, height: event.nativeEvent.layoutMeasurement.height })}
           >
+          {panelMode === "appearance" && saveError ? <View accessibilityRole="alert" accessibilityLiveRegion="polite" style={[styles.saveError, { borderColor: palette.accent }]}><Text style={{ color: palette.text }}>{saveError}</Text></View> : null}
           {panelMode === "appearance" ? (
             <View style={{ gap: 10, display: category === "focus" ? "flex" : "none" }}>
               <Text accessibilityRole="header" style={[styles.label, { color: palette.secondaryText }]}>CONCENTRAÇÃO</Text>
@@ -346,6 +352,7 @@ export function ReaderSettingsPanel({
 }
 
 const styles = StyleSheet.create({
+  saveError: { borderWidth: 1, borderRadius: 10, padding: 12, marginBottom: 12 },
   backdrop: { flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.35)", paddingHorizontal: 12, paddingBottom: 0 },
   panel: { width: "100%", maxWidth: 560, maxHeight: "90%", padding: 0, borderTopLeftRadius: 24, borderTopRightRadius: 24, alignSelf: "center" },
   panelHeader: {paddingHorizontal: 20, paddingTop: 16, paddingBottom: 12},

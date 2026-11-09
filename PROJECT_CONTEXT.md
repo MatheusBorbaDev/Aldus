@@ -85,7 +85,10 @@ Persistência (legado mantido, não renomear `kindle-*`/`@kindle/*`): Native SQL
   PASS; `test-auth`, `test-auth-flows`, `test-auth-callback`, `test-auth-native-{callback,pkce}`, `test-legal`, `test-ui-primitives`, `test-app-design`
   PASS. Chromium: novo `test:auth:web` PASS (login/cadastro/recuperar/redefinir/completar perfil × 320/390/768/1440 × claro/escuro × texto
   normal/ampliado sintético = 80 capturas + erros locais; antes 16 violações de alvo < 44 px, depois 0). Capturas em `.expo/quality-wave4/{before,after}/`.
-  Próxima onda aprovada: 5 (erros silenciosos + proposta de dependências), só após OK do usuário.
+- **Onda 5 (09/11, sobre `a1399ef`)**: typecheck PASS; `test:critical` **93/93** (nova `preference-persistence`); `export:web` PASS (build
+  `a1399ef0a57e`, dirty=true); diff-check PASS. Chromium: `test:reader:{browser,epub:web,study:web,pdf:web,settings:web,concentration:web,
+  markings:web}` PASS; `reflow:web` FAIL só pelo BUG 20 (mesmos valores: total 24, visible 0, scrollWidth 10073); `test:source-library:browser`
+  e `test:auth:web` PASS. Ondas aprovadas 0–5 concluídas; 6 e 7 seguem fora até decisão do usuário.
 - Validação local de 09/11 ("Continue lendo", sobre `cb45b71`): typecheck PASS; `test:critical` 90/90 (nova `library-last-read`); `export:web` PASS;
   `test:library:bulk:web` e `test:library:web` PASS; diff-check PASS.
 - Validação anterior (Fase 5, sobre `bb9d5dd`): typecheck PASS; `test:critical` 89/89; `export:web` PASS (build `bb9d5dd4597e`, dirty=true);
@@ -224,7 +227,8 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
    no novo visual (`docs/context/design-system.md`).
    **Acervo**: etapa 1 (contas novas só domínio público) pronta em `claude/acervo-dominio-publico-ae9294` (`11cf66c`), aguardando decisão de integrar; etapa 2 (cópia por usuário + nuvem privada, aprovada pelo usuário)
    e etapa 3 (remover os 33 arquivos do APK/`dist`) pendentes.
-   **Revisão de qualidade (09/11)**: Ondas 0–4 concluídas; aguardando OK para a Onda 5 (erros silenciosos; R5 só investigação). Levantamento do
+   **Revisão de qualidade (09/11)**: Ondas 0–5 aprovadas concluídas (commits locais, sem push); 6 e 7 fora. R5: proposta de dependências no BUG 13
+   (alinhar patches do SDK 57 e remover `js-polyfills` 0.76/`metro-cache` 0.81 exigem novo APK), aguardando decisão. Levantamento do
    acervo entregue ao usuário (34 arquivos, 92,7 MB; 8 usados como fixture de teste), aguardando decisão do que sai; nada removido.
    Candidatos de bundle (sem decisão): pdfjs-dist duplicado no entry, reanimated só para motion cues, `react-native-render-html` em `ChapterRenderer`.
    Abertos da revisão: BUG 17 (EPUB sem `lang`/justificar; onda 6, fora), **BUG 20** (Reflow com página final em branco; motor do Reader,
@@ -255,6 +259,18 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
 - **IA externa:** não enviar livros/trechos a serviço de IA sem pedido e consentimento explícito do usuário final.
 
 ## 10. Log (mais recente primeiro; máx. 5 entradas, resto → docs/context/historico/)
+
+### 09/11/2026 — Revisão de qualidade: Onda 5, erros silenciosos e dependências (Claude)
+- R4 classificado (86 `catch` que engolem erro por `rg` amplo; lista e critérios no BUG 21). IMPLEMENTADO só onde havia perda de dado:
+  ajustes de leitura (`ReaderSettingsContext`), tema (`AppThemeContext`) e ajustes do PDF (`ReaderScreen` → `pdfReaderSettings.save`) agora
+  passam por `latestWriteTracker` (`src/core/utils/latestWrite.ts`): falha da gravação mais recente vira `saveError`, mostrado no painel de
+  ajustes do Reader e em Aparência, e some no próximo sucesso; o valor segue em memória. **BUG 21** corrigido: leitura de preferências que
+  falhava gravava os padrões por cima das salvas (reproduzido com o HEAD anterior); agora nada é gravado até o usuário mudar algo. No Reader
+  só mudou a gravação dos ajustes do PDF e um aviso no painel (sem remontagem, posição ou âncora). `DownloadManager` não precisava de mudança.
+- R5 só investigado (nada instalado): ver BUG 13 (audit 0 crít./6 altos; 9 patches do SDK 57 pendentes; `js-polyfills` 0.76.9 e
+  `metro-cache` 0.81.5 declarados à mão). Proposta aguarda o usuário; qualquer opção exige novo APK.
+- Testes: `test-preference-persistence` (critical); `test-reader-concentration` libera o módulo puro `latestWrite`. VALIDADO: ver §3.
+  NÃO TESTADO: Android e falha real do AsyncStorage/IndexedDB.
 
 ### 09/11/2026 — Revisão de qualidade: Onda 4, telas de entrada (Claude)
 - IMPLEMENTADO D2 (só apresentação; `authService`, sessão, OAuth/PKCE, callback, diagnósticos e regras **intocados**): `AuthForm.tsx` sobre
@@ -295,15 +311,6 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
   expo-router 429, entities 369 + ramda 122 (via `react-native-render-html` em `ChapterRenderer`), src/presentation 319. `.expo/perf/web-bundle-composition.json`.
 - VALIDADO: ver §3. NÃO TESTADO: Android/Hermes (medição só no Chromium com fixture sintética).
 
-### 09/11/2026 — Revisão de qualidade: Onda 1, ajustes de leitura (Claude)
-- IMPLEMENTADO (só painel e tokens; motor, documento, âncoras e posições intocados): BUG 15 — entrelinha/parágrafo com "Médio" = padrão do modo
-  (EPUB 1,65; PDF Reflow 1,6; parágrafo 1), Pequeno/Grande ±0,25/±0,5; valor salvo fora da lista não é reescrito nem marcado
-  (`spacingOptions`, `DEFAULT_READER_*`). BUG 16 — `readerThemes` com `onAccent`; Claro/Sépia/Papel com `accent` mais escuro e Sépia com
-  `secondaryText` mais escuro; texto selecionado (segmentos, modos, categorias) usa `onAccent` (antes branco fixo, 2,28:1 no Escuro).
-  C5 — opções/segmentos/capítulos ≥ 44 px, campos de página/busca 44 px, rótulos "Diminuir/Aumentar zoom", `accessibilityState` nos modos.
-- Testes: `test-app-design` cobre os 5 temas do livro (4,5:1); `test-reader-settings-categories` cobre padrões, valor legado, 44 px, `onAccent`
-  e rótulos; fixture Web do painel usa os temas reais (Papel/Escuro). VALIDADO: ver §3. NÃO TESTADO: Android; aparência dentro do documento.
-
 ### 06/11/2026 — Entradas anteriores
 - Fechamento UX/UI e Onboarding 1: ver `docs/context/historico/2026-11-06-ux-fechamento-e-onboarding-1.md`.
 - Onboarding 2 (auditoria e reescrita do contexto): ver `docs/context/historico/2026-11-06-onboarding-2.md`.
@@ -313,3 +320,4 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
 - Redesign Fase 4 (Conta e Estudo): ver `docs/context/historico/2026-11-06-redesign-fase-4.md`.
 - Redesign Fase 5 (moldura do Reader, 09/11): ver `docs/context/historico/2026-11-09-redesign-fase-5.md`.
 - Revisão de qualidade, Etapa A e Onda 0 (09/11): ver `docs/context/historico/2026-11-09-qualidade-etapa-a-onda-0.md`.
+- Revisão de qualidade, Onda 1 (09/11): ver `docs/context/historico/2026-11-09-qualidade-onda-1.md`.

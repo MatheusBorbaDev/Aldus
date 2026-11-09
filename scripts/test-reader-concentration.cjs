@@ -23,6 +23,7 @@ function load(file, overrides = {}) {
     if (name === '@expo/vector-icons') return { Ionicons: 'Icon' };
     if (name === 'react-native-safe-area-context') return { useSafeAreaInsets: () => ({ bottom: 24 }) };
     if (name.endsWith('/readerNavigationDiagnostics')) return { readerNavigationDiagnostic() {} };
+    if (name === '@/src/core/utils/latestWrite') return load('src/core/utils/latestWrite.ts'); // pure module, real code
     throw Error('Uncontrolled dependency: ' + name);
   }, result);
   return result;

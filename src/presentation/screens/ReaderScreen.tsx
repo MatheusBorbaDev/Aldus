@@ -6,6 +6,9 @@ import { decodeReaderLocation, encodeReaderLocation } from "@/src/domain/types/r
 import { ReaderStudyRequest, ReaderStudyResult } from "@/src/presentation/components/EpubPageViewerProps";
 import { Highlight } from "@/src/domain/repositories/HighlightRepository";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { latestWriteTracker } from "@/src/core/utils/latestWrite";
+
+const PDF_SETTINGS_SAVE_ERROR = "Não foi possível salvar os ajustes deste PDF. Eles valem até você fechar o livro.";
 import {
   ActivityIndicator,
   AppState,
@@ -123,6 +126,9 @@ export function ReaderScreen({ bookId }: Props) {
   const [pdfTotalPages, setPdfTotalPages] = useState(0);
   const [pdfPageMode, setPdfPageMode] = useState<PdfPageMode>("single");
   const [pdfReaderSettings, setPdfReaderSettings] = useState<PdfReaderSettings | null>(null);
+  // Livro cuja última gravação dos ajustes do PDF falhou (aviso no painel; os ajustes seguem valendo em memória). Onda 5.
+  const [pdfSettingsSaveFailedBookId, setPdfSettingsSaveFailedBookId] = useState<string | null>(null);
+  const trackPdfSettingsSave = useMemo(() => latestWriteTracker(failed => setPdfSettingsSaveFailedBookId(failed ? bookId : null)), [bookId]);
   const [pdfReflowDocument, setPdfReflowDocument] = useState<PdfReflowDocument | null>(null);
   const [pdfReflowChapters, setPdfReflowChapters] = useState<StoredChapter[]>([]);
   const [reflowRestoreState, setReflowRestoreState] = useState<"inactive" | "pending" | "applying">("inactive");
@@ -413,8 +419,8 @@ export function ReaderScreen({ bookId }: Props) {
 
   useEffect(() => {
     if (!isPdf || !pdfReaderSettings || pdfSettingsBookId !== bookId) return;
-    void appDependencies.pdfReaderSettings.save(bookId, pdfReaderSettings).catch(() => undefined);
-  }, [bookId, isPdf, pdfReaderSettings, pdfSettingsBookId]);
+    trackPdfSettingsSave(appDependencies.pdfReaderSettings.save(bookId, pdfReaderSettings));
+  }, [bookId, isPdf, pdfReaderSettings, pdfSettingsBookId, trackPdfSettingsSave]);
 
   const handlePdfSettingsChange = useCallback((nextSettings: PdfReaderSettings) => {
     setPdfReaderSettings(nextSettings);
@@ -1112,6 +1118,7 @@ export function ReaderScreen({ bookId }: Props) {
           pdfSettings={isPdf ? pdfReaderSettings : null}
           onPdfModeChange={isPdf ? handlePdfModeChange : undefined}
           onPdfSettingsChange={isPdf ? handlePdfSettingsChange : undefined}
+          pdfSettingsSaveError={isPdf && pdfSettingsSaveFailedBookId === bookId ? PDF_SETTINGS_SAVE_ERROR : null}
           onToggleFullscreen={isPdf && pdfReadingMode === "original" ? handleToggleFullscreen : undefined}
           pageNumber={pageNumber}
           totalPages={displayedTotalPages}
