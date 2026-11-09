@@ -1,4 +1,5 @@
-import { Stack, useSegments } from "expo-router";
+import { router, Stack, useSegments, type ErrorBoundaryProps } from "expo-router";
+import { ErrorScreen } from "@/src/ui/ErrorScreen";
 import Head from "expo-router/head";
 import { useEffect } from "react";
 import { ActivityIndicator, AppState, DimensionValue, Linking, Platform, StatusBar, StyleSheet, useWindowDimensions, View } from "react-native";
@@ -12,6 +13,21 @@ import { AppThemeProvider, useAppTheme } from "@/src/presentation/contexts/AppTh
 import { AuthProvider, useAuth } from "@/src/presentation/contexts/AuthContext";
 import { authDiagnostic, correlatedAuthDiagnostic } from "@/src/utils/authDiagnostics";
 import { nativeAuthCallbacks } from '@/src/data/remote/nativeAuthCallback';
+
+/**
+ * Fronteira de erro da raiz (BUG 14): uma exceção de renderização em qualquer tela mostra uma
+ * tela de recuperação em vez de derrubar o app. Fica fora dos providers, por isso ErrorScreen
+ * não depende de tema/Auth. Não registra nem envia o erro; o detalhe só aparece em desenvolvimento.
+ */
+export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
+  return (
+    <ErrorScreen
+      detail={__DEV__ ? error.message : undefined}
+      onRetry={() => { void retry(); }}
+      onHome={() => { router.replace("/library"); void retry(); }}
+    />
+  );
+}
 
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts(Ionicons.font);

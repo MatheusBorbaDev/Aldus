@@ -10,7 +10,7 @@ export const studyColorSwatches: Record<HighlightColor, string> = { yellow: "#F2
 export function StudyAction({ label, onPress, disabled = false, primary = false, danger = false, icon }: { label: string; onPress: () => void; disabled?: boolean; primary?: boolean; danger?: boolean; icon?: keyof typeof Ionicons.glyphMap }) {
   const { palette } = useAppTheme();
   const color = primary ? palette.panel : danger ? "#B44343" : palette.text;
-  return <Pressable accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ disabled }} disabled={disabled} onPress={onPress} style={({ pressed }) => [styles.action, { borderColor: primary ? palette.text : palette.separator, backgroundColor: primary ? palette.text : "transparent", opacity: disabled ? .45 : pressed ? .7 : 1 }]}>
+  return <Pressable accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ disabled }} disabled={disabled} onPress={onPress} android_ripple={{ color: palette.separator }} style={[styles.action, { borderColor: primary ? palette.text : palette.separator, backgroundColor: primary ? palette.text : "transparent", opacity: disabled ? .45 : 1 }]}>
     {icon ? <Ionicons name={icon} size={18} color={color} /> : null}<Text style={{ color, fontSize: 14, fontWeight: "600", flexShrink: 1 }}>{label}</Text>
   </Pressable>;
 }

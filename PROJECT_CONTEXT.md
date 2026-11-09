@@ -66,6 +66,13 @@ Persistência (legado mantido, não renomear `kindle-*`/`@kindle/*`): Native SQL
   e BibliON/MEC; Estudo e Conta OK; sem FATAL no logcat. Achados: rótulos da barra quebravam (corrigido depois do APK, em `library.tsx`), nome
   "Leitor"/inicial "A" sem `display_name` (corrigido: usa o username), **"Continue lendo" nunca aparece** (BUGS_ATUAIS.md; pré-existente).
   Essas correções — e a do "Continue lendo" (commit seguinte) — NÃO estão no APK instalado.
+- **Este PC (09/11):** `main` atualizado por fast-forward até `3cc1107`; `npm ci`/`setup:test-tools`; Android SDK por `android/local.properties`
+  (ignorado; sem `ANDROID_HOME`), JDK 17. Sem `Livros/` pessoal (as suítes usam `assets/Livros`). APK/Redmi não exercitados neste PC.
+- **Revisão de qualidade — Onda 0 (09/11, sobre `3cc1107`)**: typecheck PASS; `test:critical` **91/91** (nova `error-boundary`); `export:web`
+  PASS (build `3cc110708f88`, dirty=true); diff-check PASS. Chromium: `test:reader:{browser,epub:web,study:web,pdf:web,settings:web,
+  concentration:web,markings:web}` PASS; **`test:reader:reflow:web` FAIL** (BUG 20, determinístico); `test:saas:web`, `test:admin:web` PASS.
+  Próximas ondas aprovadas: 1 (ajustes de leitura), 2 (Biblioteca/export + levantamento do acervo), 3 (tela de Fonte/Drive), 4 (Auth),
+  5 (erros silenciosos + proposta de dependências), cada uma só após OK do usuário.
 - Validação local de 09/11 ("Continue lendo", sobre `cb45b71`): typecheck PASS; `test:critical` 90/90 (nova `library-last-read`); `export:web` PASS;
   `test:library:bulk:web` e `test:library:web` PASS; diff-check PASS.
 - Validação anterior (Fase 5, sobre `bb9d5dd`): typecheck PASS; `test:critical` 89/89; `export:web` PASS (build `bb9d5dd4597e`, dirty=true);
@@ -203,6 +210,9 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
    no novo visual (`docs/context/design-system.md`).
    **Acervo**: etapa 1 (contas novas só domínio público) pronta em `claude/acervo-dominio-publico-ae9294` (`11cf66c`), aguardando decisão de integrar; etapa 2 (cópia por usuário + nuvem privada, aprovada pelo usuário)
    e etapa 3 (remover os 33 arquivos do APK/`dist`) pendentes.
+   **Revisão de qualidade (09/11)**: Onda 0 concluída; aguardando OK para a Onda 1 (BUG 15/16 e alvos do painel do Reader), depois 2–5.
+   Abertos da revisão: BUG 15, 16, 17 (EPUB sem `lang`/justificar; onda 6, fora), **BUG 20** (Reflow com página final em branco; motor do Reader,
+   fora das ondas aprovadas) e acervo embutido usado como fixture de testes.
 3. **Backend remoto não comprovado**: Library Sync/Battle/Admin/SaaS (BUG 02, 11), `username-login` (BUG 09), cadastro/recovery (BUG 08),
    Drive real (BUG 03). Nada disto é verificável pelo código.
 4. **Geração de flashcards por livro** é só local determinística (pergunta fixa): não vender como IA; IA exige decisão do usuário (§5).
@@ -228,6 +238,15 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
 - **IA externa:** não enviar livros/trechos a serviço de IA sem pedido e consentimento explícito do usuário final.
 
 ## 10. Log (mais recente primeiro; máx. 5 entradas, resto → docs/context/historico/)
+
+### 09/11/2026 — Revisão de qualidade: Etapa A (diagnóstico) e Onda 0 (Claude)
+- Etapa A (só leitura) sobre `3cc1107`: achados em conforto, UX, desempenho e robustez; bugs 14–20 em BUGS_ATUAIS.md. Ondas 0–5 aprovadas
+  pelo usuário, uma por vez com OK entre elas; 6 (tipografia do Reader) e 7 (visual de Estudo/Community/Plano) fora por enquanto.
+- IMPLEMENTADO Onda 0: fronteira de erro da raiz (`app/_layout.tsx` `ErrorBoundary` + `src/ui/ErrorScreen.tsx`, BUG 14); estilo estático nos
+  4 `Pressable` restantes (BUG 18) com varredura de todo `app/`+`src/` em `test-ui-primitives`; `test-reader-browser` lê `assets/Livros` (BUG 19);
+  `test-reflow-native-scheduling` com relógio determinístico (falhava ~40% neste PC por depender da velocidade da CPU; mutação com yield em
+  microtask continua falhando o teste).
+- VALIDADO: ver §3. Achado novo: BUG 20 (Reflow com página final em branco), não corrigido (motor do Reader fora das ondas). NÃO TESTADO: Android.
 
 ### 09/11/2026 — Redesign Fase 5: moldura do Reader (Claude)
 - IMPLEMENTADO (só visual, `TopHeader.tsx` e `BottomFooter.tsx`): título serifado, capítulo em tom secundário, botões de 44 px, linha fina no
@@ -256,15 +275,8 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
 - VALIDADO: ver §3 (89/89, export, 4 suítes Chromium). Testes atualizados aos novos rótulos/menus: `test-library-bulk-web`, `test-library-web`,
   `test-saas-web`, `redmi-qa` ("Sua Biblioteca" → "Biblioteca"). NÃO TESTADO: Android.
 
-### 06/11/2026 — Redesign Fase 2: navegação e aba Descobrir (Claude)
-- IMPLEMENTADO: abas Biblioteca · Descobrir · Estudo · Conta (ícone cheio na aba ativa; sidebar Web com fundo `accentSoft`; rotas mantidas:
-  `search` = Descobrir). `app/(tabs)/search.tsx` refeito com `src/ui`: busca + chips; sem busca ativa mostra **Suas fontes** (lista da conta,
-  "Adicionar fonte" primário → `/sources?add=1`, "Gerenciar fontes") e **Bibliotecas digitais** (BibliON, MEC Livros). Lógica de busca/aquisição intacta.
-- CORRIGIDO: chips de filtro da busca listavam fontes ativas de **outras contas** do mesmo aparelho; agora filtram por conta (relacionado ao BUG 12).
-- VALIDADO: typecheck; `test:critical` 89/89 (nova `discover-ui`); `export:web`; `test:source-library:browser` (Chromium, 320–1440); diff-check.
-  NÃO TESTADO: Android. Nota: um teste que entregava instância React ao `assert` esgotou a memória ao falhar — use booleanos (ver `test-discover-ui.cjs`).
-
 ### 06/11/2026 — Entradas anteriores
 - Fechamento UX/UI e Onboarding 1: ver `docs/context/historico/2026-11-06-ux-fechamento-e-onboarding-1.md`.
 - Onboarding 2 (auditoria e reescrita do contexto): ver `docs/context/historico/2026-11-06-onboarding-2.md`.
 - Redesign Fase 1 (fundação `src/ui`): ver `docs/context/historico/2026-11-06-redesign-fase-1.md`.
+- Redesign Fase 2 (navegação e Descobrir): ver `docs/context/historico/2026-11-06-redesign-fase-2.md`.

@@ -1,5 +1,41 @@
 # Aldus Reader — Bugs Atuais
 
+## 09/11/2026 — Achados da revisão de qualidade (Etapa A) e Onda 0
+
+Diagnóstico sobre `main` `3cc1107`, neste PC (Windows). Evidência por código e medição local; nada validado em Android.
+
+- **BUG 20 — Reflow: página final em branco (coluna fantasma).** Achado ao rodar `test:reader:reflow:web` neste PC com o PDF versionado
+  `assets/Livros/sobre-o-ocio.pdf` (49 págs. fonte, 9 capítulos): na largura fracionária 419,72 px o documento tem 24 páginas
+  (`scrollWidth` 10073), o último texto do livro termina na página 23 e a página 24 só contém o contêiner `section.epub-chapter`, sem texto
+  (`{"total":24,"visible":0}`, `scripts/test-reader-browser.cjs:73`). Determinístico em 3 execuções; o EPUB real e o documento sintético
+  passam a mesma verificação. Antes deste PC a suíte lia `Livros/sobre-o-ocio.pdf` pessoal (arquivo possivelmente diferente), por isso o PASS
+  registrado em 06/11 não contradiz. Causa provável na contagem de colunas do documento (`EpubReaderDocument.ts`), **não investigada**: o motor
+  do Reader está fora das ondas aprovadas. Status: ABERTO; Android NÃO TESTADO.
+- **BUG 14 — Sem fronteira de erro de renderização.** Nenhum `ErrorBoundary`/`componentDidCatch` em `app/` ou `src/` (rg). Uma exceção de
+  render derruba a árvore inteira (tela branca na Web; tela de erro/fechamento no Android) sem caminho de volta.
+  **Onda 0 (09/11): CORRIGIDO NO CÓDIGO.** `app/_layout.tsx` exporta `ErrorBoundary` (expo-router) com `src/ui/ErrorScreen.tsx` (fora dos
+  providers; "Tentar de novo" e "Voltar à Biblioteca"; detalhe técnico só em `__DEV__`; nada é registrado ou enviado). VALIDADO por
+  `scripts/test-error-boundary.cjs` (renderer de teste + fiação estática; no `test:critical`). NÃO TESTADO: erro real disparado no app Web/Android.
+- **BUG 15 — Entrelinha/espaço entre parágrafos padrão não correspondem às opções.** `ReaderSettingsContext.tsx:41-42` (1,65 e 1) vs opções
+  `ReaderSettingsPanel.tsx:298/307` (1,2/1,5/1,8 e 0,4/0,8/1,2) com `closestValue`. O painel marca "Médio" (1,5) para 1,65; tocar no item
+  já marcado **reduz** a entrelinha. Status: ABERTO (código). Validar: teste do painel com o valor padrão.
+- **BUG 16 — Contraste abaixo de AA em temas do Reader.** `src/theme/tokens.ts:86-90`, medido (WCAG): Claro `accent`/fundo 2,84:1; Sépia
+  `secondaryText` 3,51:1 e `accent` 3,58:1 (texto pequeno exige 4,5:1). Escuro/Preto/Papel passam. Status: ABERTO. Validar: estender
+  `test-app-design.cjs` aos `readerThemes`.
+- **BUG 17 — Hifenização do EPUB inativa.** CSS pede `hyphens: auto` (`EpubReaderDocument.ts:171`), mas o documento gerado não tem `lang`
+  (`<html>` na linha 46) e o parser não extrai `dc:language`; Chromium/WebView só hifenizam com idioma declarado. A opção de justificar existe
+  no documento (`alignment`), mas nenhum chamador a passa ao EPUB (só o Reflow tem o controle). Status: ABERTO (código); efeito visual no
+  Android NÃO TESTADO.
+- **BUG 18 — Estilo-função em `Pressable` ainda presente** (padrão que empilhou conteúdo no Redmi, ver design-system.md):
+  `StudyPanelControls.tsx:13` (Reader), `community/presentation/components.tsx:40`, `admin/presentation/components.tsx:16`,
+  `saas/PlanScreens.tsx:28`. **Onda 0 (09/11): CORRIGIDO NO CÓDIGO** (estilo estático + `android_ripple`; feedback de opacidade ao pressionar
+  na Web foi retirado, como nos primitivos). `test-ui-primitives` agora varre todo `app/` e `src/`. VALIDADO: `test:critical`, `test:saas:web`,
+  `test:admin:web`, `test:reader:study:web`/`markings:web`. Efeito físico NÃO TESTADO.
+- **BUG 19 — Suítes Chromium do Reader dependem da pasta pessoal `Livros/`.** `npm run test:reader:epub:web` falhava neste PC com
+  `ENOENT scandir 'C:\KIndle\Livros'` (`scripts/test-reader-browser.cjs:45`), embora o mesmo EPUB exista em `assets/Livros`. As outras suítes
+  já usavam `assets/Livros`. **Onda 0 (09/11): CORRIGIDO** — a suíte lê `assets/Livros` (versionado). Resultado neste PC: 7/8 `test:reader:*:web`
+  PASS; `reflow:web` FAIL pelo BUG 20. Atenção: as fixtures dependem de livros do acervo embutido (Freud EPUB, `sobre-o-ocio.pdf`).
+
 ## 09/11/2026 — "Continue lendo" nunca aparece na Biblioteca (CORRIGIDO NO CÓDIGO; Android pendente)
 
 - Reprodução: Redmi, APK `ae98991`, após ler "Amêndoas" e voltar à Biblioteca: o cartão "Continue lendo" não aparece.

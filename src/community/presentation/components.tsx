@@ -37,7 +37,7 @@ export function Card({ title, children }: PropsWithChildren<{ title?: string }>)
 export function Action({ label, onPress, disabled = false }: { label: string; onPress(): void; disabled?: boolean }) {
   const { palette } = useAppTheme();
   return <Pressable accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ disabled }} disabled={disabled} onPress={onPress}
-    style={({ pressed }) => [styles.action, { backgroundColor: palette.surfaceSecondary, borderColor: palette.border, opacity: disabled ? .6 : pressed ? .75 : 1 }]}>
+    android_ripple={{ color: palette.border }} style={[styles.action, { backgroundColor: palette.surfaceSecondary, borderColor: palette.border, opacity: disabled ? .6 : 1 }]}>
     <Text style={[styles.actionText, { color: palette.text }]}>{label}</Text>
   </Pressable>;
 }

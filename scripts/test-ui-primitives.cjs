@@ -161,8 +161,12 @@ assert.equal(ui.touchTarget, 44);
   assert.equal(pressables(r).length, 1);
 
   // NativeWind's css-interop stacked a functional Pressable style on a physical Android: keep them static.
-  for (const file of [...fs.readdirSync('src/ui').map(name => 'src/ui/' + name), 'src/presentation/components/BookCard.tsx', 'app/(tabs)/library.tsx', 'app/(tabs)/search.tsx', 'src/presentation/components/SettingsLayout.tsx']) {
-    if (/\.tsx$/.test(file)) assert.doesNotMatch(fs.readFileSync(file, 'utf8'), /style=\{\s*\(\s*\{\s*pressed/, file + ' must not use a functional Pressable style');
+  // Whole app (app/ + src/), not only migrated screens: the Reader, Community, Admin and Plan had leftovers (BUG 18).
+  const tsxFiles = dir => fs.readdirSync(dir, { withFileTypes: true }).flatMap(entry => entry.isDirectory() ? tsxFiles(path.join(dir, entry.name)) : /\.tsx$/.test(entry.name) ? [path.join(dir, entry.name)] : []);
+  const scanned = [...tsxFiles('app'), ...tsxFiles('src')];
+  assert.ok(scanned.length > 100, 'style scan must cover the app tree');
+  for (const file of scanned) {
+    assert.doesNotMatch(fs.readFileSync(file, 'utf8'), /style=\{\s*\(\s*\{\s*pressed/, file + ' must not use a functional Pressable style');
   }
   console.log('PASS ui primitives: tokens, AppText variants, Button/IconButton/Chip states, ListGroup, ScreenHeader back, ActionMenu, SearchField, EmptyState, static Pressable styles. Stub host components; not a visual/TalkBack proof.');
 })().catch(error => { console.error(error); process.exit(1); });

@@ -25,7 +25,7 @@ const errors: Record<PlanFailure, string> = {
 export function PlanButton({ title, onPress, disabled = false }: { title: string; onPress?: () => void; disabled?: boolean }) {
   const { palette } = useAppTheme();
   return <Pressable accessibilityRole="button" accessibilityLabel={title} accessibilityState={{ disabled }} disabled={disabled} onPress={onPress}
-    style={({ pressed }) => [styles.button, { borderColor: palette.border, backgroundColor: pressed ? palette.surfaceSecondary : palette.surface, opacity: disabled ? 0.65 : 1 }]}>
+    android_ripple={{ color: palette.surfaceSecondary }} style={[styles.button, { borderColor: palette.border, backgroundColor: palette.surface, opacity: disabled ? 0.65 : 1 }]}>
     <Text style={{ color: palette.text, fontWeight: '600', textAlign: 'center' }}>{title}</Text>
   </Pressable>;
 }

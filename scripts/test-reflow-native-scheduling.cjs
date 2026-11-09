@@ -5,6 +5,9 @@ const task=setImmediate,clearTask=clearImmediate;const idle=new Set();
 global.setImmediate=callback=>queueMicrotask(callback);
 global.requestIdleCallback=process.argv.includes('--baseline')?undefined:callback=>{let id=task(()=>{idle.delete(id);callback({didTimeout:false,timeRemaining:()=>10});});idle.add(id);return id;};
 global.cancelIdleCallback=id=>{idle.delete(id);clearTask(id);};
+// Deterministic clock: each step exhausts the 8 ms slice, so the result does not depend on host CPU speed
+// (a fast machine could finish all 40 pages inside one slice, before the queued abort task ran).
+if(!process.argv.includes('--baseline')){let clock=0;Object.defineProperty(globalThis,'performance',{value:{now:()=>clock+=9},configurable:true,writable:true});}
 (async()=>{
  const build=load('src/data/local/PdfReflowDocumentBuilder.ts').buildPdfReflowDocumentAsync;
  const pages=Array.from({length:40},(_,i)=>({pageNumber:i+1,pageWidth:500,pageHeight:700,textItems:[{text:'A readable paragraph about native scheduling. '.repeat(10),x:20,y:600,width:300,height:12}],images:[]}));

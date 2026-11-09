@@ -16,3 +16,5 @@ export { EmptyState } from "./EmptyState";
 export { ActionMenu } from "./ActionMenu";
 export type { ActionMenuItem } from "./ActionMenu";
 export { SearchField } from "./SearchField";
+export { ErrorScreen } from "./ErrorScreen";
+export type { ErrorScreenProps } from "./ErrorScreen";
