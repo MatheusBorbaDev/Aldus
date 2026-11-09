@@ -14,6 +14,9 @@ export interface SourceCatalogAdapter {
   catalog?(source: UserSource, signal: AbortSignal, context?: SourceOperationContext): Promise<SourceCatalogListing>;
   authorizationRequired(source: UserSource): boolean;
 }
+/** Mensagens genéricas de falha; a tela reconhece estas para não repetir o mesmo aviso em três linhas (onda 3). */
+export const SOURCE_RECONNECT_MESSAGE = "Reconecte o Google Drive para atualizar esta fonte.";
+export const SOURCE_REFRESH_FAILED_MESSAGE = "Não foi possível atualizar. Exibindo a última atualização disponível, quando houver. Confira rede e permissões; aguarde se o limite de consultas foi atingido.";
 const initial = (): SourceCatalogView => ({ catalog: null, status: "loading", error: null });
 interface CatalogRun {
   sourceId: string;
@@ -101,7 +104,7 @@ export class SourceCatalogService {
     run.last = operation;
     sourceProgress(run.context, cancelled ? "cancelled" : "error", operation, code);
     this.publish(source.id, { catalog: run.previous.catalog, status: cancelled ? run.previous.catalog ? "stale" : "empty" : auth ? "auth_required" : offline ? "offline" : run.previous.catalog ? "stale" : "error",
-      error: cancelled ? null : error instanceof DriveError ? error.message : auth ? "Reconecte o Google Drive para atualizar esta fonte." : "Não foi possível atualizar. Exibindo a última atualização disponível, quando houver. Confira rede e permissões; aguarde se o limite de consultas foi atingido.", operation });
+      error: cancelled ? null : error instanceof DriveError ? error.message : auth ? SOURCE_RECONNECT_MESSAGE : SOURCE_REFRESH_FAILED_MESSAGE, operation });
   }
   private write<T>(id: string, action: () => Promise<T>): Promise<T> {
     const next = (this.writes.get(id) ?? Promise.resolve()).catch(() => undefined).then(action);

@@ -1,18 +1,19 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ActivityIndicator, BackHandler, FlatList, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { ActivityIndicator, BackHandler, FlatList, Pressable, StyleSheet, useWindowDimensions, View } from "react-native";
 import { router, useFocusEffect } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { UserSource } from "@/src/domain/types/sources";
 import { SourceCatalogItem, SourceFolder, sourceIdentity } from "@/src/domain/types/sourceCatalog";
 import { enterSourceFolder, sourceFolderContents, sourceFolderRoute, sourceFolderTrail, sourceTreeIndex } from "@/src/domain/sources/sourceTree";
-import { SourceCatalogSort, querySourceCatalog, querySourceCatalogAsync } from "@/src/data/sources/SourceCatalogService";
+import { SourceCatalogSort, querySourceCatalog, querySourceCatalogAsync, SOURCE_RECONNECT_MESSAGE, SOURCE_REFRESH_FAILED_MESSAGE } from "@/src/data/sources/SourceCatalogService";
 import { sourceCatalogs } from "@/src/data/sources/sourceCatalogDependencies";
 import { useSourceCatalog } from "@/src/presentation/hooks/useSourceCatalog";
 import { useAppTheme } from "@/src/presentation/contexts/AppThemeContext";
+import { ActionMenu, ActionMenuItem, AppText, Button, Chip, ChipRow, EmptyState, IconButton, IconName, layout as uiLayout, radius, SearchField, space, touchTarget } from "@/src/ui";
 import { BookCard } from "./BookCard";
 import { SourceManagerModal, SourceManagerAction } from "./SourceManagerModal";
-import { sourceLibraryTypeLabel, sourceProgressCounts, sourceProgressLabel, sourceVisibleInAccount, useSourceAccountGeneration, useSourceAccountId } from './sourcePresentation';
+import { sourceLibraryTypeLabel, sourceProgressCounts, sourceProgressLabel, sourceUpdatedLabel, sourceVisibleInAccount, useSourceAccountGeneration, useSourceAccountId } from './sourcePresentation';
 import { SourceBookSheet } from "./SourceBookSheet";
 import { useSourceImports } from "@/src/presentation/hooks/useSourceImports";
 import { useDownloadStore } from "@/src/presentation/stores/downloadStore";
@@ -20,17 +21,67 @@ import { sourceAcquisitionState, sourceItemJob } from "@/src/presentation/servic
 import { sourcePerformance } from "@/src/utils/sourcePerformance";
 
 type LibraryRow = { type: "folder"; folder: SourceFolder } | { type: "book"; book: SourceCatalogItem };
+const sorts = [["az", "Título A–Z"], ["za", "Título Z–A"], ["recent", "Mais recentes"]] as const;
+const plural = (count: number, one: string, many: string) => `${count.toLocaleString('pt-BR')} ${count === 1 ? one : many}`;
+
 const CatalogCard = memo(function CatalogCard({ item, layout, onSelect, statusLabel, showPath, columns }: { item: SourceCatalogItem; layout: "grid" | "list"; onSelect: (item: SourceCatalogItem) => void; statusLabel: string; showPath: boolean; columns: number }) {
   const { resolvedTheme, palette } = useAppTheme();
-  return <View style={{ flex: 1, maxWidth: `${100 / columns}%`, padding: 5 }}><BookCard book={{ id: item.remoteBookId, title: item.title, author: item.author ?? "Autor não informado", format: item.format === "pdf" ? "pdf" : "epub", coverUri: item.coverUrl, fileUri: "", progress: 0 }} showProgress={false} statusLabel={statusLabel} layout={layout} themeMode={resolvedTheme} colors={palette} onPress={() => onSelect(item)} />{showPath && item.parentFolderId ? <Text style={{ color: palette.secondaryText, fontSize: 11, paddingTop: 5 }}>{item.relativeFolderPath || "Raiz da fonte"}</Text> : null}</View>;
+  return (
+    <View style={[styles.cell, { maxWidth: `${100 / columns}%` }]}>
+      <BookCard book={{ id: item.remoteBookId, title: item.title, author: item.author ?? "Autor não informado", format: item.format === "pdf" ? "pdf" : "epub", coverUri: item.coverUrl, fileUri: "", progress: 0 }} showProgress={false} statusLabel={statusLabel} layout={layout} themeMode={resolvedTheme} colors={palette} onPress={() => onSelect(item)} />
+      {showPath && item.parentFolderId ? <AppText variant="caption" tone="secondary" numberOfLines={2} style={styles.path}>{item.relativeFolderPath || "Raiz da fonte"}</AppText> : null}
+    </View>
+  );
 });
+
+/** Biblioteca inexistente, removida ou de outra conta: uma mensagem e um caminho de volta. */
+export function SourceLibraryUnavailable({ title, description }: { title: string; description: string }) {
+  const { palette } = useAppTheme(), insets = useSafeAreaInsets();
+  return (
+    <View style={[styles.fill, { backgroundColor: palette.background, paddingTop: Math.max(insets.top, space.lg) }]}>
+      <EmptyState icon="library-outline" title={title} description={description}>
+        <Button label="Voltar às minhas bibliotecas" icon="arrow-back" onPress={() => router.replace("/sources" as never)} />
+      </EmptyState>
+    </View>
+  );
+}
+
 export function SourceLibraryScreen({ source }: { source: UserSource }) {
-  const accountId = useSourceAccountId(), generation = useSourceAccountGeneration(), { palette } = useAppTheme();
-  if (!sourceVisibleInAccount(source, accountId)) return <View style={{ flex: 1, padding: 24, backgroundColor: palette.background }}><Text style={{ color: palette.text }}>Esta biblioteca não está disponível nesta conta.</Text><Pressable accessibilityRole="button" onPress={() => router.replace('/sources' as never)}><Text style={{ color: palette.accent }}>Voltar às minhas bibliotecas</Text></Pressable></View>;
+  const accountId = useSourceAccountId(), generation = useSourceAccountGeneration();
+  if (!sourceVisibleInAccount(source, accountId)) return <SourceLibraryUnavailable title="Biblioteca indisponível" description="Esta biblioteca não está disponível nesta conta." />;
   return <SourceLibraryContent key={`${accountId}:${generation}:${source.id}`} source={source} />;
 }
+
+interface StatusNotice {
+  tone: "info" | "warning" | "error";
+  title: string;
+  detail?: string | null;
+  busy?: boolean;
+  action?: { label: string; accessibilityLabel?: string; onPress(): void };
+}
+
+/** O único aviso de estado da tela (carregando, reconectar, falha, sem conexão). Substitui as mensagens empilhadas. */
+function SourceStatusNotice({ notice }: { notice: StatusNotice }) {
+  const { palette } = useAppTheme();
+  const icon: IconName = notice.tone === "error" ? "alert-circle-outline" : notice.tone === "warning" ? "cloud-offline-outline" : "information-circle-outline";
+  const ink = notice.tone === "error" ? palette.danger : notice.tone === "warning" ? palette.accent : palette.secondaryText;
+  return (
+    <View accessibilityRole={notice.tone === "info" ? undefined : "alert"} accessibilityLiveRegion="polite" style={[styles.notice, { backgroundColor: notice.tone === "info" ? palette.surfaceSecondary : palette.accentSoft, borderColor: notice.tone === "info" ? palette.border : ink }]}>
+      <View style={styles.noticeRow}>
+        {notice.busy ? <ActivityIndicator size="small" color={palette.accent} /> : <Ionicons name={icon} size={20} color={ink} />}
+        <View style={styles.noticeText}>
+          <AppText variant="label">{notice.title}</AppText>
+          {notice.detail ? <AppText variant="bodySmall" tone="secondary">{notice.detail}</AppText> : null}
+        </View>
+      </View>
+      {notice.action ? <Button label={notice.action.label} accessibilityLabel={notice.action.accessibilityLabel} onPress={notice.action.onPress} style={styles.noticeAction} /> : null}
+    </View>
+  );
+}
+
 function SourceLibraryContent({ source }: { source: UserSource }) {
   const { palette } = useAppTheme(), insets = useSafeAreaInsets(), view = useSourceCatalog(source);
+  const { width: windowWidth } = useWindowDimensions();
   const openedAt = useRef(performance.now()), measuredFrame = useRef(false);
   useEffect(() => {
     if (!view.catalog || measuredFrame.current) return;
@@ -41,8 +92,10 @@ function SourceLibraryContent({ source }: { source: UserSource }) {
   const jobs = useDownloadStore(state => state.jobs);
   const labels = { remote_only: "Remoto · importar sob demanda", downloading: "Importando…", imported: "Na biblioteca", unavailable: "Indisponível" };
   const [query, setQuery] = useState(""), [sort, setSort] = useState<SourceCatalogSort>("az"), [layout, setLayout] = useState<"grid" | "list">("grid"), [managing, setManaging] = useState<SourceManagerAction | null>(null), [selected, setSelected] = useState<SourceCatalogItem | null>(null), [menu, setMenu] = useState(false);
-  const [width, setWidth] = useState(390);
-  const columns = layout === "list" ? 1 : Math.max(2, Math.min(6, Math.floor(width / 190)));
+  const [width, setWidth] = useState(windowWidth);
+  const gutter = uiLayout.gutter(width);
+  // Cada célula tem `space.xs` de respiro dos dois lados; a lista desconta isso do gutter para alinhar com o cabeçalho.
+  const columns = layout === "list" ? 1 : Math.max(2, Math.min(6, Math.floor((width - gutter * 2) / 180)));
   const [folderIds, setFolderIds] = useState<string[]>([]);
   const [searchResult, setSearchResult] = useState<{ input: SourceCatalogItem[]; query: string; sort: SourceCatalogSort; items: SourceCatalogItem[] } | null>(null);
   const [searchError, setSearchError] = useState<string | null>(null);
@@ -63,7 +116,7 @@ function SourceLibraryContent({ source }: { source: UserSource }) {
   const identity = sourceIdentity(source);
   useEffect(() => { setFolderIds([]); setQuery(""); setSelected(null); }, [source.id, identity]);
   const trail = useMemo(() => view.catalog ? sourceFolderTrail(view.catalog, folderIds) : [], [view.catalog, folderIds]);
-  const currentFolder = trail.at(-1), searching = !!query.trim();
+  const currentFolder = trail.at(-1), searching = !!query.trim(), insideFolder = trail.length > 1;
   const contents = useMemo(() => view.catalog ? sourceFolderContents(view.catalog, currentFolder?.remoteFolderId) : { folders: [], books: [] }, [view.catalog, currentFolder]);
   const items = useMemo(() => searching ? searchResult && searchResult.input === view.catalog?.items && searchResult.query === query && searchResult.sort === sort ? searchResult.items : [] : querySourceCatalog(contents.books, '', sort), [view.catalog, contents, searching, query, sort, searchResult]);
   const searchingItems = searching && !(searchResult && searchResult.input === view.catalog?.items && searchResult.query === query && searchResult.sort === sort);
@@ -86,49 +139,135 @@ function SourceLibraryContent({ source }: { source: UserSource }) {
     setQuery("");
   };
   const updating = view.status === "loading" || view.status === "refreshing";
+  const reconnect = view.status === "auth_required" || !source.enabled;
   const refresh = () => {
     if (updating) return;
-    if (view.status === 'auth_required' || !source.enabled) { setManaging('reconnect'); return; }
+    if (reconnect) { setManaging('reconnect'); return; }
     const controller = new AbortController(); refreshOperation.current = controller;
     void sourceCatalogs.refresh(source, controller.signal).finally(() => { if (refreshOperation.current === controller) refreshOperation.current = null; });
   };
-  const stateLabel = view.status === "auth_required" ? "Reconecte o Google Drive para atualizar esta biblioteca. O catálogo local continua disponível." : view.status === "offline" || view.status === "stale" ? "Exibindo a última atualização disponível." : updating ? sourceProgressLabel(view.operation) ?? (view.status === 'refreshing' ? 'Atualizando catálogo; livros conhecidos continuam disponíveis…' : 'Carregando catálogo…') : view.status === "error" ? "Não foi possível carregar esta biblioteca." : null;
+
+  // Mensagens específicas (ex.: erro do Drive, falha ao remover) aparecem como estão; as genéricas viram um aviso curto.
+  const specificError = view.error && view.error !== SOURCE_REFRESH_FAILED_MESSAGE && view.error !== SOURCE_RECONNECT_MESSAGE ? view.error : null;
+  const notice: StatusNotice | null = updating ? {
+    tone: "info", busy: true,
+    title: sourceProgressLabel(view.operation) ?? (view.status === 'refreshing' ? 'Atualizando catálogo; livros conhecidos continuam disponíveis…' : 'Carregando catálogo…'),
+    detail: sourceProgressCounts(view.operation),
+    action: refreshOperation.current ? { label: "Cancelar atualização", accessibilityLabel: "Cancelar atualização da biblioteca", onPress: () => refreshOperation.current?.abort() } : undefined,
+  } : view.status === "auth_required" ? {
+    tone: "warning", title: "Reconecte o Google Drive para atualizar esta biblioteca.",
+    detail: [view.catalog ? "O catálogo local continua disponível." : null, specificError].filter(Boolean).join(" ") || null,
+    action: { label: "Reconectar", accessibilityLabel: "Reconectar o Google Drive", onPress: refresh },
+  } : view.status === "error" && !view.catalog ? {
+    tone: "error", title: "Não foi possível carregar esta biblioteca.",
+    detail: specificError ?? "Confira a conexão e as permissões da fonte. Se o limite de consultas foi atingido, aguarde e tente de novo.",
+    action: { label: "Tentar novamente", accessibilityLabel: "Tentar carregar a biblioteca novamente", onPress: refresh },
+  } : specificError ? {
+    tone: "error", title: specificError,
+  } : view.error ? {
+    tone: "warning", title: "Não foi possível atualizar.",
+    detail: "Exibindo a última atualização disponível. Confira a rede e as permissões; se o limite de consultas foi atingido, aguarde e tente de novo.",
+  } : view.status === "offline" ? {
+    tone: "info", title: "Sem conexão.", detail: "Exibindo a última atualização disponível.",
+  } : null;
+
+  const catalogSummary = view.catalog
+    ? [plural(view.catalog.items.length, "livro", "livros"), view.catalog.rootFolderId ? plural(Math.max(0, (view.catalog.folders?.length ?? 1) - 1), "pasta", "pastas") : null, sourceLibraryTypeLabel(source.kind)].filter(Boolean).join(" · ")
+    : `${sourceLibraryTypeLabel(source.kind)} · Ainda não atualizada`;
+  const folderSummary = [plural(contents.books.length, "livro", "livros"), contents.folders.length ? plural(contents.folders.length, "pasta", "pastas") : null].filter(Boolean).join(" · ") + " nesta pasta";
+  const updatedLabel = sourceUpdatedLabel(view.catalog?.lastUpdated);
+  const menuItems: ActionMenuItem[] = [
+    { key: "manage", label: "Gerenciar biblioteca", icon: "settings-outline", onPress: () => setManaging("manage") },
+    { key: "edit", label: "Editar biblioteca", icon: "create-outline", onPress: () => setManaging("edit") },
+    { key: "remove", label: "Remover biblioteca", description: "Livros já importados continuam na sua Biblioteca.", icon: "trash-outline", onPress: () => setManaging("remove") },
+  ];
+
   const header = <View style={styles.header}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}><Pressable accessibilityRole="button" accessibilityLabel={trail.length > 1 ? "Voltar para a pasta anterior" : "Voltar para Minhas bibliotecas"} onPress={goBack} style={{ minHeight: 44, justifyContent: 'center' }}><Text style={{ color: palette.accent }}>{trail.length > 1 ? "← Pasta anterior" : "← Minhas bibliotecas"}</Text></Pressable><Pressable accessibilityRole="button" accessibilityLabel={`Opções da biblioteca ${source.name}`} accessibilityState={{ expanded: menu }} onPress={() => setMenu(!menu)} style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}><Ionicons name="ellipsis-horizontal" size={23} color={palette.text} /></Pressable></View>
-      <Text accessibilityRole="header" style={{ color: palette.text, fontSize: 25, fontWeight: "700" }}>{source.name}</Text>
-      <Text style={{ color: palette.secondaryText, fontSize: 12 }}>{view.catalog ? `${view.catalog.items.length.toLocaleString('pt-BR')} ${view.catalog.items.length === 1 ? "livro" : "livros"}${view.catalog.rootFolderId ? ` · ${Math.max(0, (view.catalog.folders?.length ?? 1) - 1).toLocaleString('pt-BR')} pastas` : ""} · ${sourceLibraryTypeLabel(source.kind)}` : "Ainda não atualizada"}</Text>
-      {menu ? <View style={{ padding: 12, borderWidth: 1, borderColor: palette.border, borderRadius: 10, gap: 8 }}>{([['Gerenciar biblioteca', 'manage'], ['Editar biblioteca', 'edit'], ['Remover biblioteca', 'remove']] as const).map(([label, action]) => <Pressable key={action} accessibilityRole="button" accessibilityLabel={label} onPress={() => { setMenu(false); setManaging(action); }} style={{ minHeight: 44, justifyContent: 'center' }}><Text style={{ color: action === 'remove' ? palette.accent : palette.text }}>{label}</Text></Pressable>)}</View> : null}
-      {trail.length ? <View accessibilityLabel="Caminho da pasta" style={styles.controls}>{trail.map((folder, index) => <View key={folder.id} style={{ flexDirection: "row", gap: 6 }}><Text style={{ color: palette.secondaryText }}>{index ? "›" : ""}</Text><Pressable accessibilityRole="button" accessibilityLabel={index ? `Ir para pasta: ${folder.name}` : "Ir para raiz da fonte"} onPress={() => { setFolderIds(trail.slice(1, index + 1).map(parent => parent.id)); setQuery(""); }}><Text style={{ color: index === trail.length - 1 ? palette.text : palette.accent }}>{index ? folder.name : source.name}</Text></Pressable></View>)}</View> : null}
-      {view.catalog ? <Text style={{ color: palette.secondaryText, fontSize: 11 }}>Última atualização: {new Date(view.catalog.lastUpdated).toLocaleString("pt-BR")}</Text> : null}
-      <View style={styles.controls}>
-        <Pressable accessibilityRole="button" disabled={updating} onPress={refresh} style={{ minHeight: 44, justifyContent: 'center' }}><Text style={{ color: palette.accent, opacity: updating ? 0.5 : 1 }}>{view.status === "auth_required" ? "Reconectar" : "Atualizar"}</Text></Pressable>
-        {updating && refreshOperation.current ? <Pressable accessibilityRole="button" accessibilityLabel="Cancelar atualização da biblioteca" onPress={() => refreshOperation.current?.abort()} style={{ minHeight: 44, justifyContent: 'center' }}><Text style={{ color: palette.accent }}>Cancelar atualização</Text></Pressable> : null}
-        <Pressable accessibilityRole="button" accessibilityLabel={layout === "grid" ? "Mostrar lista" : "Mostrar grade"} onPress={() => setLayout(layout === "grid" ? "list" : "grid")}><Text style={{ color: palette.accent }}>{layout === "grid" ? "Lista" : "Grade"}</Text></Pressable>
+    <View style={styles.navRow}>
+      <IconButton icon="arrow-back" label={insideFolder ? "Voltar para a pasta anterior" : "Voltar para Minhas bibliotecas"} onPress={goBack} style={styles.back} />
+      <View style={styles.spacer} />
+      <IconButton icon={reconnect ? "log-in-outline" : "refresh"} label={reconnect ? "Reconectar" : "Atualizar"} disabled={updating} onPress={refresh} />
+      <IconButton icon="ellipsis-horizontal" label={`Opções da biblioteca ${source.name}`} expanded={menu} onPress={() => setMenu(true)} />
+    </View>
+    <View style={styles.titles}>
+      {insideFolder ? <View accessibilityLabel="Caminho da pasta" style={styles.crumbs}>
+        {trail.slice(0, -1).map((folder, index) => <View key={folder.id} style={styles.crumb}>
+          {index ? <AppText variant="bodySmall" tone="secondary">›</AppText> : null}
+          <Pressable accessibilityRole="button" accessibilityLabel={index ? `Ir para pasta: ${folder.name}` : "Ir para raiz da fonte"} onPress={() => { setFolderIds(trail.slice(1, index + 1).map(parent => parent.id)); setQuery(""); }} style={styles.crumbButton}>
+            <AppText variant="bodySmall" tone="accent" numberOfLines={1}>{index ? folder.name : source.name}</AppText>
+          </Pressable>
+        </View>)}
+      </View> : null}
+      <AppText variant="title" accessibilityRole="header">{insideFolder && currentFolder ? currentFolder.name : source.name}</AppText>
+      <AppText variant="bodySmall" tone="secondary">{insideFolder ? folderSummary : catalogSummary}</AppText>
+      {updatedLabel ? <AppText variant="caption" tone="secondary">{updatedLabel}</AppText> : null}
+    </View>
+    {notice ? <SourceStatusNotice notice={notice} /> : null}
+    {source.kind === "google-drive" && view.catalog && !view.catalog.rootFolderId ? <AppText variant="caption" tone="secondary">Atualize a fonte para incluir pastas e subpastas. O catálogo anterior continua disponível.</AppText> : null}
+    {importError ? <AppText variant="bodySmall" tone="danger" accessibilityRole="alert">{importError}</AppText> : null}
+    {/* Sem catálogo não há o que pesquisar nem ordenar: só o aviso/estado vazio e a ação de atualizar. */}
+    {view.catalog ? <>
+      <SearchField value={query} onChangeText={setQuery} placeholder="Pesquisar por título ou autor" label="Pesquisar nesta biblioteca" />
+      <View style={styles.toolbar}>
+        <View style={styles.toolbarChips}>
+          <ChipRow label="Ordenar livros">{sorts.map(([value, label]) => <Chip key={value} label={label} selected={sort === value} onPress={() => setSort(value)} />)}</ChipRow>
+        </View>
+        <IconButton icon={layout === "grid" ? "list-outline" : "grid-outline"} label={layout === "grid" ? "Exibir em lista" : "Exibir em grade"} onPress={() => setLayout(layout === "grid" ? "list" : "grid")} />
       </View>
-      <TextInput accessibilityLabel="Pesquisar nesta biblioteca" value={query} onChangeText={setQuery} placeholder="Pesquisar nesta biblioteca" placeholderTextColor={palette.secondaryText} style={[styles.search, { color: palette.text, borderColor: palette.border, backgroundColor: palette.surface }]} />
-      {searching ? <Text accessibilityLiveRegion="polite" style={{ color: palette.secondaryText, fontSize: 12 }}>{searchingItems ? 'Pesquisando na biblioteca…' : `Resultados em toda a biblioteca · ${items.length} livros · ${folders.length} pastas`}</Text> : null}
-      {searchError ? <Text accessibilityRole="alert" style={{ color: palette.accent }}>{searchError}</Text> : null}
-      {source.kind === "google-drive" && view.catalog && !view.catalog.rootFolderId ? <Text style={{ color: palette.secondaryText, fontSize: 12 }}>Atualize a fonte para incluir pastas e subpastas. O catálogo anterior continua disponível.</Text> : null}
-      <View style={styles.controls}>{([ ["az", "Título A–Z"], ["za", "Título Z–A"], ["recent", "Mais recentes"] ] as const).map(([value, label]) => <Pressable key={value} accessibilityRole="button" accessibilityState={{ selected: sort === value }} onPress={() => setSort(value)}><Text style={{ color: sort === value ? palette.accent : palette.secondaryText, fontSize: 12 }}>{label}</Text></Pressable>)}</View>
-      {stateLabel ? <Text accessibilityLiveRegion="polite" style={{ color: palette.secondaryText, fontSize: 12 }}>{stateLabel}</Text> : null}
-      {updating && sourceProgressCounts(view.operation) ? <Text style={{ color: palette.secondaryText, fontSize: 12 }}>{sourceProgressCounts(view.operation)}</Text> : null}
-      {view.error ? <Text accessibilityRole="alert" style={{ color: palette.accent, fontSize: 12 }}>{view.error}</Text> : null}
-      {updating ? <ActivityIndicator color={palette.accent} /> : null}
-      {importError ? <Text accessibilityRole="alert" style={{ color: palette.accent }}>{importError}</Text> : null}
-    </View>;
-  return <View onLayout={event => setWidth(event.nativeEvent.layout.width)} style={{ flex: 1, backgroundColor: palette.background, paddingTop: Math.max(insets.top, 12), paddingBottom: insets.bottom }}>
-    <FlatList key={`${layout}-${columns}-${currentFolder?.id ?? "root"}`} data={rows} ListHeaderComponent={header} keyboardShouldPersistTaps="handled" numColumns={columns} keyExtractor={row => row.type === "folder" ? `folder:${row.folder.id}` : `book:${row.book.remoteBookId}`} initialNumToRender={12} maxToRenderPerBatch={10} windowSize={5} contentContainerStyle={{ padding: 11 }} renderItem={({ item: row }) => {
+    </> : null}
+    {searching ? <AppText variant="caption" tone="secondary" accessibilityLiveRegion="polite">{searchingItems ? 'Pesquisando na biblioteca…' : `Resultados em toda a biblioteca · ${plural(items.length, "livro", "livros")} · ${plural(folders.length, "pasta", "pastas")}`}</AppText> : null}
+    {searchError ? <AppText variant="bodySmall" tone="danger" accessibilityRole="alert">{searchError}</AppText> : null}
+  </View>;
+
+  // O aviso de estado já explica falha, reconexão e carregamento; a lista vazia não repete a mesma mensagem.
+  const empty = updating || searchingItems || (!view.catalog && (view.status === "error" || view.status === "auth_required")) ? null
+    : searching ? <EmptyState icon="search-outline" title="Nenhum resultado nesta fonte" description="Experimente outro título ou autor." />
+    : insideFolder ? <EmptyState icon="folder-open-outline" title="Pasta vazia" description="Esta pasta não contém livros ou subpastas." />
+    : view.catalog ? <EmptyState icon="library-outline" title="Nenhum EPUB ou PDF foi encontrado nesta fonte." description="Adicione arquivos à fonte e use Atualizar." />
+    : <EmptyState icon="cloud-download-outline" title="Biblioteca ainda não atualizada" description="Use Atualizar para obter o catálogo. Nada será baixado durante a indexação.">
+        <Button label="Atualizar agora" icon="refresh" variant="primary" onPress={refresh} />
+      </EmptyState>;
+
+  return <View onLayout={event => setWidth(event.nativeEvent.layout.width)} style={[styles.fill, { backgroundColor: palette.background, paddingTop: Math.max(insets.top, space.md), paddingBottom: insets.bottom }]}>
+    <FlatList key={`${layout}-${columns}-${currentFolder?.id ?? "root"}`} data={rows} ListHeaderComponent={header} keyboardShouldPersistTaps="handled" numColumns={columns} keyExtractor={row => row.type === "folder" ? `folder:${row.folder.id}` : `book:${row.book.remoteBookId}`} initialNumToRender={12} maxToRenderPerBatch={10} windowSize={5} contentContainerStyle={{ paddingHorizontal: gutter - space.xs, paddingBottom: space.xxl }} renderItem={({ item: row }) => {
       if (row.type === "book") return <CatalogCard columns={columns} item={row.book} layout={layout} onSelect={setSelected} showPath={searching} statusLabel={labels[sourceAcquisitionState(row.book, imported[row.book.remoteBookId], sourceItemJob(row.book, jobs))]} />;
       const folder = row.folder, children = view.catalog ? sourceFolderContents(view.catalog, folder.remoteFolderId) : null;
-      return <View style={{ flex: 1, maxWidth: `${100 / columns}%`, padding: 5 }}><Pressable accessibilityRole="button" accessibilityLabel={`Abrir pasta: ${folder.name}`} onPress={() => openFolder(folder)} style={[styles.folder, { backgroundColor: palette.surface, borderColor: palette.border }]}><Ionicons name="folder-outline" size={30} color={palette.accent} /><Text style={{ color: palette.text, fontWeight: "600" }}>{folder.name}</Text><Text style={{ color: palette.secondaryText, fontSize: 11 }}>{folder.isShortcut ? "Atalho · " : ""}{children ? `${children.folders.length + children.books.length} itens conhecidos` : "Pasta"}</Text>{searching ? <Text style={{ color: palette.secondaryText, fontSize: 11 }}>{folder.relativePath}</Text> : null}</Pressable></View>;
-    }} ListEmptyComponent={!updating && !searchingItems ? <Text style={{ color: palette.secondaryText, padding: 16 }}>{searching ? "Nenhum resultado nesta fonte. Experimente outro título ou autor." : currentFolder ? "Esta pasta não contém livros ou subpastas." : view.catalog && view.status !== "auth_required" ? "Nenhum EPUB ou PDF foi encontrado nesta fonte." : "Use Atualizar ou Reconectar para obter o catálogo. Nada será baixado durante a indexação."}</Text> : null} />
+      return <View style={[styles.cell, { maxWidth: `${100 / columns}%` }]}>
+        <Pressable accessibilityRole="button" accessibilityLabel={`Abrir pasta: ${folder.name}`} onPress={() => openFolder(folder)} android_ripple={{ color: palette.separator }} style={[styles.folder, layout === "list" ? styles.folderRow : null, { backgroundColor: palette.surface, borderColor: palette.border }]}>
+          <Ionicons name={folder.isShortcut ? "arrow-redo-outline" : "folder-outline"} size={28} color={palette.accent} />
+          <View style={styles.folderText}>
+            <AppText variant="label" numberOfLines={2}>{folder.name}</AppText>
+            <AppText variant="caption" tone="secondary">{folder.isShortcut ? "Atalho · " : ""}{children ? plural(children.folders.length + children.books.length, "item conhecido", "itens conhecidos") : "Pasta"}</AppText>
+            {searching ? <AppText variant="caption" tone="secondary" numberOfLines={2}>{folder.relativePath}</AppText> : null}
+          </View>
+        </Pressable>
+      </View>;
+    }} ListEmptyComponent={empty} />
+    <ActionMenu visible={menu} title={source.name} items={menuItems} onClose={() => setMenu(false)} />
     <SourceManagerModal visible={managing !== null} sourceId={source.id} action={managing ?? 'manage'} onClose={() => setManaging(null)} />
     {selected ? <SourceBookSheet key={selected.remoteBookId} source={source} item={selected} importedBookId={imported[selected.remoteBookId]} onImported={reload} onClose={() => setSelected(null)} /> : null}
   </View>;
 }
+
 const styles = StyleSheet.create({
-  header: { padding: 16, gap: 10 },
-  controls: { flexDirection: "row", flexWrap: "wrap", gap: 18 },
-  search: { minHeight: 44, borderWidth: 1, borderRadius: 6, paddingHorizontal: 12 },
-  folder: { borderWidth: 1, borderRadius: 10, padding: 14, gap: 8, minHeight: 110 },
+  fill: { flex: 1 },
+  header: { paddingHorizontal: space.xs, paddingBottom: space.md, gap: space.md },
+  navRow: { flexDirection: "row", alignItems: "center", gap: space.xs, minHeight: touchTarget },
+  back: { marginLeft: -space.md + 2 },
+  spacer: { flex: 1 },
+  titles: { gap: space.xxs },
+  crumbs: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", columnGap: space.xs },
+  crumb: { flexDirection: "row", alignItems: "center", gap: space.xs, maxWidth: "100%" },
+  crumbButton: { minHeight: touchTarget, justifyContent: "center", flexShrink: 1 },
+  notice: { borderWidth: 1, borderRadius: radius.md, padding: space.md, gap: space.sm },
+  noticeRow: { flexDirection: "row", alignItems: "flex-start", gap: space.sm },
+  noticeText: { flex: 1, minWidth: 0, gap: space.xxs },
+  noticeAction: { marginLeft: space.xxl + space.xxs },
+  toolbar: { flexDirection: "row", alignItems: "center", gap: space.xs },
+  toolbarChips: { flex: 1, minWidth: 0 },
+  cell: { flex: 1, padding: space.xs },
+  path: { paddingTop: space.xs },
+  folder: { borderWidth: 1, borderRadius: radius.lg, padding: space.lg, gap: space.sm, minHeight: 110 },
+  folderRow: { flexDirection: "row", alignItems: "center", minHeight: touchTarget + space.xl },
+  folderText: { flexShrink: 1, minWidth: 0, gap: space.xxs },
 });

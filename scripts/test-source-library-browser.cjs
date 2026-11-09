@@ -82,6 +82,24 @@ async function cdp(url) {
     };
     const navigate = async route => { await client.command('Page.navigate', { url: origin + route }); await wait(800); };
     const screenshot = async name => { const r = await client.command('Page.captureScreenshot', { format: 'png' }); fs.writeFileSync(path.join(screenshots, name + '.png'), Buffer.from(r.data, 'base64')); };
+    // Visual matrix (quality wave 3): 320/390/768/1440 x light/dark x normal/enlarged text. Enlarged text is a synthetic Web
+    // approximation of a 130% system font scale (every text node's computed size x1.3); it is not Android fontScale.
+    const enlargeText = () => client.evaluate(`(() => { for (const e of document.querySelectorAll('body *')) { if (![...e.childNodes].some(n => n.nodeType === 3 && n.textContent.trim())) continue; const s = getComputedStyle(e), size = parseFloat(s.fontSize), line = parseFloat(s.lineHeight); e.style.fontSize = (size * 1.3) + 'px'; if (line) e.style.lineHeight = (line * 1.3) + 'px'; } })()`);
+    const matrix = async (route, ready, name, prepare) => {
+      for (const theme of ['light', 'dark']) {
+        await client.evaluate(`localStorage.setItem('@kindle/appTheme', ${JSON.stringify(theme)})`);
+        for (const width of [320, 390, 768, 1440]) {
+          await client.command('Emulation.setDeviceMetricsOverride', { width, height: 900, deviceScaleFactor: 1, mobile: false });
+          for (const large of [false, true]) {
+            await navigate(route); if (prepare) await prepare(); await until(ready); await wait(250); if (large) { await enlargeText(); await wait(150); }
+            assert.equal(await client.evaluate('document.documentElement.scrollWidth>innerWidth'), false, `${name} ${theme} ${width}${large ? ' enlarged' : ''} stays inside viewport`);
+            await screenshot(`matrix-${name}-${theme}-${width}${large ? '-text130' : ''}`);
+          }
+        }
+      }
+      await client.evaluate(`localStorage.setItem('@kindle/appTheme','light')`); await client.command('Emulation.setDeviceMetricsOverride', { width: 390, height: 900, deviceScaleFactor: 1, mobile: false });
+      await navigate(route); if (prepare) await prepare(); await until(ready);
+    };
     await navigate('/sources'); await until('Minha biblioteca de teste'); await screenshot('sources');
     await client.evaluate(`document.querySelector('[aria-label="Abrir biblioteca: Minha biblioteca de teste"]').click()`); await until('Use Atualizar');
     hold=true; await click('Atualizar'); await until('Buscando livros'); await screenshot('loading'); releaseResponses(); await until('20 livros'); await screenshot('grid');
@@ -93,10 +111,18 @@ async function cdp(url) {
       assert(cardWidth>100&&cardWidth<360,'responsive source cover width '+cardWidth);await screenshot('sources-grid-'+width);
     }
     await client.command('Emulation.setDeviceMetricsOverride',{width:390,height:900,deviceScaleFactor:1,mobile:false});await wait(200);
+    await matrix('/sources/browser-source', '20 livros', 'grid'); assert.equal(requests, 1, 'visual matrix reloads use the stored snapshot');
+    const geometry = async labels => client.evaluate(`(${JSON.stringify(labels)}).map(label => { const r = document.querySelector('[aria-label=' + JSON.stringify(label) + ']')?.getBoundingClientRect(); return r ? { center: Math.round(r.top + r.height / 2), height: Math.round(r.height) } : null; })`);
+    const headerRow = await geometry(['Voltar para Minhas bibliotecas', 'Atualizar', 'Opções da biblioteca Minha biblioteca de teste']);
+    assert.ok(headerRow.every(Boolean) && new Set(headerRow.map(r => r.center)).size === 1 && headerRow.every(r => r.height >= 44), 'back, refresh and options share one aligned row of 44px targets ' + JSON.stringify(headerRow));
+    const toolbarRow = await geometry(['Título A–Z', 'Exibir em lista']);
+    assert.ok(toolbarRow.every(Boolean) && Math.abs(toolbarRow[0].center - toolbarRow[1].center) <= 1, 'sort chips and layout toggle are aligned ' + JSON.stringify(toolbarRow));
+    assert.equal((await text()).split('Minha biblioteca de teste').length - 1, 1, 'library name is shown once (no repeated title/breadcrumb)');
+    assert.match(await text(), /Atualizada hoje às \d\d:\d\d/, 'readable last-update label'); assert.ok(!(await text()).includes('Última atualização:'));
 
     const input = async value => { await client.evaluate(`(() => { const e = document.querySelector('input[aria-label="Pesquisar nesta biblioteca"]'); Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(e, ${JSON.stringify(value)}); e.dispatchEvent(new Event('input',{bubbles:true})); })()`); await wait(300); };
     await input('Dom Casmuro'); await until('Dom Casmurro'); assert.equal(requests, 1, 'typing does not call the source'); await screenshot('search');
-    await click('Lista'); await screenshot('list');
+    await click('Exibir em lista'); await screenshot('list');
     await client.evaluate(`document.querySelector('[aria-label="Abrir Dom Casmurro, de Machado de Assis"]').click()`); await until('Importar para a Biblioteca'); await screenshot('import-action');
     await click('Importar para a Biblioteca'); await until('Abrir livro', 20000); await screenshot('imported'); await click('Fechar');
     await navigate('/sources/browser-source'); await until('20 livros'); await until('Na biblioteca');
@@ -127,7 +153,10 @@ async function cdp(url) {
     await screenshot('drive-tree-root');
     await openFolder('Pasta A'); await until('Livro A.pdf'); assert.ok(!(await text()).includes('Livro Root.epub')); await screenshot('drive-tree-a');
     await openFolder('Pasta B'); await until('Dom Casmurro.epub'); await screenshot('drive-tree-b');
-    await click('← Pasta anterior'); await until('Livro A.pdf'); await click('← Pasta anterior'); await until('Livro Root.epub');
+    const folderHeader = await client.evaluate(`({ headings: [...document.querySelectorAll('[role=heading]')].map(e => e.textContent), crumbs: [...document.querySelectorAll('[aria-label="Caminho da pasta"] [role=button]')].map(e => e.getAttribute('aria-label')) })`);
+    assert.ok(folderHeader.headings.includes('Pasta B') && !folderHeader.headings.includes('Drive sem autorização'), 'folder title is the current folder ' + JSON.stringify(folderHeader));
+    assert.deepEqual(folderHeader.crumbs, ['Ir para raiz da fonte', 'Ir para pasta: Pasta A'], 'breadcrumb lists parents only');
+    await click('Voltar para a pasta anterior'); await until('Livro A.pdf'); await click('Voltar para a pasta anterior'); await until('Livro Root.epub');
     await input('Dom Casmuro'); await until('Dom Casmurro.epub'); await until('Pasta A › Pasta B'); await input('');
     await openFolder('Pasta C'); await until('Sociedade do Espetáculo.pdf'); await input('Dom Casmuro'); await until('Dom Casmurro.epub'); await until('Pasta A › Pasta B'); await screenshot('drive-tree-global-search-from-c');
     await client.evaluate(`document.querySelector('[aria-label="Abrir Dom Casmurro.epub, de Autor não informado"]').click()`); await until('Importar para a Biblioteca'); await until('Arquivo remoto.'); await click('Fechar');
@@ -135,10 +164,15 @@ async function cdp(url) {
     await openFolder('Atalho para Pasta B'); await until('Dom Casmurro.epub'); await openFolder('Voltar à raiz'); await until('Livro Root.epub');
     await input('Pasta B'); await until('Resultados em toda a biblioteca'); await openFolder('Pasta B'); await until('Dom Casmurro.epub'); await screenshot('drive-tree-folder-search');
     await navigate('/sources/drive-offline'); await until('Livro Root.epub'); await openFolder('Pasta A'); await openFolder('Pasta B'); await until('Dom Casmurro.epub'); await screenshot('drive-tree-offline-reopen');
+    await matrix('/sources/drive-offline', 'Dom Casmurro.epub', 'folder', async () => { await until('Livro Root.epub'); await openFolder('Pasta A'); await openFolder('Pasta B'); });
     assert.equal(await client.evaluate(`window.fixtureRequests.filter(path=>path.startsWith('/drive/v3/files')).length`),0,'Navigation/search/open actions do not query Drive or download files');
-    await client.evaluate(`document.querySelector('[aria-label="Ir para raiz da fonte"]').click()`); await click('← Minhas bibliotecas'); await until('Minha biblioteca de teste');
+    await client.evaluate(`document.querySelector('[aria-label="Ir para raiz da fonte"]').click()`); await click('Voltar para Minhas bibliotecas'); await until('Minha biblioteca de teste');
     console.log('PASS exported hierarchical Drive snapshot: ROOT/A/B/back/breadcrumbs, source-wide fuzzy from C + path/actions, folder search, shortcut/cycle, offline IndexedDB reopen; no Drive API or media requests');
-    await navigate('/sources/error-source'); await until('Fonte indisponível'); fail=true; await click('Atualizar'); await until('Não foi possível carregar esta biblioteca.'); await screenshot('error-no-snapshot'); fail=false;
+    await navigate('/sources/error-source'); await until('Fonte indisponível'); fail=true; await click('Atualizar'); await until('Não foi possível carregar esta biblioteca.'); await screenshot('error-no-snapshot');
+    await matrix('/sources/error-source', 'Não foi possível carregar esta biblioteca.', 'error', async () => { await until('Fonte indisponível'); await click('Atualizar'); });
+    const errorState = await client.evaluate(`({ alerts: document.querySelectorAll('[role=alert]').length, text: document.body.innerText })`);
+    assert.equal(errorState.alerts, 1, 'one error notice, not stacked messages'); assert.ok(!errorState.text.includes('Use Atualizar') && !errorState.text.includes('quando houver'), 'empty-state and generic refresh text do not repeat the error');
+    fail=false;
     await navigate('/sources/browser-source'); await until('20 livros'); books = []; await click('Atualizar'); await until('Nenhum EPUB ou PDF'); await screenshot('empty');
     books = Array.from({ length: 1000 }, (_, i) => ({ id: `remote-${i}`, title: `Livro ${String(i).padStart(4,'0')}`, url: '/fixture.epub', format: 'epub' }));
     hold=true; const start = performance.now(); await click('Atualizar'); await until('Buscando livros'); await screenshot('refreshing'); releaseResponses(); await until('1.000 livros'); const indexedMs = performance.now() - start; await wait(1000);

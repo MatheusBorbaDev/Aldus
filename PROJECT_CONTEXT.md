@@ -77,7 +77,11 @@ Persistência (legado mantido, não renomear `kindle-*`/`@kindle/*`): Native SQL
 - **Onda 2 (09/11, sobre `62aeba7`)**: typecheck PASS; `test:critical` 91/91; `export:web` PASS (build `62aeba7c8b99`, dirty=true, `dist`
   110,5 MB); diff-check PASS. Chromium: `test:library:bulk:web` (8 layouts/temas, 1000 livros), `test:library:web`, `test:source-library:browser`,
   `test:saas:web` PASS. Medições antes/depois em `.expo/perf/`. Reader não tocado (suítes do Reader não reexecutadas nesta onda).
-  Próximas ondas aprovadas: 3 (tela de Fonte/Drive), 4 (Auth), 5 (erros silenciosos + proposta de dependências), cada uma só após OK do usuário.
+- **Onda 3 (09/11, sobre `c00afb7`)**: typecheck PASS; `test:critical` **92/92** (nova `source-presentation`); `export:web` PASS (build
+  `c00afb70b854`, dirty=true); diff-check PASS. Chromium: `test:source-library:browser` PASS, agora com matriz visual 320/390/768/1440 ×
+  claro/escuro × texto normal/ampliado (sintético, ×1,3 no Web) para grade, pasta do Drive e erro sem catálogo (48 capturas por rodada;
+  antes/depois em `.expo/quality-wave3/{before,after}/`). Reader não tocado.
+  Próximas ondas aprovadas: 4 (Auth), 5 (erros silenciosos + proposta de dependências), cada uma só após OK do usuário.
 - Validação local de 09/11 ("Continue lendo", sobre `cb45b71`): typecheck PASS; `test:critical` 90/90 (nova `library-last-read`); `export:web` PASS;
   `test:library:bulk:web` e `test:library:web` PASS; diff-check PASS.
 - Validação anterior (Fase 5, sobre `bb9d5dd`): typecheck PASS; `test:critical` 89/89; `export:web` PASS (build `bb9d5dd4597e`, dirty=true);
@@ -215,7 +219,7 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
    no novo visual (`docs/context/design-system.md`).
    **Acervo**: etapa 1 (contas novas só domínio público) pronta em `claude/acervo-dominio-publico-ae9294` (`11cf66c`), aguardando decisão de integrar; etapa 2 (cópia por usuário + nuvem privada, aprovada pelo usuário)
    e etapa 3 (remover os 33 arquivos do APK/`dist`) pendentes.
-   **Revisão de qualidade (09/11)**: Ondas 0–2 concluídas; aguardando OK para a Onda 3 (tela de Fonte/Drive), depois 4–5. Levantamento do
+   **Revisão de qualidade (09/11)**: Ondas 0–3 concluídas; aguardando OK para a Onda 4 (telas de Auth, sem mexer em Auth/OAuth), depois 5. Levantamento do
    acervo entregue ao usuário (34 arquivos, 92,7 MB; 8 usados como fixture de teste), aguardando decisão do que sai; nada removido.
    Candidatos de bundle (sem decisão): pdfjs-dist duplicado no entry, reanimated só para motion cues, `react-native-render-html` em `ChapterRenderer`.
    Abertos da revisão: BUG 17 (EPUB sem `lang`/justificar; onda 6, fora), **BUG 20** (Reflow com página final em branco; motor do Reader,
@@ -246,6 +250,21 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
 - **IA externa:** não enviar livros/trechos a serviço de IA sem pedido e consentimento explícito do usuário final.
 
 ## 10. Log (mais recente primeiro; máx. 5 entradas, resto → docs/context/historico/)
+
+### 09/11/2026 — Revisão de qualidade: Onda 3, tela de uma Fonte/Drive (Claude)
+- IMPLEMENTADO D1 (`SourceLibraryScreen.tsx` sobre `src/ui`; dados, Sync, cancelamento, pastas e importação inalterados): uma linha de
+  ações alinhadas (voltar · Atualizar/Reconectar · ⋯, alvos de 44 px); título único (nome da fonte na raiz, nome da pasta dentro dela) e
+  caminho só com as pastas acima; **um** aviso de estado (carregando com cancelar · reconectar · falha sem catálogo com "Tentar novamente" ·
+  falha com catálogo · sem conexão) no lugar de até três mensagens empilhadas; lista vazia não repete o aviso; busca e ordenação só com
+  catálogo; ordenação em `Chip`, lista/grade em `IconButton`, menu ⋯ em `ActionMenu`; pastas em cartões do tema. Data legível
+  (`sourceUpdatedLabel`: "Atualizada hoje às 09:05"/"ontem"/"3 de nov."; sem Intl), também na lista de bibliotecas (`SourceSummaryRow`).
+  Rota `/sources/[id]`: carregamento com fundo do tema e estados "não encontrada"/"somente pesquisa" em `EmptyState`.
+- Mudança de comportamento visível: reabrir uma fonte com catálogo salvo (status `stale` sem erro) não mostra mais "Exibindo a última
+  atualização disponível"; a data de atualização cumpre esse papel. `SourceCatalogService` só passou a exportar as duas mensagens genéricas.
+- Testes: `test-source-presentation` (data: hoje/ontem/ano/futuro/ausente → null); `test-source-library-browser` com matriz visual e asserções de
+  alinhamento (centros iguais, 44 px), nome uma vez, caminho só com pais, 1 alerta no erro, data legível; rótulos novos ("Exibir em lista",
+  "Voltar para …"). VALIDADO: ver §3. NÃO TESTADO: Android/Hermes e `fontScale` real; Drive real. Captura `remove-confirmation` pega o
+  menu ainda saindo por animação sobre o diálogo (o teste confirma e remove normalmente).
 
 ### 09/11/2026 — Revisão de qualidade: Onda 2, Biblioteca e export Web (Claude)
 - IMPLEMENTADO P1: `app/(tabs)/library.tsx` com célula memoizada `LibraryBookCell` e callbacks estáveis (`renderBook`, `openBook`,
@@ -279,15 +298,6 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
   microtask continua falhando o teste).
 - VALIDADO: ver §3. Achado novo: BUG 20 (Reflow com página final em branco), não corrigido (motor do Reader fora das ondas). NÃO TESTADO: Android.
 
-### 09/11/2026 — Redesign Fase 5: moldura do Reader (Claude)
-- IMPLEMENTADO (só visual, `TopHeader.tsx` e `BottomFooter.tsx`): título serifado, capítulo em tom secundário, botões de 44 px, linha fina no
-  lugar da sombra; cor com alfa só para hex `#RRGGBB` (outras notações seguem sem alfa). `ReaderControls` (slot estável/ancestralidade/opacidade),
-  documento, posições, âncoras, painéis e handlers **não** foram tocados. Cabeçalho segue < 86 px (contrato do feedback do Reflow).
-- VALIDADO: ver §3 (89/89, export, 7 suítes Chromium do Reader, incl. 6 botões recebendo toque acima do iframe). NÃO TESTADO: Android.
-- Entrega: APK de ensaio `device-rehearsal` do `ae98991` compilado, conferido e instalado no Redmi com `install -r` (dados/`firstInstallTime` preservados).
-  Homologação física parcial PASS (§3); ajustes de rótulos/nome depois validados em typecheck, 89/89, export e Chromium (Biblioteca/fontes),
-  ainda fora do APK. `test-library-bulk-web` passou a esperar a fixture após reload (falhava por tempo fixo de 500 ms).
-
 ### 06/11/2026 — Entradas anteriores
 - Fechamento UX/UI e Onboarding 1: ver `docs/context/historico/2026-11-06-ux-fechamento-e-onboarding-1.md`.
 - Onboarding 2 (auditoria e reescrita do contexto): ver `docs/context/historico/2026-11-06-onboarding-2.md`.
@@ -295,3 +305,4 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
 - Redesign Fase 2 (navegação e Descobrir): ver `docs/context/historico/2026-11-06-redesign-fase-2.md`.
 - Redesign Fase 3 (Biblioteca com "+"): ver `docs/context/historico/2026-11-06-redesign-fase-3.md`.
 - Redesign Fase 4 (Conta e Estudo): ver `docs/context/historico/2026-11-06-redesign-fase-4.md`.
+- Redesign Fase 5 (moldura do Reader, 09/11): ver `docs/context/historico/2026-11-09-redesign-fase-5.md`.
