@@ -74,8 +74,10 @@ Persistência (legado mantido, não renomear `kindle-*`/`@kindle/*`): Native SQL
 - **Onda 1 (09/11, sobre `290cfee`)**: typecheck PASS; `test:critical` 91/91; `export:web` PASS (build `290cfee58878`, dirty=true); diff-check
   PASS. Chromium: os mesmos 7 `test:reader:*:web` PASS e `reflow:web` FAIL só pelo BUG 20 (mesmos valores da Onda 0). Capturas do painel com
   temas reais em `.expo/research-cycle1-increment2/categories-{320,390,430,768,1440}-{light,dark}-{1,1.3,1.6}-*.png` (128).
-  Próximas ondas aprovadas: 2 (Biblioteca/export + levantamento do acervo), 3 (tela de Fonte/Drive), 4 (Auth), 5 (erros silenciosos +
-  proposta de dependências), cada uma só após OK do usuário.
+- **Onda 2 (09/11, sobre `62aeba7`)**: typecheck PASS; `test:critical` 91/91; `export:web` PASS (build `62aeba7c8b99`, dirty=true, `dist`
+  110,5 MB); diff-check PASS. Chromium: `test:library:bulk:web` (8 layouts/temas, 1000 livros), `test:library:web`, `test:source-library:browser`,
+  `test:saas:web` PASS. Medições antes/depois em `.expo/perf/`. Reader não tocado (suítes do Reader não reexecutadas nesta onda).
+  Próximas ondas aprovadas: 3 (tela de Fonte/Drive), 4 (Auth), 5 (erros silenciosos + proposta de dependências), cada uma só após OK do usuário.
 - Validação local de 09/11 ("Continue lendo", sobre `cb45b71`): typecheck PASS; `test:critical` 90/90 (nova `library-last-read`); `export:web` PASS;
   `test:library:bulk:web` e `test:library:web` PASS; diff-check PASS.
 - Validação anterior (Fase 5, sobre `bb9d5dd`): typecheck PASS; `test:critical` 89/89; `export:web` PASS (build `bb9d5dd4597e`, dirty=true);
@@ -213,7 +215,9 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
    no novo visual (`docs/context/design-system.md`).
    **Acervo**: etapa 1 (contas novas só domínio público) pronta em `claude/acervo-dominio-publico-ae9294` (`11cf66c`), aguardando decisão de integrar; etapa 2 (cópia por usuário + nuvem privada, aprovada pelo usuário)
    e etapa 3 (remover os 33 arquivos do APK/`dist`) pendentes.
-   **Revisão de qualidade (09/11)**: Ondas 0 e 1 concluídas; aguardando OK para a Onda 2 (Biblioteca/export + levantamento do acervo), depois 3–5.
+   **Revisão de qualidade (09/11)**: Ondas 0–2 concluídas; aguardando OK para a Onda 3 (tela de Fonte/Drive), depois 4–5. Levantamento do
+   acervo entregue ao usuário (34 arquivos, 92,7 MB; 8 usados como fixture de teste), aguardando decisão do que sai; nada removido.
+   Candidatos de bundle (sem decisão): pdfjs-dist duplicado no entry, reanimated só para motion cues, `react-native-render-html` em `ChapterRenderer`.
    Abertos da revisão: BUG 17 (EPUB sem `lang`/justificar; onda 6, fora), **BUG 20** (Reflow com página final em branco; motor do Reader,
    fora das ondas aprovadas) e acervo embutido usado como fixture de testes. Botão OCR do Reflow (`PdfReflowProcessor.native.tsx`) ainda com
    terracota fixa `#B65F42` + branco (4,46:1), fora do tema.
@@ -243,6 +247,20 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
 
 ## 10. Log (mais recente primeiro; máx. 5 entradas, resto → docs/context/historico/)
 
+### 09/11/2026 — Revisão de qualidade: Onda 2, Biblioteca e export Web (Claude)
+- IMPLEMENTADO P1: `app/(tabs)/library.tsx` com célula memoizada `LibraryBookCell` e callbacks estáveis (`renderBook`, `openBook`,
+  `toggleSelection`, `organizeBook`); mesma árvore/estilos/rótulos. Medição `scripts/measure-library-renders.cjs` (fixture Chromium do
+  `test:library:bulk:web`, 1000 livros, 72 cartões montados; render = objeto de fiber diferente do commit anterior), 2 execuções cada:
+  busca que mantém todos 72→0 renders (~41→~16 ms), abrir "⋯" 72→0 (~42→~19 ms), marcar/desmarcar 1 livro 72→1 (~51→~34 / ~23→~7 ms);
+  limpar busca e entrar em seleção 144→72 (montagens legítimas). JSON em `.expo/perf/library-renders-{before,after}-*.json`.
+- IMPLEMENTADO P2: `copy-books-to-dist.mjs` deixou de copiar `assets/Livros` para `dist/assets/Livros` (93 MB sem hash, nenhuma referência
+  no bundle; o app usa só `dist/assets/assets/Livros/<hash>` do Metro). `dist` 207,6→110,5 MB (−47%), 154→120 arquivos; os 34 livros
+  referenciados existem. Mesmos livros publicados. **Conflito previsto** com o branch do acervo, que também edita esse script.
+- MEDIDO P3 (sem dividir): `scripts/measure-web-bundle.cjs`; entry 5,54 MiB (1,48 MB gzip): reanimated 733 KiB (só motion cues), pdfjs-dist
+  536 KiB **no entry** além do chunk `pdfjs` (imports estáticos em `PdfPageViewer.web`, `PdfReflowProcessor.web`, `PdfThumbnailGenerator.web`),
+  expo-router 429, entities 369 + ramda 122 (via `react-native-render-html` em `ChapterRenderer`), src/presentation 319. `.expo/perf/web-bundle-composition.json`.
+- VALIDADO: ver §3. NÃO TESTADO: Android/Hermes (medição só no Chromium com fixture sintética).
+
 ### 09/11/2026 — Revisão de qualidade: Onda 1, ajustes de leitura (Claude)
 - IMPLEMENTADO (só painel e tokens; motor, documento, âncoras e posições intocados): BUG 15 — entrelinha/parágrafo com "Médio" = padrão do modo
   (EPUB 1,65; PDF Reflow 1,6; parágrafo 1), Pequeno/Grande ±0,25/±0,5; valor salvo fora da lista não é reescrito nem marcado
@@ -270,18 +288,10 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
   Homologação física parcial PASS (§3); ajustes de rótulos/nome depois validados em typecheck, 89/89, export e Chromium (Biblioteca/fontes),
   ainda fora do APK. `test-library-bulk-web` passou a esperar a fixture após reload (falhava por tempo fixo de 500 ms).
 
-### 06/11/2026 — Redesign Fase 4: Conta e Estudo; estilos estáticos (Claude)
-- IMPLEMENTADO: `SettingsLayout`/`SettingsGroup`/`SettingsLink` reescritos sobre `src/ui` (mesma API → todas as subtelas de ajustes, legal,
-  suporte e Admin herdam o visual). Aba **Conta** com cartão de perfil (iniciais), grupos com descrições curtas. **Estudo**: "Novo deck" primário,
-  "Mais ferramentas" como lista (Gerar do livro *sem IA*, Batalha), decks em `ListGroup`, estado vazio. `overline` sem caixa alta forçada.
-- CORRIGIDO (risco Android): primitivos, `BookCard` e cartões da Biblioteca usavam estilo-função em `Pressable`, padrão que com NativeWind
-  empilhou conteúdo no Redmi; agora estáticos + `android_ripple`, com trava em `test-ui-primitives`.
-- Teste: loader compartilhado resolve pasta→`index.ts`; `test-settings-navigation`, `test-admin-web`, `redmi-qa` seguem os novos títulos.
-  VALIDADO: ver §3. NÃO TESTADO: Android.
-
 ### 06/11/2026 — Entradas anteriores
 - Fechamento UX/UI e Onboarding 1: ver `docs/context/historico/2026-11-06-ux-fechamento-e-onboarding-1.md`.
 - Onboarding 2 (auditoria e reescrita do contexto): ver `docs/context/historico/2026-11-06-onboarding-2.md`.
 - Redesign Fase 1 (fundação `src/ui`): ver `docs/context/historico/2026-11-06-redesign-fase-1.md`.
 - Redesign Fase 2 (navegação e Descobrir): ver `docs/context/historico/2026-11-06-redesign-fase-2.md`.
 - Redesign Fase 3 (Biblioteca com "+"): ver `docs/context/historico/2026-11-06-redesign-fase-3.md`.
+- Redesign Fase 4 (Conta e Estudo): ver `docs/context/historico/2026-11-06-redesign-fase-4.md`.

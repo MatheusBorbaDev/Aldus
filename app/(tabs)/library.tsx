@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -16,7 +16,7 @@ import { useLibrary } from "@/src/presentation/hooks/useLibrary";
 import { useAppTheme } from "@/src/presentation/contexts/AppThemeContext";
 import { libraryOrganization } from "@/src/presentation/services/dependencies";
 import { BookOrganizationModal, readingStatusLabels } from "@/src/presentation/components/BookOrganizationModal";
-import { inferredReadingStatus, normalizeLibraryText, OrganizationRecords } from "@/src/domain/types/libraryOrganization";
+import { BookOrganization, inferredReadingStatus, normalizeLibraryText, OrganizationRecords } from "@/src/domain/types/libraryOrganization";
 import { BookCard as SharedBookCard } from "@/src/presentation/components/BookCard";
 import { Book, MOCK_BOOKS } from "@/src/constants/mockBooks";
 import { markEpubLibraryReady, startEpubOpenTrace } from "@/src/utils/epubOpenMetrics";
@@ -108,12 +108,26 @@ function LibraryContent() {
   useEffect(() => { void loadOrganization().catch(() => undefined); return () => { requests.current++; }; }, [books, loadOrganization]);
   const collections = useMemo(() => [...new Set(books.flatMap(book => organization[book.id]?.collections ?? []))].sort((a, b) => a.localeCompare(b, "pt-BR")), [books, organization]);
   useEffect(() => { if (collection && !collections.includes(collection)) setCollection(""); }, [collection, collections]);
-  const toggleSelection = (id: string) => setSelection(previous => { const next = new Set(previous); if (next.has(id)) next.delete(id); else next.add(id); return next; });
+  // Callbacks estáveis: a célula memoizada (LibraryBookCell) só redesenha quando os próprios dados mudam (onda 2, P1).
+  const toggleSelection = useCallback((id: string) => setSelection(previous => { const next = new Set(previous); if (next.has(id)) next.delete(id); else next.add(id); return next; }), []);
+  const openBook = useCallback((item: LibraryBook) => {
+    if (item.mimeType === "application/epub+zip" && item.filePath.startsWith("bundled-epub://")) {
+      startEpubOpenTrace(item.id, { fileName: item.fileName, source: "bundled-epub" });
+    }
+    router.push({ pathname: "/reader/[bookId]", params: { bookId: item.id } });
+  }, []);
+  const organizeBook = useCallback((item: LibraryBook, card: Book) => setOrganizing({ ...item, title: card.title, author: card.author }), []);
+  const organizationDisabled = Boolean(organizationError);
   const selectedIds = useMemo(() => books.filter(book => selection.has(book.id)).map(book => book.id), [books, selection]);
 
   useEffect(() => {
     if (status === "success") markEpubLibraryReady();
   }, [status]);
+
+  const renderBook = useCallback(({ item }: { item: LibraryBook }) => (
+    <LibraryBookCell item={item} record={organization[item.id]} selecting={selecting} selected={selection.has(item.id)} layout={layout} cellWidth={cellWidth}
+      palette={palette} themeMode={resolvedTheme} organizationDisabled={organizationDisabled} onOpen={openBook} onToggle={toggleSelection} onOrganize={organizeBook} />
+  ), [organization, selecting, selection, layout, cellWidth, palette, resolvedTheme, organizationDisabled, openBook, toggleSelection, organizeBook]);
 
   const visibleBooks = useMemo(() => {
     const normalizedQuery = normalizeLibraryText(query);
@@ -294,34 +308,7 @@ function LibraryContent() {
           key={`columns-${columns}-${layout}`}
           numColumns={columns}
           keyExtractor={(book) => book.id}
-          renderItem={({ item }) => {
-            const cardBook = toCardBook(item, Boolean(organization[item.id]));
-            const record = organization[item.id];
-            return (
-              <View style={{ width: cellWidth, minWidth: 0, gap: space.xs, marginBottom: space.lg }}>
-                {selecting ? <SharedBookCard layout={layout} book={cardBook} themeMode={resolvedTheme} colors={palette} selection={selection.has(item.id)} onPress={() => toggleSelection(item.id)} /> : <>
-                  <SharedBookCard
-                    layout={layout}
-                    book={cardBook}
-                    themeMode={resolvedTheme} colors={palette}
-                    onPress={() => {
-                      if (item.mimeType === "application/epub+zip" && item.filePath.startsWith("bundled-epub://")) {
-                        startEpubOpenTrace(item.id, { fileName: item.fileName, source: "bundled-epub" });
-                      }
-                      router.push({ pathname: "/reader/[bookId]", params: { bookId: item.id } });
-                    }}
-                  />
-                  <View style={styles.cardMeta}>
-                    <AppText variant="caption" tone="secondary" numberOfLines={1} style={{ flex: 1 }}>
-                      {record?.favorite ? "★ · " : ""}{readingStatusLabels[inferredReadingStatus(item, record)]}{record?.series ? ` · ${record.series}${record.volume ? ` ${record.volume}` : ""}` : ""}
-                    </AppText>
-                    <IconButton icon="pricetag-outline" size={18} label={`Organizar ${cardBook.title}`} disabled={Boolean(organizationError)} onPress={() => setOrganizing({ ...item, title: cardBook.title, author: cardBook.author })} />
-                  </View>
-                  <BookCloudControls book={item} />
-                </>}
-              </View>
-            );
-          }}
+          renderItem={renderBook}
           contentContainerStyle={[styles.list, { paddingHorizontal: gutter, paddingTop }]}
           columnWrapperStyle={columns > 1 ? styles.gridRow : undefined}
           initialNumToRender={12}
@@ -365,6 +352,45 @@ function LibraryContent() {
     </View>
   );
 }
+
+interface LibraryBookCellProps {
+  item: LibraryBook;
+  record: BookOrganization | undefined;
+  selecting: boolean;
+  selected: boolean;
+  layout: "grid" | "list";
+  cellWidth: number;
+  palette: ReturnType<typeof useAppTheme>["palette"];
+  themeMode: ReturnType<typeof useAppTheme>["resolvedTheme"];
+  organizationDisabled: boolean;
+  onOpen(item: LibraryBook): void;
+  onToggle(id: string): void;
+  onOrganize(item: LibraryBook, card: Book): void;
+}
+
+/**
+ * Uma célula da grade/lista. Memoizada: digitar na busca, abrir menus ou marcar um livro não redesenha os demais cartões
+ * (com 1000 livros, cada mudança redesenhava todos os ~72 cartões montados). Só recebe dados do próprio livro e callbacks estáveis.
+ */
+const LibraryBookCell = memo(function LibraryBookCell({ item, record, selecting, selected, layout, cellWidth, palette, themeMode, organizationDisabled, onOpen, onToggle, onOrganize }: LibraryBookCellProps) {
+  const cardBook = useMemo(() => toCardBook(item, Boolean(record)), [item, record]);
+  const open = useCallback(() => onOpen(item), [item, onOpen]);
+  const toggle = useCallback(() => onToggle(item.id), [item.id, onToggle]);
+  return (
+    <View style={{ width: cellWidth, minWidth: 0, gap: space.xs, marginBottom: space.lg }}>
+      {selecting ? <SharedBookCard layout={layout} book={cardBook} themeMode={themeMode} colors={palette} selection={selected} onPress={toggle} /> : <>
+        <SharedBookCard layout={layout} book={cardBook} themeMode={themeMode} colors={palette} onPress={open} />
+        <View style={styles.cardMeta}>
+          <AppText variant="caption" tone="secondary" numberOfLines={1} style={{ flex: 1 }}>
+            {record?.favorite ? "★ · " : ""}{readingStatusLabels[inferredReadingStatus(item, record)]}{record?.series ? ` · ${record.series}${record.volume ? ` ${record.volume}` : ""}` : ""}
+          </AppText>
+          <IconButton icon="pricetag-outline" size={18} label={`Organizar ${cardBook.title}`} disabled={organizationDisabled} onPress={() => onOrganize(item, cardBook)} />
+        </View>
+        <BookCloudControls book={item} />
+      </>}
+    </View>
+  );
+});
 
 function toCardBook(book: LibraryBook, hasOrganization = false): Book {
   const mockBook =
