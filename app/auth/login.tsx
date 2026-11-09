@@ -1,15 +1,12 @@
 import { useState } from "react";
 import { Redirect, router } from "expo-router";
-import { Text, View } from "react-native";
-import { AuthButton, AuthError, AuthForm, AuthInput, AuthLegalNotice, AuthLink } from "@/src/presentation/components/AuthForm";
+import { AuthButton, AuthDivider, AuthError, AuthForm, AuthInput, AuthLegalNotice, AuthLink } from "@/src/presentation/components/AuthForm";
 import { loginWithGoogle, loginWithIdentifier } from "@/src/data/remote/authService";
 import { useAuth } from "@/src/presentation/contexts/AuthContext";
-import { useAppTheme } from "@/src/presentation/contexts/AppThemeContext";
 import { authDiagnostic, beginAuthDiagnostic, finishAuthDiagnostic } from "@/src/utils/authDiagnostics";
 
 export default function Login() {
   const { session, profile } = useAuth();
-  const { palette } = useAppTheme();
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
@@ -46,7 +43,7 @@ export default function Login() {
     <AuthError message={error} />
     <AuthButton title={busy ? "Aguarde…" : "Entrar"} disabled={busy} onPress={() => void run()} />
     <AuthLink title="Esqueceu sua senha?" href="/auth/forgot-password" />
-    <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}><View style={{ flex: 1, height: 1, backgroundColor: palette.border }} /><Text style={{ color: palette.secondaryText }}>ou</Text><View style={{ flex: 1, height: 1, backgroundColor: palette.border }} /></View>
+    <AuthDivider />
     <AuthButton title="Continuar com Google" icon="logo-google" secondary disabled={busy} onPress={() => void google()} />
     <AuthLink title="Não tem conta? Criar conta" href="/auth/signup" />
     <AuthLegalNotice intro="Antes de entrar, consulte os documentos aplicáveis:" />

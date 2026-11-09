@@ -81,7 +81,11 @@ Persistência (legado mantido, não renomear `kindle-*`/`@kindle/*`): Native SQL
   `c00afb70b854`, dirty=true); diff-check PASS. Chromium: `test:source-library:browser` PASS, agora com matriz visual 320/390/768/1440 ×
   claro/escuro × texto normal/ampliado (sintético, ×1,3 no Web) para grade, pasta do Drive e erro sem catálogo (48 capturas por rodada;
   antes/depois em `.expo/quality-wave3/{before,after}/`). Reader não tocado.
-  Próximas ondas aprovadas: 4 (Auth), 5 (erros silenciosos + proposta de dependências), cada uma só após OK do usuário.
+- **Onda 4 (09/11, sobre `06b77aa`)**: typecheck PASS; `test:critical` 92/92; `export:web` PASS (build `06b77aacb8ac`, dirty=true); diff-check
+  PASS; `test-auth`, `test-auth-flows`, `test-auth-callback`, `test-auth-native-{callback,pkce}`, `test-legal`, `test-ui-primitives`, `test-app-design`
+  PASS. Chromium: novo `test:auth:web` PASS (login/cadastro/recuperar/redefinir/completar perfil × 320/390/768/1440 × claro/escuro × texto
+  normal/ampliado sintético = 80 capturas + erros locais; antes 16 violações de alvo < 44 px, depois 0). Capturas em `.expo/quality-wave4/{before,after}/`.
+  Próxima onda aprovada: 5 (erros silenciosos + proposta de dependências), só após OK do usuário.
 - Validação local de 09/11 ("Continue lendo", sobre `cb45b71`): typecheck PASS; `test:critical` 90/90 (nova `library-last-read`); `export:web` PASS;
   `test:library:bulk:web` e `test:library:web` PASS; diff-check PASS.
 - Validação anterior (Fase 5, sobre `bb9d5dd`): typecheck PASS; `test:critical` 89/89; `export:web` PASS (build `bb9d5dd4597e`, dirty=true);
@@ -204,6 +208,7 @@ minutos; rode em segundo plano. Por área:
 - Reader: `test:reader:{browser,epub:web,reflow:web,study:web,pdf:web,settings:web,concentration:web,markings:web}` (Chromium; fora do critical)
 - Biblioteca: `test:library:{account,sync,files,reading,bulk,bulk:web,coordinator,restart,web,rls}`
 - Sources/Import: `test:source-catalog`, `test:source-library:browser`, `test:import`, `test:drive`, `test:ocr`
+- Auth (telas): `test:auth:web` (Chromium, fixture; `--report-only` lista violações sem falhar). Lógica: `node scripts/test-auth*.cjs`
 - SaaS/Admin: `test:saas`, `test:saas:quotas`, `test:saas:postgres`, `test:saas:web`, `test:admin`, `test:admin:web`
 - Landing/legal: `test:marketing`, `test:marketing:web`, `test:legal`, `test:legal:browser`
 - Sem comando npm (rodar `node scripts/test-<nome>.cjs`): `catalog-ranking`, `motion-cues`, `motion-lifecycle`, `search-pipeline`, `source-integrations`.
@@ -219,7 +224,7 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
    no novo visual (`docs/context/design-system.md`).
    **Acervo**: etapa 1 (contas novas só domínio público) pronta em `claude/acervo-dominio-publico-ae9294` (`11cf66c`), aguardando decisão de integrar; etapa 2 (cópia por usuário + nuvem privada, aprovada pelo usuário)
    e etapa 3 (remover os 33 arquivos do APK/`dist`) pendentes.
-   **Revisão de qualidade (09/11)**: Ondas 0–3 concluídas; aguardando OK para a Onda 4 (telas de Auth, sem mexer em Auth/OAuth), depois 5. Levantamento do
+   **Revisão de qualidade (09/11)**: Ondas 0–4 concluídas; aguardando OK para a Onda 5 (erros silenciosos; R5 só investigação). Levantamento do
    acervo entregue ao usuário (34 arquivos, 92,7 MB; 8 usados como fixture de teste), aguardando decisão do que sai; nada removido.
    Candidatos de bundle (sem decisão): pdfjs-dist duplicado no entry, reanimated só para motion cues, `react-native-render-html` em `ChapterRenderer`.
    Abertos da revisão: BUG 17 (EPUB sem `lang`/justificar; onda 6, fora), **BUG 20** (Reflow com página final em branco; motor do Reader,
@@ -250,6 +255,16 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
 - **IA externa:** não enviar livros/trechos a serviço de IA sem pedido e consentimento explícito do usuário final.
 
 ## 10. Log (mais recente primeiro; máx. 5 entradas, resto → docs/context/historico/)
+
+### 09/11/2026 — Revisão de qualidade: Onda 4, telas de entrada (Claude)
+- IMPLEMENTADO D2 (só apresentação; `authService`, sessão, OAuth/PKCE, callback, diagnósticos e regras **intocados**): `AuthForm.tsx` sobre
+  `src/ui` com a mesma API — `AuthButton` = `Button` (primário/secundário, largura total), textos em `AppText`, marca com `overline`, título
+  `display`; campos sem placeholder repetindo o rótulo e com `hint` opcional; erro com cor de erro + ícone + `alert`/live region (antes cor
+  de link); links legais com 44 px (Política tinha 34 px); `AuthDivider` novo. `login.tsx`/`signup.tsx` só trocaram marcação (divisor e dica
+  do usuário). Herdam o visual também `callback`, `forgot/reset-password`, `complete-profile` e `app/account/*` (mesmo componente).
+- Testes: `scripts/test-auth-ui-web.cjs` (`test:auth:web`) com matriz, estouro horizontal, alvos ≥ 44 px e erros locais como `alert`; mock de
+  `test-auth-flows` inclui `AuthDivider`. VALIDADO: ver §3. NÃO TESTADO: Android/Hermes e `fontScale` real, teclado/autofill do sistema,
+  login real (nenhum envio ao Supabase); telas de `app/account/*` não capturadas. Sem primeiro uso guiado (fora do escopo da onda).
 
 ### 09/11/2026 — Revisão de qualidade: Onda 3, tela de uma Fonte/Drive (Claude)
 - IMPLEMENTADO D1 (`SourceLibraryScreen.tsx` sobre `src/ui`; dados, Sync, cancelamento, pastas e importação inalterados): uma linha de
@@ -289,15 +304,6 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
 - Testes: `test-app-design` cobre os 5 temas do livro (4,5:1); `test-reader-settings-categories` cobre padrões, valor legado, 44 px, `onAccent`
   e rótulos; fixture Web do painel usa os temas reais (Papel/Escuro). VALIDADO: ver §3. NÃO TESTADO: Android; aparência dentro do documento.
 
-### 09/11/2026 — Revisão de qualidade: Etapa A (diagnóstico) e Onda 0 (Claude)
-- Etapa A (só leitura) sobre `3cc1107`: achados em conforto, UX, desempenho e robustez; bugs 14–20 em BUGS_ATUAIS.md. Ondas 0–5 aprovadas
-  pelo usuário, uma por vez com OK entre elas; 6 (tipografia do Reader) e 7 (visual de Estudo/Community/Plano) fora por enquanto.
-- IMPLEMENTADO Onda 0: fronteira de erro da raiz (`app/_layout.tsx` `ErrorBoundary` + `src/ui/ErrorScreen.tsx`, BUG 14); estilo estático nos
-  4 `Pressable` restantes (BUG 18) com varredura de todo `app/`+`src/` em `test-ui-primitives`; `test-reader-browser` lê `assets/Livros` (BUG 19);
-  `test-reflow-native-scheduling` com relógio determinístico (falhava ~40% neste PC por depender da velocidade da CPU; mutação com yield em
-  microtask continua falhando o teste).
-- VALIDADO: ver §3. Achado novo: BUG 20 (Reflow com página final em branco), não corrigido (motor do Reader fora das ondas). NÃO TESTADO: Android.
-
 ### 06/11/2026 — Entradas anteriores
 - Fechamento UX/UI e Onboarding 1: ver `docs/context/historico/2026-11-06-ux-fechamento-e-onboarding-1.md`.
 - Onboarding 2 (auditoria e reescrita do contexto): ver `docs/context/historico/2026-11-06-onboarding-2.md`.
@@ -306,3 +312,4 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
 - Redesign Fase 3 (Biblioteca com "+"): ver `docs/context/historico/2026-11-06-redesign-fase-3.md`.
 - Redesign Fase 4 (Conta e Estudo): ver `docs/context/historico/2026-11-06-redesign-fase-4.md`.
 - Redesign Fase 5 (moldura do Reader, 09/11): ver `docs/context/historico/2026-11-09-redesign-fase-5.md`.
+- Revisão de qualidade, Etapa A e Onda 0 (09/11): ver `docs/context/historico/2026-11-09-qualidade-etapa-a-onda-0.md`.
