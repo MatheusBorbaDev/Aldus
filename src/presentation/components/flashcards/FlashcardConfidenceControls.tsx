@@ -25,7 +25,7 @@ export function FlashcardConfidenceControls({
   return (
     <View style={styles.container}>
       <Text style={[styles.caption, { color: palette.secondaryText }]}>
-        Escolha o julgamento e o grau de confiança:
+        Escolha o julgamento e o grau de confiança
       </Text>
       <View style={styles.grid}>
         {FLASHCARD_CHOICES.map((item) => {
@@ -73,7 +73,7 @@ export function FlashcardConfidenceControls({
                 style={[
                   styles.labelText,
                   {
-                    color: isSelected ? palette.text : palette.textSecondary,
+                    color: isSelected ? palette.text : palette.secondaryText,
                     fontWeight: isSelected ? "700" : "500",
                   },
                 ]}
@@ -95,12 +95,10 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   caption: {
-    fontSize: 12,
-    fontWeight: "600",
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
+    fontSize: 13,
+    fontWeight: "500",
     textAlign: "center",
-    marginBottom: 4,
+    marginBottom: 2,
   },
   grid: {
     flexDirection: "row",
@@ -110,8 +108,8 @@ const styles = StyleSheet.create({
   button: {
     width: "48%",
     minHeight: 74,
-    borderWidth: 1.5,
-    borderRadius: 12,
+    borderWidth: 1,
+    borderRadius: 14,
     padding: 10,
     alignItems: "center",
     justifyContent: "center",
@@ -128,8 +126,8 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
   },
   labelText: {
-    fontSize: 12,
+    fontSize: 13,
     textAlign: "center",
-    lineHeight: 16,
+    lineHeight: 18,
   },
 });

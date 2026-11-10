@@ -111,6 +111,10 @@ Persistência (legado mantido, não renomear `kindle-*`/`@kindle/*`): Native SQL
 - **Redesenho, Etapa 5 parcial — deck, Plano e Community (10/11, sobre `9ccb201`)**: typecheck PASS; `test:critical` 95/95; `export:web` PASS;
   Chromium PASS: `test:saas:web` (Meu Plano/Comparar; antes/depois em `.expo/redesign-step5/`), `test:admin:web`, `test:source-library:browser`.
   Tela do deck e telas da Community SEM cobertura de navegador (só typecheck). Android NÃO TESTADO.
+- **Redesenho, Etapa 5 — sessão de estudo, flashcards e Batalha (10/11, sobre `608cd0e`)**: typecheck PASS; `test:critical` 95/95; `test-flashcard-ui`,
+  `test-flashcards`, `test-flashcard-sessions`, `test-flashcard-battles`, `test-battle-account`, `test-ui-primitives` PASS; `export:web` PASS; Chromium PASS:
+  `test:source-library:browser`, `test:saas:web`. Sessão de estudo vista em fixture de rascunho (pergunta/resposta/resumo, `.expo/redesign-step5/study/`).
+  Batalha SEM cobertura de navegador (exige partida remota); só typecheck e testes de lógica. Android NÃO TESTADO.
 - **APK de ensaio do HEAD `6883532` (09/11, primeiro build Android deste PC)**: `ALDUS_ALLOW_DEVELOPMENT_SIGNING=device-rehearsal npm run build:apk:local`,
   árvore limpa, Gradle 14 min 16 s (log `.expo/apk-6883532-build.log`). `artifacts/apk/Aldus-6883532-device-rehearsal.apk` (ignorado; cópia de
   `android/app/build/outputs/apk/release/app-release.apk`), 253.255.362 bytes, SHA-256 `6fecb41c…6931812f5c`. `aapt`: `com.aldus.reader`
@@ -291,6 +295,17 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
 
 ## 10. Log (mais recente primeiro; máx. 5 entradas, resto → docs/context/historico/)
 
+### 10/11/2026 — Redesenho, Etapa 5 (conclusão): sessão de estudo, flashcards e Batalha (Claude)
+- IMPLEMENTADO (lógica de sessão, pontuação, SRS e partidas intocada): `FlashcardStudyScreen` sobre `src/ui` (cabeçalho com voltar, cartão de
+  início com ação principal única, resumo com pontos em destaque e acerto/erro em cor de sucesso/perigo); durante as perguntas a tela não rola.
+  `FlashcardSessionView` com barra de progresso da sessão e texto do botão em `onAccent` (antes `#171A1D` fixo). Controles de confiança sem caixa
+  alta. `FlashcardCardView`/`FlashcardCreateModal`: cores fixas de texto, erro e seleção trocadas por `success`/`danger`/`onAccent`/`onDanger` do tema.
+  `app/battle.tsx`: `ScreenHeader`, `Button` do sistema com uma ação principal por estado (buscar, confirmar, consultar, nova batalha), cancelar em
+  `ghost`, títulos serifados, cartões de resultado com borda; erro em cor de perigo.
+- Teste `test-flashcard-ui` passou a carregar `src/ui` real (mocks de RN ganharam `useWindowDimensions`, `select`, `hairlineWidth`).
+- Fora: Admin (ferramenta do dono, layout Web e testes próprios); visual interno do cartão de flashcard (`FlashcardCardView`, 369 linhas) só teve as cores.
+- VALIDADO: ver §3. NÃO TESTADO: Batalha no navegador; Android.
+
 ### 10/11/2026 — Redesenho, Etapa 5 (parcial): deck, Plano e Community (Claude)
 - IMPLEMENTADO: `app/decks/[deckId].tsx` reescrito sobre `src/ui` (mesma lógica de dados): cabeçalho com voltar e contagem (flashcards · prontos
   · para revisar), **Estudar** primário (desabilitado sem flashcard pronto, com dica), criar/batalha/editar como ações comuns, renomear em
@@ -321,16 +336,6 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
 - Testes: `test-library-ui` cobre linha única, título de exibição, abrir/organizar, textos das remoções, cancelar sem remover e motivo do
   bloqueio. VALIDADO: ver §3. NÃO TESTADO: Android.
 
-### 10/11/2026 — Redesenho, Etapa 2: título e avisos do Reader (Claude)
-- IMPLEMENTADO: `src/presentation/services/bookDisplay.ts` (`readableBookTitle`, `catalogBookFor`) é a regra única de título para Biblioteca e
-  Reader: livro do acervo embutido mostra o título do catálogo (antes o Reader mostrava o nome do arquivo, ex. "sobre-a-vida-feliz"); título
-  que é só nome de arquivo troca `-`/`_` por espaço; título salvo com espaços não muda. Nada gravado no banco (só exibição).
-  Aviso "Leitura livre pronta." virou confirmação passageira (4 s, faixa estreita, sem botão, sem `alert`); avisos de falha, OCR e âncora
-  continuam até o leitor fechar (botão com alvo de 44 px). O temporizador só limpa a própria confirmação, nunca um aviso mais novo.
-- Não feito: subtítulo "Início" do Reflow (é o nome do primeiro capítulo gerado pelo `PdfReflowDocumentBuilder`; mudar é do motor).
-- Corrigido no caminho: a faixa de acentos do regex ficou literal no arquivo novo e quebrava o bundle da fixture servido sem charset; voltou a
-  escapes Unicode (faixa U+0300–U+036F) com trava no teste. VALIDADO: ver §3. NÃO TESTADO: Android.
-
 ### 06/11/2026 — Entradas anteriores
 - Fechamento UX/UI e Onboarding 1: ver `docs/context/historico/2026-11-06-ux-fechamento-e-onboarding-1.md`.
 - Onboarding 2 (auditoria e reescrita do contexto): ver `docs/context/historico/2026-11-06-onboarding-2.md`.
@@ -347,3 +352,4 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
 - Revisão de qualidade, Onda 5 (09/11): ver `docs/context/historico/2026-11-09-qualidade-onda-5.md`.
 - Dependências, patches do SDK 57 e APK de ensaio `6883532` (09/11): ver `docs/context/historico/2026-11-09-dependencias-sdk-57.md`.
 - Redesenho, Etapa 1, painel de leitura e plano das 5 etapas (10/11): ver `docs/context/historico/2026-11-10-redesenho-etapa-1.md`.
+- Redesenho, Etapa 2, título e avisos do Reader (10/11): ver `docs/context/historico/2026-11-10-redesenho-etapa-2.md`.

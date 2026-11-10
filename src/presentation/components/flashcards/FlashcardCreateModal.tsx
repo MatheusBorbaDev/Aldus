@@ -320,9 +320,9 @@ export function FlashcardCreateModal({
             style={[styles.saveButton, { backgroundColor: palette.accent }]}
           >
             {busy ? (
-              <ActivityIndicator size="small" color="#FFFFFF" />
+              <ActivityIndicator size="small" color={palette.onAccent ?? palette.background} />
             ) : (
-              <Text style={styles.saveButtonText}>Salvar</Text>
+              <Text style={[styles.saveButtonText, { color: palette.onAccent ?? palette.background }]}>Salvar</Text>
             )}
           </Pressable>
         </View>
@@ -415,8 +415,8 @@ export function FlashcardCreateModal({
               { backgroundColor: "rgba(220, 38, 38, 0.1)" },
             ]}
           >
-            <Ionicons name="alert-circle" size={18} color="#DC2626" />
-            <Text style={styles.errorText}>{error}</Text>
+            <Ionicons name="alert-circle" size={18} color={palette.danger ?? "#DC2626"} />
+            <Text style={[styles.errorText, { color: palette.danger ?? palette.accent }]}>{error}</Text>
           </View>
         ) : null}
 
@@ -497,7 +497,7 @@ export function FlashcardCreateModal({
                     <Text
                       style={[
                         styles.deckChipText,
-                        { color: isSelected ? "#FFFFFF" : palette.text },
+                        { color: isSelected ? palette.onAccent ?? palette.background : palette.text },
                       ]}
                     >
                       {deck.title}
@@ -567,12 +567,12 @@ export function FlashcardCreateModal({
                 <Ionicons
                   name="checkmark-circle"
                   size={20}
-                  color={isTrue === true ? "#171A1D" : palette.accent}
+                  color={isTrue === true ? palette.onAccent ?? palette.background : palette.accent}
                 />
                 <Text
                   style={[
                     styles.truthButtonText,
-                    { color: isTrue === true ? "#171A1D" : palette.text },
+                    { color: isTrue === true ? palette.onAccent ?? palette.background : palette.text },
                   ]}
                 >
                   Verdadeiro
@@ -594,12 +594,12 @@ export function FlashcardCreateModal({
                 <Ionicons
                   name="close-circle"
                   size={20}
-                  color={isTrue === false ? "#171A1D" : palette.accent}
+                  color={isTrue === false ? palette.onAccent ?? palette.background : palette.accent}
                 />
                 <Text
                   style={[
                     styles.truthButtonText,
-                    { color: isTrue === false ? "#171A1D" : palette.text },
+                    { color: isTrue === false ? palette.onAccent ?? palette.background : palette.text },
                   ]}
                 >
                   Falso

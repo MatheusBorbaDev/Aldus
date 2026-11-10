@@ -2,8 +2,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   AppState,
-  Pressable,
   ScrollView,
+  StyleSheet,
   Text,
   View,
 } from "react-native";
@@ -29,6 +29,7 @@ import {
 } from "@/src/domain/types/flashcards";
 import { FLASHCARD_SCORING_DESCRIPTION } from "@/src/domain/study/flashcardScoring";
 import { FlashcardSessionView } from "@/src/presentation/components/flashcards/FlashcardSessionView";
+import { Button, ScreenHeader, typography } from "@/src/ui";
 
 export default function Battle() {
   const { allowed } = useFeatureAccess("flashcards");
@@ -152,21 +153,9 @@ function BattleContent() {
       if (mounted.current) setBusy(false);
     }
   };
-  const button = (label: string, fn: () => void, disabled = false) => (
-    <Pressable
-      accessibilityRole="button"
-      disabled={busy || disabled}
-      onPress={fn}
-      style={{
-        minHeight: 48,
-        padding: 14,
-        borderRadius: 12,
-        backgroundColor: palette.surfaceSecondary,
-        opacity: busy || disabled ? 0.5 : 1,
-      }}
-    >
-      <Text style={{ color: palette.text, fontWeight: "600" }}>{label}</Text>
-    </Pressable>
+  // Botão do sistema visual; `primary` marca a ação principal de cada estado (uma por tela).
+  const button = (label: string, fn: () => void, disabled = false, variant: "primary" | "secondary" | "ghost" = "secondary") => (
+    <Button key={label} label={label} variant={variant} disabled={busy || disabled} onPress={fn} />
   );
   const deck = snapshot?.decks.find((d) => d.id === deckId),
     valid =
@@ -190,15 +179,10 @@ function BattleContent() {
         backgroundColor: palette.background,
       }}
     >
-      <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-        {button("Voltar", () => router.back())}
-        <Text style={{ color: palette.text, fontSize: 22, fontWeight: "700" }}>
-          Batalha
-        </Text>
-      </View>
+      <ScreenHeader title="Batalha" back backLabel="Voltar" fallbackHref="/study" />
       {error ? (
         <View style={{ gap: 8 }}>
-          <Text accessibilityRole="alert" style={{ color: palette.text }}>
+          <Text accessibilityRole="alert" style={{ color: palette.danger }}>
             {error}
           </Text>
           {button("Reconectar / consultar partida", () => void refresh())}
@@ -237,7 +221,7 @@ function BattleContent() {
           {state?.status === "idle" ? (
             <>
               <Text
-                style={{ color: palette.text, fontSize: 24, fontWeight: "700" }}
+                style={[typography.title, { color: palette.text }]}
               >
                 Escolha seu deck
               </Text>
@@ -283,6 +267,7 @@ function BattleContent() {
                     );
                 },
                 !deck || valid.length < count,
+                "primary",
               )}
             </>
           ) : state?.status === "searching" ? (
@@ -295,12 +280,14 @@ function BattleContent() {
               {button(
                 "Cancelar busca",
                 () => void operate(() => flashcardBattles.cancel()),
+                false,
+                "ghost",
               )}
             </>
           ) : state?.status === "confirmation" ? (
             <>
               <Text
-                style={{ color: palette.text, fontSize: 24, fontWeight: "700" }}
+                style={[typography.title, { color: palette.text }]}
               >
                 Adversário encontrado
               </Text>
@@ -331,16 +318,19 @@ function BattleContent() {
                 "Confirmar participação",
                 () => void operate(() => flashcardBattles.confirm(state.id!)),
                 state.me?.confirmed,
+                "primary",
               )}
               {button(
                 "Cancelar configuração",
                 () => void operate(() => flashcardBattles.cancel()),
+                false,
+                "ghost",
               )}
             </>
           ) : state?.status === "waiting" ? (
             <>
               <Text
-                style={{ color: palette.text, fontSize: 24, fontWeight: "700" }}
+                style={[typography.title, { color: palette.text }]}
               >
                 Você terminou
               </Text>
@@ -351,12 +341,12 @@ function BattleContent() {
               <Text style={{ color: palette.secondaryText }}>
                 Pode sair e retomar depois. Uma desconexão não causa derrota.
               </Text>
-              {button("Consultar resultado", () => void refresh())}
+              {button("Consultar resultado", () => void refresh(), false, "primary")}
             </>
           ) : state?.status === "complete" ? (
             <>
               <Text
-                style={{ color: palette.text, fontSize: 26, fontWeight: "700" }}
+                style={[typography.title, { color: palette.text }]}
               >
                 {state.winner === null
                   ? "Empate"
@@ -370,7 +360,9 @@ function BattleContent() {
                     key={p.id}
                     style={{
                       padding: 16,
-                      backgroundColor: palette.card,
+                      backgroundColor: palette.surface,
+                      borderColor: palette.border,
+                      borderWidth: StyleSheet.hairlineWidth,
                       borderRadius: 14,
                       gap: 6,
                     }}
@@ -393,7 +385,9 @@ function BattleContent() {
                   key={i}
                   style={{
                     padding: 16,
-                    backgroundColor: palette.card,
+                    backgroundColor: palette.surface,
+                    borderColor: palette.border,
+                    borderWidth: StyleSheet.hairlineWidth,
                     borderRadius: 14,
                     gap: 8,
                   }}
@@ -415,6 +409,8 @@ function BattleContent() {
               {button(
                 "Configurar nova batalha",
                 () => void operate(() => flashcardBattles.leave()),
+                false,
+                "primary",
               )}
             </>
           ) : state?.status === "cancelled" ? (

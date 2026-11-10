@@ -27,14 +27,19 @@ export function FlashcardSessionView({
   palette: AppThemePalette;
 }) {
   return (
-    <View style={{ flex: 1, gap: 12 }}>
-      <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-        <Text style={{ color: palette.secondaryText }}>
-          Flashcard {index} de {total}
-        </Text>
-        <Text style={{ color: palette.text, fontWeight: "700" }}>
-          {score} pontos
-        </Text>
+    <View style={{ flex: 1, gap: 12, paddingBottom: 16 }}>
+      <View style={{ gap: 6 }}>
+        <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+          <Text style={{ color: palette.secondaryText }}>
+            Flashcard {index} de {total}
+          </Text>
+          <Text style={{ color: palette.text, fontWeight: "700" }}>
+            {score} pontos
+          </Text>
+        </View>
+        <View accessibilityRole="progressbar" accessibilityLabel="Progresso da sessão" accessibilityValue={{ min: 0, max: total, now: index }} style={{ height: 4, borderRadius: 2, backgroundColor: palette.surfaceSecondary, overflow: "hidden" }}>
+          <View style={{ height: 4, width: `${Math.round((index / Math.max(1, total)) * 100)}%`, backgroundColor: palette.accent }} />
+        </View>
       </View>
       <FlashcardFlip revealed={!!answer}>
         <FlashcardCardView
@@ -58,7 +63,7 @@ export function FlashcardSessionView({
           }}
         >
           <Text
-            style={{ color: "#171A1D", fontWeight: "700", textAlign: "center" }}
+            style={{ color: palette.onAccent ?? palette.background, fontWeight: "700", textAlign: "center" }}
           >
             {busy
               ? "Salvando…"

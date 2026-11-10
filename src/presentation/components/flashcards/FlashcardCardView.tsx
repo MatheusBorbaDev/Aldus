@@ -124,11 +124,11 @@ export function FlashcardCardView({
                       styles.pointsBadge,
                       {
                         backgroundColor:
-                          evaluation.points >= 0 ? "#15803D" : "#DC2626",
+                          evaluation.points >= 0 ? palette.success ?? "#15803D" : palette.danger ?? "#DC2626",
                       },
                     ]}
                   >
-                    <Text style={styles.pointsText}>
+                    <Text style={[styles.pointsText, { color: evaluation.points >= 0 ? palette.background : palette.onDanger ?? palette.background }]}>
                       {evaluation.points > 0
                         ? `+${evaluation.points}`
                         : evaluation.points}{" "}

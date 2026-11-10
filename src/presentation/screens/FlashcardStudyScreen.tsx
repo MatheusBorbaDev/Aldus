@@ -1,13 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import {
-  ActivityIndicator,
-  Pressable,
-  ScrollView,
-  Text,
-  View,
-} from "react-native";
+import { ActivityIndicator, StyleSheet, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "@/src/presentation/contexts/AuthContext";
 import { useAppTheme } from "@/src/presentation/contexts/AppThemeContext";
 import { flashcardsForUser } from "@/src/data/local/FlashcardRepository";
@@ -18,12 +11,12 @@ import {
 } from "@/src/domain/types/flashcards";
 import { FLASHCARD_SCORING_DESCRIPTION } from "@/src/domain/study/flashcardScoring";
 import { FlashcardSessionView } from "@/src/presentation/components/flashcards/FlashcardSessionView";
+import { AppText, Button, radius, Screen, ScreenHeader, space } from "@/src/ui";
 
 export function FlashcardStudyScreen() {
   const { deckId } = useLocalSearchParams<{ deckId: string }>();
   const { user, canUse } = useAuth();
   const { palette } = useAppTheme();
-  const insets = useSafeAreaInsets();
   const repository = useMemo(() => flashcardsForUser(user!.id), [user?.id]);
   const [snapshot, setSnapshot] = useState<FlashcardSnapshot | null>(null),
     [session, setSession] = useState<FlashcardStudySession | null>(null),
@@ -66,135 +59,62 @@ export function FlashcardStudyScreen() {
       setBusy(false);
     }
   };
-  const button = (label: string, fn: () => void) => (
-    <Pressable
-      accessibilityRole="button"
-      disabled={busy}
-      onPress={fn}
-      style={{
-        padding: 16,
-        minHeight: 52,
-        borderRadius: 14,
-        backgroundColor: palette.surfaceSecondary,
-      }}
-    >
-      <Text style={{ color: palette.text, fontWeight: "700" }}>{label}</Text>
-    </Pressable>
-  );
   const deck = snapshot?.decks.find((d) => d.id === deckId),
     saved = snapshot?.sessions?.find((s) => s.deckId === deckId);
   const card = session?.cards[session.index];
   const answer = session?.answers.find((a) => a.cardId === card?.id) ?? null;
+  const playable = snapshot?.cards.filter((c) => c.deckId === deckId && isPlayableFlashcard(c)).length ?? 0;
+  const start = (fresh = false) => void operate(() => repository.studySession(deckId, fresh || undefined));
+  const correct = session?.answers.filter((a) => a.isCorrect).length ?? 0;
+  // Durante as perguntas a tela não rola: o cartão ocupa a altura e os botões de resposta ficam sempre ao alcance.
+  const answering = !!session && !session.completed && !!card;
   return (
-    <View
-      style={{
-        flex: 1,
-        padding: 16,
-        paddingTop: insets.top + 12,
-        paddingBottom: insets.bottom + 12,
-        backgroundColor: palette.background,
-        gap: 12,
-      }}
-    >
-      <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-        {button("Voltar", () => router.back())}
-        <Text
-          style={{
-            color: palette.text,
-            fontSize: 19,
-            fontWeight: "700",
-            flex: 1,
-          }}
-        >
-          {deck?.title ?? "Estudo"}
-        </Text>
-      </View>
-      {error ? (
-        <Text accessibilityRole="alert" style={{ color: palette.text }}>
-          {error}
-        </Text>
-      ) : null}
+    <Screen scroll={!answering} header={<ScreenHeader title={deck?.title ?? "Estudo"} back backLabel="Voltar" fallbackHref="/study" />}>
+      {error ? <AppText variant="bodySmall" tone="danger" accessibilityRole="alert">{error}</AppText> : null}
       {!snapshot && !error ? (
-        <ActivityIndicator color={palette.accent} />
+        <View accessibilityLabel="Carregando estudo" style={styles.loading}><ActivityIndicator color={palette.accent} /></View>
       ) : !session ? (
-        <ScrollView contentContainerStyle={{ gap: 16 }}>
-          <Text
-            style={{ color: palette.text, fontSize: 23, fontWeight: "700" }}
-          >
-            Estudar flashcards
-          </Text>
-          <Text style={{ color: palette.secondaryText, lineHeight: 23 }}>
-            {FLASHCARD_SCORING_DESCRIPTION}
-          </Text>
-          <Text style={{ color: palette.secondaryText }}>
-            {snapshot?.cards.filter(
-              (c) => c.deckId === deckId && isPlayableFlashcard(c),
-            ).length ?? 0}{" "}
-            flashcards completos. A explicação aparece após responder. Você
-            decide quando avançar.
-          </Text>
+        <View style={[styles.card, { backgroundColor: palette.surface, borderColor: palette.border }]}>
+          <AppText variant="heading">Estudar flashcards</AppText>
+          <AppText variant="bodySmall" tone="secondary">{FLASHCARD_SCORING_DESCRIPTION}</AppText>
+          <AppText variant="bodySmall" tone="secondary">
+            {playable} flashcards completos. A explicação aparece após responder. Você decide quando avançar.
+          </AppText>
           {deck ? (
-            button(
-              saved
-                ? saved.completed
-                  ? "Ver último resumo"
-                  : "Retomar sessão"
-                : "Iniciar estudo",
-              () => void operate(() => repository.studySession(deckId)),
-            )
-          ) : (
-            <Text style={{ color: palette.text }}>Deck não encontrado.</Text>
-          )}
-          {saved
-            ? button(
-                "Iniciar nova sessão",
-                () => void operate(() => repository.studySession(deckId, true)),
-              )
-            : null}
-        </ScrollView>
-      ) : session.completed ? (
-        <ScrollView contentContainerStyle={{ gap: 16 }}>
-          <Text
-            style={{ color: palette.text, fontSize: 26, fontWeight: "700" }}
-          >
-            Sessão concluída
-          </Text>
-          <Text style={{ color: palette.text, fontSize: 22 }}>
-            {session.score} pontos
-          </Text>
-          <Text style={{ color: palette.secondaryText }}>
-            {session.answers.length} respostas ·{" "}
-            {session.answers.filter((a) => a.isCorrect).length} acertos ·{" "}
-            {session.answers.filter((a) => !a.isCorrect).length} erros
-          </Text>
-          {session.answers.map((a) => (
-            <View
-              key={a.cardId}
-              style={{
-                padding: 16,
-                borderRadius: 14,
-                backgroundColor: palette.card,
-                gap: 8,
-              }}
-            >
-              <Text style={{ color: palette.text, fontWeight: "700" }}>
-                {session.cards.find((c) => c.id === a.cardId)?.title}
-              </Text>
-              <Text style={{ color: palette.text }}>
-                {a.symbol} · {a.isCorrect ? "Acerto" : "Erro"} ·{" "}
-                {a.points > 0 ? "+" : ""}
-                {a.points} pontos
-              </Text>
-              <Text style={{ color: palette.secondaryText }}>
-                {session.cards.find((c) => c.id === a.cardId)?.explanation}
-              </Text>
+            <View style={styles.actions}>
+              <Button label={saved ? (saved.completed ? "Ver último resumo" : "Retomar sessão") : "Iniciar estudo"} variant="primary" disabled={busy} onPress={() => start()} />
+              {saved ? <Button label="Iniciar nova sessão" disabled={busy} onPress={() => start(true)} /> : null}
             </View>
-          ))}
-          {button(
-            "Estudar novamente",
-            () => void operate(() => repository.studySession(deckId, true)),
+          ) : (
+            <AppText variant="body">Deck não encontrado.</AppText>
           )}
-        </ScrollView>
+        </View>
+      ) : session.completed ? (
+        <>
+          <View style={[styles.card, { backgroundColor: palette.surface, borderColor: palette.border }]}>
+            <AppText variant="overline" tone="secondary">Sessão concluída</AppText>
+            <AppText variant="display">{session.score} pontos</AppText>
+            <AppText variant="bodySmall" tone="secondary">
+              {session.answers.length} respostas · {correct} acertos · {session.answers.length - correct} erros
+            </AppText>
+            <View style={styles.actions}>
+              <Button label="Estudar novamente" variant="primary" disabled={busy} onPress={() => start(true)} />
+              <Button label="Voltar ao deck" variant="ghost" onPress={() => router.back()} />
+            </View>
+          </View>
+          {session.answers.map((a) => {
+            const answered = session.cards.find((c) => c.id === a.cardId);
+            return (
+              <View key={a.cardId} style={[styles.card, { backgroundColor: palette.surface, borderColor: palette.border }]}>
+                <AppText variant="label">{answered?.title}</AppText>
+                <AppText variant="bodySmall" tone={a.isCorrect ? "success" : "danger"}>
+                  {a.symbol} · {a.isCorrect ? "Acerto" : "Erro"} · {a.points > 0 ? "+" : ""}{a.points} pontos
+                </AppText>
+                <AppText variant="bodySmall" tone="secondary">{answered?.explanation}</AppText>
+              </View>
+            );
+          })}
+        </>
       ) : card ? (
         <FlashcardSessionView
           card={card}
@@ -214,6 +134,12 @@ export function FlashcardStudyScreen() {
           }
         />
       ) : null}
-    </View>
+    </Screen>
   );
 }
+
+const styles = StyleSheet.create({
+  loading: { paddingVertical: space.section, alignItems: "center" },
+  card: { borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.lg, padding: space.lg, gap: space.sm },
+  actions: { flexDirection: "row", flexWrap: "wrap", gap: space.sm, marginTop: space.xs },
+});
