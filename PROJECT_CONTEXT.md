@@ -115,6 +115,12 @@ Persistência (legado mantido, não renomear `kindle-*`/`@kindle/*`): Native SQL
   `test-flashcards`, `test-flashcard-sessions`, `test-flashcard-battles`, `test-battle-account`, `test-ui-primitives` PASS; `export:web` PASS; Chromium PASS:
   `test:source-library:browser`, `test:saas:web`. Sessão de estudo vista em fixture de rascunho (pergunta/resposta/resumo, `.expo/redesign-step5/study/`).
   Batalha SEM cobertura de navegador (exige partida remota); só typecheck e testes de lógica. Android NÃO TESTADO.
+- **APK de ensaio do HEAD `9d03182` (10/11, redesenho etapas 1–5)**: `ALDUS_ALLOW_DEVELOPMENT_SIGNING=device-rehearsal npm run build:apk:local`, árvore
+  limpa, Gradle 2 min 1 s (reuso incremental; log `.expo/apk-9d03182-build.log`). `artifacts/apk/Aldus-9d03182-device-rehearsal.apk` (ignorado),
+  253.266.978 bytes, SHA-256 `e2c0fad9…a93cc410`. `aapt`: `com.aldus.reader` 1.0.0-beta.2/code 3, min 24/target 36, sem debuggable, 4 ABIs.
+  `apksigner`: v2, certificado `fac61745…033b9c` (debug/`device-rehearsal`, o mesmo do Redmi) — **não é o Beta privado**. Bundle Hermes
+  regenerado (8.543.880 bytes; antes 8.532.264) com textos das etapas 1–5 ("Mais ajustes", "Para revisar hoje", "Confirmar remoção",
+  "Progresso da sessão") e sem "Modo e-reader"; 34 livros (92,6 MiB). **NÃO instalado**: o Redmi segue com `ae98991`.
 - **APK de ensaio do HEAD `6883532` (09/11, primeiro build Android deste PC)**: `ALDUS_ALLOW_DEVELOPMENT_SIGNING=device-rehearsal npm run build:apk:local`,
   árvore limpa, Gradle 14 min 16 s (log `.expo/apk-6883532-build.log`). `artifacts/apk/Aldus-6883532-device-rehearsal.apk` (ignorado; cópia de
   `android/app/build/outputs/apk/release/app-release.apk`), 253.255.362 bytes, SHA-256 `6fecb41c…6931812f5c`. `aapt`: `com.aldus.reader`
