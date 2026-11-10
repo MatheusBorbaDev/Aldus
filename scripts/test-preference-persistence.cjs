@@ -74,7 +74,7 @@ const load = require('./community-test-loader.cjs')({
   assert.match(screen, /trackPdfSettingsSave\(appDependencies\.pdfReaderSettings\.save\(bookId, pdfReaderSettings\)\)/);
   assert.match(screen, /pdfSettingsSaveError=\{isPdf && pdfSettingsSaveFailedBookId === bookId \?/);
   assert.match(panel, /const saveError = pdfSettings \? pdfSettingsSaveError : settings\.saveError;/);
-  assert.match(panel, /panelMode === "appearance" && saveError \? <View accessibilityRole="alert"/);
+  assert.match(panel, /appearance && saveError \? <View accessibilityRole="alert"/);
   assert.match(fs.readFileSync('app/preferences.tsx', 'utf8'), /saveError \? <Text accessibilityRole="alert"/);
   console.log('PASS preference persistence: latest-write tracker; reader settings and app theme report failed saves, clear on success, keep values in memory, never overwrite stored values after a failed read; PDF settings save tracked and shown in the panel (static).');
 })().catch(error => { console.error(error); process.exitCode = 1; });

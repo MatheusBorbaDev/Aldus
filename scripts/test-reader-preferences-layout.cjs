@@ -11,7 +11,8 @@ new Function('require','exports',code)(name=>{
  if(name.endsWith('MotionCuesControl'))return {MotionCuesControl:()=>React.createElement('MotionCues')};
  if(name.endsWith('ReaderSettingsSlider'))return {ReaderSettingsSlider:()=>React.createElement('Slider')};
  if(name.includes('readerUiDiagnostics'))return {readerUiDiagnostic(){}};
- if(name.includes('tokens'))return {pdfReaderThemes:{}};
+ if(name.includes('tokens'))return {pdfReaderThemes:{},readerThemes:{},fontFamilies:{}};
+ if(name.includes('vector-icons'))return {Ionicons:'Icon'};
  return {};
 },exportsForPanel);
 (async()=>{

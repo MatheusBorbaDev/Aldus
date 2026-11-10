@@ -1,14 +1,22 @@
+import { Ionicons } from "@expo/vector-icons";
 import { MotionCuesControl } from "./MotionCuesControl";
 import { ReaderSettingsSlider as Slider } from "./ReaderSettingsSlider";
 import { Modal, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from "react-native";
-import { useEffect, useRef, useState } from "react";
+import { ReactNode, useEffect, useRef, useState } from "react";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { DEFAULT_READER_LINE_HEIGHT, DEFAULT_READER_PARAGRAPH_SPACING, useReaderSettings } from "@/src/presentation/contexts/ReaderSettingsContext";
 import { defaultPdfReaderSettings, PdfReaderSettings, PdfReadingMode } from "@/src/domain/types/pdfReader";
-import { pdfReaderThemes } from "@/src/theme/tokens";
+import { fontFamilies, pdfReaderThemes, readerThemes } from "@/src/theme/tokens";
 import { PdfReaderTheme } from "@/src/domain/types/pdfReader";
 import { readerUiDiagnostic } from "@/src/utils/readerUiDiagnostics";
 
+/**
+ * Ajustes de leitura (redesenho, etapa 1). Folha baixa: o texto continua visível atrás para o leitor ver o efeito.
+ * - Sempre à mão: tamanho da letra, tema (amostra com a cor real) e brilho.
+ * - "Mais ajustes" em três seções: Texto · Página · Conforto (o PDF Original não tem Texto: preserva a tipografia do arquivo).
+ * Só apresentação: os valores, limites e padrões são os mesmos; abrir, trocar de seção ou expandir não grava nada nem toca no
+ * documento. As seções ficam montadas (display none) para não recriar controles ao navegar.
+ */
 interface Props {
   visible: boolean;
   panelMode: "appearance" | "contents" | "search";
@@ -33,6 +41,9 @@ interface Props {
   searchResult?: boolean | null;
 }
 
+type Palette = ReturnType<typeof useReaderSettings>["palette"];
+type SectionId = "text" | "page" | "comfort";
+
 const themes = [
   { value: "light", label: "Claro" },
   { value: "paper", label: "Papel" },
@@ -45,6 +56,14 @@ const fonts = [
   { value: "sans", label: "Sem serifa" },
   { value: "dyslexic", label: "Disléxica" },
 ] as const;
+const sections: Array<{ id: SectionId; label: string }> = [
+  { id: "text", label: "Texto" },
+  { id: "page", label: "Página" },
+  { id: "comfort", label: "Conforto" },
+];
+export const FONT_SIZE_MIN = 14;
+export const FONT_SIZE_MAX = 26;
+
 export function ReaderSettingsPanel({
   visible,
   panelMode,
@@ -67,9 +86,10 @@ export function ReaderSettingsPanel({
   onSearch,
   searchResult,
 }: Props) {
-  const [category, setCategory] = useState('appearance');
+  const [section, setSection] = useState<SectionId>("text");
+  const [expanded, setExpanded] = useState(false);
+  const [confirmingReset, setConfirmingReset] = useState(false);
   const scroll = useRef<ScrollView>(null);
-  const categories = [{ id: 'appearance', label: 'Aparência' }, { id: 'text', label: 'Tipografia' }, { id: 'layout', label: 'Página e layout' }, { id: 'focus', label: 'Concentração e conforto' }];
   const settings = useReaderSettings();
   const insets = useSafeAreaInsets();
   const [pageInput, setPageInput] = useState(String(pageNumber ?? 1));
@@ -77,64 +97,82 @@ export function ReaderSettingsPanel({
   const updatePdfSettings = (patch: Partial<PdfReaderSettings>) => {
     if (pdfSettings) onPdfSettingsChange?.({ ...pdfSettings, ...patch });
   };
-  const isOriginalPdf = pdfSettings && pdfMode === "original";
+  const isOriginalPdf = !!pdfSettings && pdfMode === "original";
+  const appearance = panelMode === "appearance";
   // Falha de gravação visível só nos ajustes (onde o leitor mexe); não fecha o painel nem altera o documento.
   const saveError = pdfSettings ? pdfSettingsSaveError : settings.saveError;
+  const availableSections = isOriginalPdf ? sections.filter(item => item.id !== "text") : sections;
+  const activeSection: SectionId = isOriginalPdf && section === "text" ? "page" : section;
+  const currentTheme = pdfSettings ? pdfSettings.theme : settings.theme;
+  const currentFont = pdfSettings ? pdfSettings.font : settings.font;
+  const fontSize = pdfSettings ? pdfSettings.fontSize : settings.fontSize;
+  const setFontSize = (value: number) => {
+    const next = Math.max(FONT_SIZE_MIN, Math.min(FONT_SIZE_MAX, Math.round(value)));
+    if (pdfSettings) updatePdfSettings({ fontSize: next }); else settings.setFontSize(next);
+  };
 
   useEffect(() => {
     if (visible) setPageInput(String(pageNumber ?? 1));
   }, [pageNumber, visible]);
+  useEffect(() => { if (!visible) { setConfirmingReset(false); setExpanded(false); } }, [visible]);
+
+  const openSection = (id: SectionId) => { setSection(id); setExpanded(true); setConfirmingReset(false); scroll.current?.scrollTo({ y: 0, animated: false }); };
+  const restoreDefaults = () => {
+    // Só tipografia e página do modo atual; tema, brilho e posição de leitura não mudam.
+    if (pdfSettings) {
+      const { font, fontSize: size, lineHeight, paragraphSpacing, margin, maxWidth, alignment } = defaultPdfReaderSettings;
+      updatePdfSettings({ font, fontSize: size, lineHeight, paragraphSpacing, margin, maxWidth, alignment });
+    } else {
+      settings.setFont("serif"); settings.setFontSize(16); settings.setLineHeight(DEFAULT_READER_LINE_HEIGHT);
+      settings.setParagraphSpacing(DEFAULT_READER_PARAGRAPH_SPACING); settings.setMargin("medium"); settings.setMaxWidth(900);
+    }
+    setConfirmingReset(false);
+  };
+  const title = panelMode === "contents" ? "Sumário" : panelMode === "search" ? "Buscar no livro" : "Ajustes de leitura";
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <View style={[styles.backdrop, { paddingTop: Math.max(insets.top, 12), paddingBottom: Math.max(insets.bottom, 12) }]}>
         <Pressable accessibilityLabel="Fechar preferências" style={StyleSheet.absoluteFill} onPress={onClose} />
-        <View style={[styles.panel, { backgroundColor: palette.panel }]}>
+        <View style={[styles.panel, { backgroundColor: palette.panel, borderColor: palette.separator, maxHeight: !appearance || expanded ? "90%" : "62%" }]}>
           <View style={styles.panelHeader}>
             <View style={styles.headerRow}>
-              <Text accessibilityRole="header" style={[styles.title, { color: palette.text }]}>{panelMode === 'contents' ? 'Sumário' : panelMode === 'search' ? 'Buscar no livro' : 'Ajustes de leitura'}</Text>
-              <Pressable accessibilityRole="button" accessibilityLabel="Fechar ajustes de leitura" onPress={onClose} style={styles.closeButton}><Text style={{color: palette.text, fontSize: 24}}>×</Text></Pressable>
+              <Text accessibilityRole="header" style={[styles.title, { color: palette.text }]}>{title}</Text>
+              {appearance ? (
+                <Pressable accessibilityRole="button" accessibilityLabel={expanded ? "Recolher ajustes" : "Expandir ajustes"} accessibilityState={{ expanded }} aria-expanded={expanded} onPress={() => setExpanded(!expanded)} android_ripple={{ color: palette.separator, borderless: true }} style={styles.iconButton}>
+                  <Ionicons name={expanded ? "chevron-down" : "chevron-up"} size={22} color={palette.text} />
+                </Pressable>
+              ) : null}
+              <Pressable accessibilityRole="button" accessibilityLabel="Fechar ajustes de leitura" onPress={onClose} android_ripple={{ color: palette.separator, borderless: true }} style={styles.iconButton}>
+                <Ionicons name="close" size={22} color={palette.text} />
+              </Pressable>
             </View>
-            {panelMode === 'appearance' ? <View style={styles.categories}>{categories.map(item => <Pressable key={item.id} accessibilityRole="button" accessibilityState={{selected: category === item.id}} aria-pressed={category === item.id} onPress={() => {setCategory(item.id); scroll.current?.scrollTo({y: 0, animated: false});}} style={[styles.category, {borderColor: category === item.id ? palette.accent : palette.separator, backgroundColor: category === item.id ? palette.accent : 'transparent'}]}><Text style={{color: category === item.id ? palette.onAccent : palette.text, fontSize: 13, textAlign: 'center'}}>{item.label}</Text></Pressable>)}</View> : null}
+            {appearance && pdfSettings && onPdfModeChange ? (
+              <View accessibilityLabel="Modo de leitura do PDF" style={styles.segmented}>
+                <Segment label="PDF Original" selected={pdfMode === "original"} onPress={() => onPdfModeChange("original")} palette={palette} />
+                <Segment label="Leitura Livre" selected={pdfMode === "reflow"} onPress={() => onPdfModeChange("reflow")} palette={palette} />
+              </View>
+            ) : null}
           </View>
           <ScrollView ref={scroll} style={styles.panelScroll} contentContainerStyle={styles.panelContent} keyboardShouldPersistTaps="handled"
             onLayout={event => readerUiDiagnostic("LAYOUT", "preferencesViewport", undefined, event.nativeEvent.layout)}
             onContentSizeChange={(width, height) => readerUiDiagnostic("LAYOUT", "preferencesContent", undefined, { x: 0, y: 0, width, height })}
             onScroll={event => readerUiDiagnostic("LAYOUT", "preferencesScroll", undefined, { x: event.nativeEvent.contentOffset.x, y: event.nativeEvent.contentOffset.y, width: event.nativeEvent.layoutMeasurement.width, height: event.nativeEvent.layoutMeasurement.height })}
           >
-          {panelMode === "appearance" && saveError ? <View accessibilityRole="alert" accessibilityLiveRegion="polite" style={[styles.saveError, { borderColor: palette.accent }]}><Text style={{ color: palette.text }}>{saveError}</Text></View> : null}
-          {panelMode === "appearance" ? (
-            <View style={{ gap: 10, display: category === "focus" ? "flex" : "none" }}>
-              <Text accessibilityRole="header" style={[styles.label, { color: palette.secondaryText }]}>CONCENTRAÇÃO</Text>
-              <View style={styles.inlineToggleRow}>
-                <Text style={{ color: palette.text, flex: 1 }}>Ocultar porcentagem e contagem de páginas</Text>
-                <Switch accessibilityLabel="Ocultar porcentagem e contagem de páginas" value={settings.hideReadingCounts} onValueChange={settings.setHideReadingCounts} />
-              </View>
-              <Text style={{ color: palette.secondaryText }}>Toque no centro da página para ocultar ou recuperar os controles.</Text>
-              <Text style={{ color: palette.secondaryText }}>Esta preferência vale neste dispositivo. A navegação continua disponível.</Text>
-              {onReadInFocus ? <ActionButton label="Ler em foco" onPress={onReadInFocus} palette={palette} /> : null}
-            </View>
-          ) : null}
-          {panelMode === "appearance" && category === "layout" && pdfSettings && onPdfModeChange ? (
-            <>
-              <Text style={[styles.label, { color: palette.secondaryText }]}>MODO</Text>
-              <View style={styles.row}>
-                <ModeButton label="PDF Original" selected={pdfMode === "original"} onPress={() => onPdfModeChange("original")} palette={palette} />
-                <ModeButton label="Leitura Livre" selected={pdfMode === "reflow"} onPress={() => onPdfModeChange("reflow")} palette={palette} />
-              </View>
-            </>
-          ) : null}
+          {appearance && saveError ? <View accessibilityRole="alert" accessibilityLiveRegion="polite" style={[styles.saveError, { borderColor: palette.accent }]}><Text style={{ color: palette.text }}>{saveError}</Text></View> : null}
 
           {panelMode === "contents" && chapterItems?.length && onSelectChapter ? (
             <View style={styles.chapterList}>
-              {chapterItems.map(({ index, title }) => (
+              {chapterItems.map(({ index, title: chapterTitle }) => (
                 <Pressable
                   accessibilityRole="button"
-                  key={`${index}-${title}`}
+                  accessibilityState={{ selected: index === chapterIndex }}
+                  key={`${index}-${chapterTitle}`}
                   onPress={() => onSelectChapter(index)}
+                  android_ripple={{ color: palette.separator }}
                   style={[styles.chapterItem, { borderColor: index === chapterIndex ? palette.accent : palette.separator }]}
                 >
-                  <Text style={{ color: palette.text }} numberOfLines={2}>{title}</Text>
+                  <Text style={{ color: palette.text, fontWeight: index === chapterIndex ? "600" : "400" }} numberOfLines={2}>{chapterTitle}</Text>
                 </Pressable>
               ))}
             </View>
@@ -154,21 +192,67 @@ export function ReaderSettingsPanel({
                 <ActionButton label="Buscar" onPress={() => onSearch?.()} palette={palette} />
               </View>
               {searchResult !== null && searchResult !== undefined ? (
-                <Text style={{ color: palette.secondaryText, fontSize: 12, marginTop: 6 }}>
-                  {searchResult ? "Trecho encontrado" : "Nenhum resultado"}
-                </Text>
+                <Text style={[styles.hint, { color: palette.secondaryText }]}>{searchResult ? "Trecho encontrado" : "Nenhum resultado"}</Text>
               ) : null}
             </>
           ) : null}
-          {panelMode === "appearance" ? (
-            <>
-              <View style={{display: category === "appearance" ? "flex" : "none"}}>
-              <Text style={[styles.label, { color: palette.secondaryText }]}>{Platform.OS === "web" ? "LUMINOSIDADE DA PÁGINA" : "BRILHO"}</Text>
-              {Platform.OS === "web" ? (
-                <View style={styles.row}>
+
+          {appearance ? (
+            <View style={styles.quick}>
+              {isOriginalPdf ? (
+                <Field label="Zoom" palette={palette}>
+                  <View style={styles.stepper}>
+                    <StepButton icon="remove" label="Diminuir zoom" disabled={pdfSettings.zoom <= 0.5} onPress={() => updatePdfSettings({ zoom: Math.max(0.5, pdfSettings.zoom - 0.25) })} palette={palette} />
+                    <Text accessibilityLabel="Valor do zoom" style={[styles.stepValue, { color: palette.text }]}>{Math.round(pdfSettings.zoom * 100)}%</Text>
+                    <StepButton icon="add" label="Aumentar zoom" disabled={pdfSettings.zoom >= 4} onPress={() => updatePdfSettings({ zoom: Math.min(4, pdfSettings.zoom + 0.25) })} palette={palette} />
+                  </View>
+                </Field>
+              ) : (
+                <>
+                  <Field label="Tamanho da letra" palette={palette}>
+                    <View style={styles.stepper}>
+                      <StepButton text="A" textSize={15} label="Diminuir letra" disabled={fontSize <= FONT_SIZE_MIN} onPress={() => setFontSize(fontSize - 1)} palette={palette} />
+                      <Slider
+                        accessibilityLabel="Tamanho da fonte"
+                        style={styles.slider}
+                        minimumValue={FONT_SIZE_MIN}
+                        maximumValue={FONT_SIZE_MAX}
+                        step={1}
+                        value={fontSize}
+                        minimumTrackTintColor={palette.accent}
+                        maximumTrackTintColor={palette.separator}
+                        thumbTintColor={palette.accent}
+                        onValueChange={setFontSize}
+                      />
+                      <StepButton text="A" textSize={23} label="Aumentar letra" disabled={fontSize >= FONT_SIZE_MAX} onPress={() => setFontSize(fontSize + 1)} palette={palette} />
+                      <Text accessibilityLabel="Valor do tamanho da fonte" style={[styles.sizeValue, { color: palette.secondaryText }]}>{fontSize}</Text>
+                    </View>
+                  </Field>
+                  <Field label="Tema" palette={palette}>
+                    <View accessibilityRole="radiogroup" style={styles.swatches}>
+                      {themes.map(theme => {
+                        const selected = currentTheme === theme.value;
+                        const colors = (pdfSettings ? pdfReaderThemes[theme.value as PdfReaderTheme] : readerThemes[theme.value]) ?? palette;
+                        return (
+                          <Pressable key={theme.value} accessibilityRole="button" accessibilityLabel={`Tema ${theme.label}`} accessibilityState={{ selected }} aria-pressed={selected}
+                            onPress={() => pdfSettings ? updatePdfSettings({ theme: theme.value as PdfReaderTheme }) : settings.setTheme(theme.value)} style={styles.swatch}>
+                            <View style={[styles.swatchSample, { backgroundColor: colors.background, borderColor: selected ? palette.accent : palette.separator, borderWidth: selected ? 2 : 1 }]}>
+                              {selected ? <Ionicons name="checkmark" size={18} color={colors.text} /> : <Text style={[styles.swatchLetters, { color: colors.text }]}>Aa</Text>}
+                            </View>
+                            <Text numberOfLines={1} style={[styles.swatchLabel, { color: selected ? palette.text : palette.secondaryText, fontWeight: selected ? "600" : "400" }]}>{theme.label}</Text>
+                          </Pressable>
+                        );
+                      })}
+                    </View>
+                  </Field>
+                </>
+              )}
+              <Field label={Platform.OS === "web" ? "Luminosidade da página" : "Brilho"} palette={palette}>
+                <View style={styles.stepper}>
+                  <Ionicons name="sunny-outline" size={18} color={palette.secondaryText} />
                   <Slider
-                    accessibilityLabel="Luminosidade da página"
-                    style={styles.fontSlider}
+                    accessibilityLabel={Platform.OS === "web" ? "Luminosidade da página" : "Brilho do leitor"}
+                    style={[styles.slider, Platform.OS !== "web" && settings.useSystemBrightness ? styles.muted : null]}
                     minimumValue={20}
                     maximumValue={100}
                     step={1}
@@ -176,174 +260,153 @@ export function ReaderSettingsPanel({
                     minimumTrackTintColor={palette.accent}
                     maximumTrackTintColor={palette.separator}
                     thumbTintColor={palette.accent}
-                    onValueChange={settings.setBrightness}
+                    onValueChange={value => { if (Platform.OS !== "web" && settings.useSystemBrightness) settings.setUseSystemBrightness(false); settings.setBrightness(value); }}
                   />
-                  <Text style={[styles.value, { color: palette.text }]}>{settings.brightness}%</Text>
+                  {Platform.OS === "web" ? <Text style={[styles.sizeValue, { color: palette.secondaryText }]}>{settings.brightness}%</Text> : (
+                    <Pressable accessibilityRole="switch" accessibilityLabel="Usar brilho do aparelho" accessibilityState={{ checked: settings.useSystemBrightness }} aria-checked={settings.useSystemBrightness}
+                      onPress={() => settings.setUseSystemBrightness(!settings.useSystemBrightness)} android_ripple={{ color: palette.separator }}
+                      style={[styles.autoChip, { borderColor: settings.useSystemBrightness ? palette.accent : palette.separator, borderWidth: settings.useSystemBrightness ? 2 : 1 }]}>
+                      {settings.useSystemBrightness ? <Ionicons name="checkmark" size={14} color={palette.text} /> : null}
+                      <Text style={{ color: palette.text, fontSize: 13, fontWeight: settings.useSystemBrightness ? "600" : "400" }}>Automático</Text>
+                    </Pressable>
+                  )}
                 </View>
+              </Field>
+
+              <View accessibilityRole="tablist" style={[styles.tabs, { borderColor: palette.separator }]}>
+                {availableSections.map(item => {
+                  const selected = expanded && activeSection === item.id;
+                  return (
+                    <Pressable key={item.id} accessibilityRole="button" accessibilityLabel={`Mais ajustes: ${item.label}`} accessibilityState={{ selected }} aria-pressed={selected} onPress={() => openSection(item.id)} android_ripple={{ color: palette.separator }} style={styles.tab}>
+                      <Text style={[styles.tabText, { color: selected ? palette.text : palette.secondaryText, fontWeight: selected ? "700" : "500" }]}>{item.label}</Text>
+                      <View style={[styles.tabBar, { backgroundColor: selected ? palette.accent : "transparent" }]} />
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </View>
+          ) : null}
+
+          {appearance && !isOriginalPdf ? (
+            <View style={[styles.section, { display: expanded && activeSection === "text" ? "flex" : "none" }]}>
+              <Field label="Fonte" palette={palette}>
+                <View style={styles.segmented}>
+                  {fonts.map(font => (
+                    <Segment key={font.value} label={font.label} sample="Aa" sampleFont={fontFamilies[font.value]} selected={currentFont === font.value} palette={palette}
+                      onPress={() => pdfSettings ? updatePdfSettings({ font: font.value }) : settings.setFont(font.value)} />
+                  ))}
+                </View>
+              </Field>
+              <Field label="Espaço entre linhas" palette={palette}>
+                <SegmentedControl
+                  options={spacingOptions(pdfSettings ? defaultPdfReaderSettings.lineHeight : DEFAULT_READER_LINE_HEIGHT, 0.25)}
+                  selectedValue={pdfSettings ? pdfSettings.lineHeight : settings.lineHeight}
+                  palette={palette}
+                  onSelect={(value) => pdfSettings ? updatePdfSettings({ lineHeight: Number(value) }) : settings.setLineHeight(Number(value))}
+                />
+              </Field>
+              <Field label="Espaço entre parágrafos" palette={palette}>
+                <SegmentedControl
+                  options={spacingOptions(pdfSettings ? defaultPdfReaderSettings.paragraphSpacing : DEFAULT_READER_PARAGRAPH_SPACING, 0.5)}
+                  selectedValue={pdfSettings ? pdfSettings.paragraphSpacing : settings.paragraphSpacing}
+                  palette={palette}
+                  onSelect={(value) => pdfSettings ? updatePdfSettings({ paragraphSpacing: Number(value) }) : settings.setParagraphSpacing(Number(value))}
+                />
+              </Field>
+              {pdfSettings ? (
+                <Field label="Alinhamento" palette={palette}>
+                  <View style={styles.segmented}>
+                    <Segment label="À esquerda" selected={pdfSettings.alignment !== "justify"} onPress={() => updatePdfSettings({ alignment: "left" })} palette={palette} />
+                    <Segment label="Justificado" selected={pdfSettings.alignment === "justify"} onPress={() => updatePdfSettings({ alignment: "justify" })} palette={palette} />
+                  </View>
+                </Field>
+              ) : null}
+              {confirmingReset ? (
+                <View style={styles.row}>
+                  <ActionButton label="Confirmar: voltar ao padrão" onPress={restoreDefaults} palette={palette} />
+                  <ActionButton label="Cancelar" onPress={() => setConfirmingReset(false)} palette={palette} />
+                </View>
+              ) : <ActionButton label="Restaurar texto e página padrão" onPress={() => setConfirmingReset(true)} palette={palette} />}
+            </View>
+          ) : null}
+
+          {appearance ? (
+            <View style={[styles.section, { display: expanded && activeSection === "page" ? "flex" : "none" }]}>
+              {!isOriginalPdf ? (
+                <Field label="Margens e largura" palette={palette}>
+                  <SegmentedControl
+                    options={[{ label: "Estreita", value: 0 }, { label: "Normal", value: 1 }, { label: "Larga", value: 2 }]}
+                    selectedValue={layoutPresetIndex(pdfSettings ? pdfSettings.margin : settings.marginSize, pdfSettings ? pdfSettings.maxWidth : settings.maxWidth)}
+                    palette={palette}
+                    onSelect={(value) => {
+                      const index = Number(value);
+                      if (pdfSettings) {
+                        const presets = [{ margin: 40, maxWidth: 560 }, { margin: 24, maxWidth: 760 }, { margin: 12, maxWidth: 1200 }];
+                        updatePdfSettings(presets[index]);
+                      } else {
+                        const presets = [
+                          { margin: "large" as const, maxWidth: 600 },
+                          { margin: "medium" as const, maxWidth: 900 },
+                          { margin: "small" as const, maxWidth: 1200 },
+                        ];
+                        settings.setMargin(presets[index].margin);
+                        settings.setMaxWidth(presets[index].maxWidth);
+                      }
+                    }}
+                  />
+                </Field>
               ) : (
                 <>
-                  <View style={styles.inlineToggleRow}>
-                    <Text style={{ color: palette.text, flex: 1 }}>Usar brilho do aparelho</Text>
-                    <Switch accessibilityLabel="Usar brilho do aparelho" value={settings.useSystemBrightness} onValueChange={settings.setUseSystemBrightness} thumbColor={settings.useSystemBrightness ? palette.accent : palette.panel} trackColor={{ false: palette.separator, true: palette.accent }} />
-                  </View>
-                  {!settings.useSystemBrightness ? (
-                    <View style={styles.row}>
-                      <Slider
-                        accessibilityLabel="Brilho do leitor"
-                        style={styles.fontSlider}
-                        minimumValue={20}
-                        maximumValue={100}
-                        step={1}
-                        value={settings.brightness}
-                        minimumTrackTintColor={palette.accent}
-                        maximumTrackTintColor={palette.separator}
-                        thumbTintColor={palette.accent}
-                        onValueChange={settings.setBrightness}
-                      />
-                      <Text style={[styles.value, { color: palette.text }]}>{settings.brightness}%</Text>
+                  <Field label="Ajuste" palette={palette}>
+                    <View style={styles.segmented}>
+                      <Segment label="À página" selected={pdfSettings.fitMode === "page"} onPress={() => updatePdfSettings({ fitMode: "page", zoom: 1 })} palette={palette} />
+                      <Segment label="À largura" selected={pdfSettings.fitMode === "width"} onPress={() => updatePdfSettings({ fitMode: "width", zoom: 1 })} palette={palette} />
                     </View>
+                  </Field>
+                  <Field label="Páginas lado a lado" palette={palette}>
+                    <View style={styles.segmented}>
+                      <Segment label="Única" selected={pdfSettings.layout === "single"} onPress={() => updatePdfSettings({ layout: "single" })} palette={palette} />
+                      <Segment label="Dupla" selected={pdfSettings.layout === "double"} onPress={() => updatePdfSettings({ layout: "double", rotation: 0 })} palette={palette} />
+                    </View>
+                  </Field>
+                  <View style={styles.row}>
+                    {pdfSettings.layout === "single" ? <ActionButton label={`Girar (${pdfSettings.rotation}°)`} onPress={() => updatePdfSettings({ rotation: (pdfSettings.rotation + 90) % 360 })} palette={palette} /> : null}
+                    {onToggleFullscreen ? <ActionButton label="Tela cheia" onPress={onToggleFullscreen} palette={palette} /> : null}
+                  </View>
+                  {onGoToPage && totalPages ? (
+                    <Field label={`Ir para a página (1–${totalPages})`} palette={palette}>
+                      <View style={styles.row}>
+                        <TextInput
+                          accessibilityLabel="Número da página"
+                          keyboardType="number-pad"
+                          value={pageInput}
+                          onChangeText={setPageInput}
+                          onSubmitEditing={() => submitPage(pageInput, totalPages, onGoToPage)}
+                          style={[styles.pageInput, { color: palette.text, borderColor: palette.separator }]}
+                        />
+                        <ActionButton label="Ir" onPress={() => submitPage(pageInput, totalPages, onGoToPage)} palette={palette} />
+                      </View>
+                    </Field>
                   ) : null}
+                  <Text style={[styles.hint, { color: palette.secondaryText }]}>O PDF Original mantém a tipografia do arquivo. Para mudar letra e espaçamento, use Leitura Livre.</Text>
                 </>
               )}
-              </View>
-            </>
-          ) : null}
-          {panelMode === "appearance" && isOriginalPdf && category === "layout" ? (
-            <>
-              <Text style={[styles.label, { color: palette.secondaryText }]}>ZOOM</Text>
-              <View style={styles.row}>
-                <ActionButton label="−" accessibilityLabel="Diminuir zoom" onPress={() => updatePdfSettings({ zoom: Math.max(0.5, pdfSettings.zoom - 0.25) })} palette={palette} />
-                <Text style={[styles.value, { color: palette.text }]}>{Math.round(pdfSettings.zoom * 100)}%</Text>
-                <ActionButton label="+" accessibilityLabel="Aumentar zoom" onPress={() => updatePdfSettings({ zoom: Math.min(4, pdfSettings.zoom + 0.25) })} palette={palette} />
-              </View>
-              <Text style={[styles.label, { color: palette.secondaryText }]}>AJUSTE</Text>
-              <View style={styles.row}>
-                <ModeButton label="Ajustar à página" selected={pdfSettings.fitMode === "page"} onPress={() => updatePdfSettings({ fitMode: "page", zoom: 1 })} palette={palette} />
-                <ModeButton label="Ajustar à largura" selected={pdfSettings.fitMode === "width"} onPress={() => updatePdfSettings({ fitMode: "width", zoom: 1 })} palette={palette} />
-              </View>
-              <Text style={[styles.label, { color: palette.secondaryText }]}>PÁGINA</Text>
-              <View style={styles.row}>
-                <ModeButton label="Única" selected={pdfSettings.layout === "single"} onPress={() => updatePdfSettings({ layout: "single" })} palette={palette} />
-                <ModeButton label="Dupla" selected={pdfSettings.layout === "double"} onPress={() => updatePdfSettings({ layout: "double", rotation: 0 })} palette={palette} />
-                {pdfSettings.layout === "single" ? <ActionButton label={`Girar ${pdfSettings.rotation}°`} onPress={() => updatePdfSettings({ rotation: (pdfSettings.rotation + 90) % 360 })} palette={palette} /> : null}
-              </View>
-              {onGoToPage && totalPages ? (
-                <>
-                  <Text style={[styles.label, { color: palette.secondaryText }]}>IR PARA PÁGINA</Text>
-                  <View style={styles.row}>
-                    <TextInput
-                      accessibilityLabel="Número da página"
-                      keyboardType="number-pad"
-                      value={pageInput}
-                      onChangeText={setPageInput}
-                      onSubmitEditing={() => submitPage(pageInput, totalPages, onGoToPage)}
-                      style={[styles.pageInput, { color: palette.text, borderColor: palette.separator }]}
-                    />
-                    <ActionButton label={`Ir (1-${totalPages})`} onPress={() => submitPage(pageInput, totalPages, onGoToPage)} palette={palette} />
-                  </View>
-                </>
-              ) : null}
-              {onToggleFullscreen ? <ActionButton label="Tela cheia" onPress={onToggleFullscreen} palette={palette} /> : null}
-            </>
+            </View>
           ) : null}
 
-          {panelMode === "appearance" && !isOriginalPdf ? (
-            <>
-              <View style={{display: category === "appearance" ? "flex" : "none"}}>
-              <Text style={[styles.label, { color: palette.secondaryText }]}>TELA</Text>
-              <View style={styles.inlineToggleRow}>
-                <View style={styles.eReaderCopy}>
-                  <Text style={{ color: palette.text, fontWeight: "600" }}>Modo e-reader</Text>
-                  <Text style={{ color: palette.secondaryText, fontSize: 12 }}>Fundo Papel com texto de alto contraste</Text>
+          {appearance ? (
+            <View style={[styles.section, { display: expanded && activeSection === "comfort" ? "flex" : "none" }]}>
+              <View style={styles.toggleRow}>
+                <View style={styles.toggleCopy}>
+                  <Text style={{ color: palette.text }}>Ocultar porcentagem e páginas</Text>
+                  <Text style={[styles.hint, { color: palette.secondaryText }]}>Toque no centro da página para mostrar ou esconder os controles.</Text>
                 </View>
-                <Switch
-                  accessibilityLabel="Modo e-reader"
-                  value={(pdfSettings ? pdfSettings.theme : settings.theme) === "paper"}
-                  onValueChange={(enabled) => {
-                    const theme = enabled ? "paper" : "sepia";
-                    if (pdfSettings) updatePdfSettings({ theme });
-                    else settings.setTheme(theme);
-                  }}
-                  thumbColor={
-                    (pdfSettings ? pdfSettings.theme : settings.theme) === "paper"
-                      ? palette.accent
-                      : palette.panel
-                  }
-                  trackColor={{ false: palette.separator, true: palette.accent }}
-                />
+                <Switch accessibilityLabel="Ocultar porcentagem e contagem de páginas" value={settings.hideReadingCounts} onValueChange={settings.setHideReadingCounts} thumbColor={settings.hideReadingCounts ? palette.accent : palette.panel} trackColor={{ false: palette.separator, true: palette.accent }} />
               </View>
-              <Text style={[styles.label, { color: palette.secondaryText }]}>TEMA</Text>
-              <View style={styles.row}>{themes.map((theme) => <Pressable key={theme.value} accessibilityRole="button" aria-pressed={(pdfSettings ? pdfSettings.theme : settings.theme) === theme.value} onPress={() => pdfSettings ? updatePdfSettings({ theme: theme.value as PdfReaderTheme }) : settings.setTheme(theme.value)} style={[styles.option, { borderColor: (pdfSettings ? pdfSettings.theme : settings.theme) === theme.value ? palette.accent : palette.separator }]}><Text style={{ color: palette.text }}>{theme.label}</Text></Pressable>)}</View>
-
-              </View>
-              <View style={{display: category === "text" ? "flex" : "none"}}>
-              <Text style={[styles.label, { color: palette.secondaryText }]}>FONTE</Text>
-              <View style={styles.row}>{fonts.map((font) => <Pressable key={font.value} accessibilityRole="button" aria-pressed={(pdfSettings ? pdfSettings.font : settings.font) === font.value} onPress={() => pdfSettings ? updatePdfSettings({ font: font.value }) : settings.setFont(font.value)} style={[styles.option, { borderColor: (pdfSettings ? pdfSettings.font : settings.font) === font.value ? palette.accent : palette.separator }]}><Text style={{ color: palette.text }}>{font.label}</Text></Pressable>)}</View>
-
-              <Text style={[styles.label, { color: palette.secondaryText }]}>TAMANHO DA FONTE</Text>
-              <View style={styles.fontScaleRow}>
-                <Text style={[styles.fontScaleSmall, { color: palette.secondaryText }]}>A</Text>
-                <Slider
-                  accessibilityLabel="Tamanho da fonte"
-                  style={styles.fontSlider}
-                  minimumValue={14}
-                  maximumValue={26}
-                  step={1}
-                  value={pdfSettings ? pdfSettings.fontSize : settings.fontSize}
-                  minimumTrackTintColor={palette.accent}
-                  maximumTrackTintColor={palette.separator}
-                  thumbTintColor={palette.accent}
-                  onValueChange={(value) => pdfSettings ? updatePdfSettings({ fontSize: value }) : settings.setFontSize(value)}
-                />
-                <Text style={[styles.fontScaleLarge, { color: palette.text }]}>A</Text>
-                <Text accessibilityLabel="Valor do tamanho da fonte" style={[styles.value, { color: palette.text }]}>{pdfSettings ? pdfSettings.fontSize : settings.fontSize}</Text>
-              </View>
-
-              <Text style={[styles.label, { color: palette.secondaryText }]}>ESPAÇAMENTO ENTRE LINHAS</Text>
-              <SegmentedControl
-                options={spacingOptions(pdfSettings ? defaultPdfReaderSettings.lineHeight : DEFAULT_READER_LINE_HEIGHT, 0.25)}
-                selectedValue={pdfSettings ? pdfSettings.lineHeight : settings.lineHeight}
-                palette={palette}
-                onSelect={(value) => pdfSettings ? updatePdfSettings({ lineHeight: Number(value) }) : settings.setLineHeight(Number(value))}
-              />
-
-              <Text style={[styles.label, { color: palette.secondaryText }]}>ESPAÇO ENTRE PARÁGRAFOS</Text>
-              <SegmentedControl
-                options={spacingOptions(pdfSettings ? defaultPdfReaderSettings.paragraphSpacing : DEFAULT_READER_PARAGRAPH_SPACING, 0.5)}
-                selectedValue={pdfSettings ? pdfSettings.paragraphSpacing : settings.paragraphSpacing}
-                palette={palette}
-                onSelect={(value) => pdfSettings ? updatePdfSettings({ paragraphSpacing: Number(value) }) : settings.setParagraphSpacing(Number(value))}
-              />
-
-              </View>
-              <View style={{display: category === "layout" ? "flex" : "none"}}>
-              <Text style={[styles.label, { color: palette.secondaryText }]}>MARGENS E LARGURA</Text>
-              <SegmentedControl
-                options={[{ label: "Estreita", value: 0 }, { label: "Normal", value: 1 }, { label: "Larga", value: 2 }]}
-                selectedValue={layoutPresetIndex(pdfSettings ? pdfSettings.margin : settings.marginSize, pdfSettings ? pdfSettings.maxWidth : settings.maxWidth)}
-                palette={palette}
-                onSelect={(value) => {
-                  const index = Number(value);
-                  if (pdfSettings) {
-                    const presets = [{ margin: 40, maxWidth: 560 }, { margin: 24, maxWidth: 760 }, { margin: 12, maxWidth: 1200 }];
-                    updatePdfSettings(presets[index]);
-                  } else {
-                    const presets = [
-                      { margin: "large" as const, maxWidth: 600 },
-                      { margin: "medium" as const, maxWidth: 900 },
-                      { margin: "small" as const, maxWidth: 1200 },
-                    ];
-                    settings.setMargin(presets[index].margin);
-                    settings.setMaxWidth(presets[index].maxWidth);
-                  }
-                }}
-              />
-              {pdfSettings ? <ModeButton label={pdfSettings.alignment === "justify" ? "Alinhamento: Justificado" : "Alinhamento: Esquerda"} selected={false} onPress={() => updatePdfSettings({ alignment: pdfSettings.alignment === "justify" ? "left" : "justify" })} palette={palette} /> : null}
-              </View>
-            </>
+              {onReadInFocus ? <ActionButton label="Ler em foco" onPress={onReadInFocus} palette={palette} /> : null}
+              <MotionCuesControl color={palette.text} />
+            </View>
           ) : null}
-          {panelMode === "appearance" ? <View style={{display: category === 'focus' ? 'flex' : 'none'}}><MotionCuesControl color={palette.text} /></View> : null}
-          {panelMode === 'appearance' && isOriginalPdf && category === 'text' ? <Text style={{color: palette.secondaryText}}>O PDF Original preserva a tipografia do arquivo. Use Leitura Livre em Página e layout para ajustar o texto.</Text> : null}
           </ScrollView>
         </View>
       </View>
@@ -353,34 +416,48 @@ export function ReaderSettingsPanel({
 
 const styles = StyleSheet.create({
   saveError: { borderWidth: 1, borderRadius: 10, padding: 12, marginBottom: 12 },
-  backdrop: { flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.35)", paddingHorizontal: 12, paddingBottom: 0 },
-  panel: { width: "100%", maxWidth: 560, maxHeight: "90%", padding: 0, borderTopLeftRadius: 24, borderTopRightRadius: 24, alignSelf: "center" },
-  panelHeader: {paddingHorizontal: 20, paddingTop: 16, paddingBottom: 12},
-  headerRow: {flexDirection: 'row', alignItems: 'center', gap: 10},
-  closeButton: {minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center'},
-  categories: {flexDirection: 'row', flexWrap: 'wrap', gap: 8},
-  category: {flexBasis: '46%', flexGrow: 1, minHeight: 44, padding: 10, borderWidth: 1, borderRadius: 10, justifyContent: 'center'},
+  // Fundo leve: o leitor precisa enxergar o texto mudando atrás da folha.
+  backdrop: { flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.18)", paddingHorizontal: 8, paddingBottom: 0 },
+  panel: { width: "100%", maxWidth: 560, padding: 0, borderTopLeftRadius: 20, borderTopRightRadius: 20, borderWidth: StyleSheet.hairlineWidth, alignSelf: "center" },
+  panelHeader: { paddingHorizontal: 20, paddingTop: 10, paddingBottom: 4, gap: 10 },
+  headerRow: { flexDirection: "row", alignItems: "center", gap: 4, minHeight: 44 },
+  iconButton: { minWidth: 44, minHeight: 44, alignItems: "center", justifyContent: "center", borderRadius: 22 },
   panelScroll: { flexShrink: 1 },
-  panelContent: { padding: 20, paddingBottom: 32 },
-  handle: { width: 42, height: 4, borderRadius: 3, backgroundColor: "#A7AAA2", alignSelf: "center", marginBottom: 22 },
-  title: { flex: 1, fontSize: 22, fontWeight: "700", marginBottom: 12 },
-  label: { fontSize: 10, letterSpacing: 1.5, fontWeight: "700", marginTop: 18, marginBottom: 10 },
+  panelContent: { paddingHorizontal: 20, paddingTop: 4, paddingBottom: 24 },
+  title: { flex: 1, fontSize: 17, fontWeight: "600" },
+  quick: { gap: 14 },
+  section: { gap: 16, paddingTop: 16 },
+  field: { gap: 8 },
+  fieldLabel: { fontSize: 13, fontWeight: "500" },
+  hint: { fontSize: 12, lineHeight: 17 },
   row: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: 10 },
-  inlineToggleRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 10 },
-  eReaderCopy: { flex: 1, gap: 4 },
-  option: { minHeight: 44, justifyContent: "center", borderWidth: 1, borderRadius: 10, paddingVertical: 10, paddingHorizontal: 13 },
-  fontScaleRow: { flexDirection: "row", alignItems: "center", gap: 10 },
-  fontScaleSmall: { fontSize: 14, fontWeight: "600" },
-  fontScaleLarge: { fontSize: 24, fontWeight: "700" },
-  fontSlider: { flex: 1, minWidth: 0, height: 38 },
-  segmented: { flexDirection: "row", width: "100%", gap: 6 },
-  segment: { flex: 1, minWidth: 0, minHeight: 44, alignItems: "center", justifyContent: "center", paddingVertical: 10, paddingHorizontal: 4, borderWidth: 1, borderRadius: 9 },
-  segmentText: { fontSize: 12, textAlign: "center", flexShrink: 1 },
-  value: { minWidth: 52, textAlign: "center", fontSize: 14, fontWeight: "600" },
-  pageInput: { minWidth: 88, height: 44, paddingHorizontal: 10, borderWidth: 1, borderRadius: 6 },
-  searchInput: { flex: 1, minWidth: 120, height: 44, paddingHorizontal: 10, borderWidth: 1, borderRadius: 6 },
+  stepper: { flexDirection: "row", alignItems: "center", gap: 10 },
+  stepButton: { minWidth: 48, minHeight: 44, alignItems: "center", justifyContent: "center", borderWidth: 1, borderRadius: 12 },
+  stepValue: { minWidth: 64, textAlign: "center", fontSize: 15, fontWeight: "600" },
+  sizeValue: { minWidth: 34, textAlign: "right", fontSize: 13 },
+  slider: { flex: 1, minWidth: 0, height: 38 },
+  muted: { opacity: 0.45 },
+  swatches: { flexDirection: "row", justifyContent: "space-between", gap: 6 },
+  swatch: { flex: 1, minWidth: 0, minHeight: 44, alignItems: "center", gap: 5 },
+  swatchSample: { width: 46, height: 46, borderRadius: 23, alignItems: "center", justifyContent: "center" },
+  swatchLetters: { fontSize: 15, fontWeight: "600" },
+  swatchLabel: { fontSize: 12, textAlign: "center" },
+  autoChip: { minHeight: 44, flexDirection: "row", alignItems: "center", gap: 5, paddingHorizontal: 12, borderRadius: 22 },
+  tabs: { flexDirection: "row", borderTopWidth: StyleSheet.hairlineWidth, marginTop: 2 },
+  tab: { flex: 1, minHeight: 46, alignItems: "center", justifyContent: "flex-end", gap: 8 },
+  tabText: { fontSize: 14 },
+  tabBar: { height: 3, width: "56%", borderRadius: 2 },
+  toggleRow: { flexDirection: "row", alignItems: "center", gap: 12 },
+  toggleCopy: { flex: 1, gap: 3 },
+  segmented: { flexDirection: "row", width: "100%", gap: 8 },
+  segment: { flex: 1, minWidth: 0, minHeight: 44, alignItems: "center", justifyContent: "center", paddingVertical: 8, paddingHorizontal: 6, borderRadius: 12, gap: 2 },
+  segmentText: { fontSize: 13, textAlign: "center", flexShrink: 1 },
+  segmentSample: { fontSize: 20 },
+  action: { minHeight: 44, justifyContent: "center", borderWidth: 1, borderRadius: 12, paddingVertical: 10, paddingHorizontal: 14 },
+  pageInput: { minWidth: 88, height: 44, paddingHorizontal: 10, borderWidth: 1, borderRadius: 10 },
+  searchInput: { flex: 1, minWidth: 120, height: 44, paddingHorizontal: 10, borderWidth: 1, borderRadius: 10 },
   chapterList: { gap: 8 },
-  chapterItem: { minHeight: 44, justifyContent: "center", paddingVertical: 10, paddingHorizontal: 12, borderWidth: 1, borderRadius: 6 },
+  chapterItem: { minHeight: 44, justifyContent: "center", paddingVertical: 10, paddingHorizontal: 12, borderWidth: 1, borderRadius: 10 },
 });
 
 function submitPage(value: string, totalPages: number, onGoToPage: (pageNumber: number) => void): void {
@@ -394,7 +471,7 @@ function submitPage(value: string, totalPages: number, onGoToPage: (pageNumber: 
  */
 export function spacingOptions(defaultValue: number, step: number): Array<{ label: string; value: number }> {
   const round = (value: number) => Math.round(value * 100) / 100;
-  return [{ label: "Pequeno", value: round(defaultValue - step) }, { label: "Médio", value: defaultValue }, { label: "Grande", value: round(defaultValue + step) }];
+  return [{ label: "Compacto", value: round(defaultValue - step) }, { label: "Padrão", value: defaultValue }, { label: "Amplo", value: round(defaultValue + step) }];
 }
 
 function layoutPresetIndex(margin: number, maxWidth: number): number {
@@ -403,74 +480,53 @@ function layoutPresetIndex(margin: number, maxWidth: number): number {
   return 1;
 }
 
-function SegmentedControl({
-  options,
-  selectedValue,
-  palette,
-  onSelect,
-}: {
-  options: Array<{ label: string; value: number }>;
-  selectedValue: number;
-  palette: ReturnType<typeof useReaderSettings>["palette"];
-  onSelect: (value: number) => void;
-}) {
+/** Rótulo curto em frase (sem caixa alta) + o controle. */
+function Field({ label, palette, children }: { label: string; palette: Palette; children: ReactNode }) {
   return (
-    <View style={styles.segmented}>
-      {options.map((option) => {
-        const selected = Math.abs(option.value - selectedValue) < 0.001;
-        return (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityState={{ selected }} aria-pressed={selected}
-            key={option.value}
-            onPress={() => onSelect(option.value)}
-            style={[styles.segment, { backgroundColor: selected ? palette.accent : "transparent", borderColor: selected ? palette.accent : palette.separator }]}
-          >
-            <Text style={[styles.segmentText, { color: selected ? palette.onAccent : palette.text }]}>{option.label}</Text>
-          </Pressable>
-        );
-      })}
+    <View style={styles.field}>
+      <Text style={[styles.fieldLabel, { color: palette.secondaryText }]}>{label}</Text>
+      {children}
     </View>
   );
 }
 
-function ModeButton({
-  label,
-  selected,
-  onPress,
-  palette,
-}: {
-  label: string;
-  selected: boolean;
-  onPress: () => void;
-  palette: ReturnType<typeof useReaderSettings>["palette"];
+function SegmentedControl({ options, selectedValue, palette, onSelect }: {
+  options: Array<{ label: string; value: number }>;
+  selectedValue: number;
+  palette: Palette;
+  onSelect: (value: number) => void;
 }) {
   return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityState={{ selected }} aria-pressed={selected}
-      onPress={onPress}
-      style={[styles.option, { backgroundColor: selected ? palette.accent : "transparent", borderColor: selected ? palette.accent : palette.separator }]}
-    >
-      <Text style={{ color: selected ? palette.onAccent : palette.text }}>{label}</Text>
+    <View style={styles.segmented}>
+      {options.map(option => <Segment key={option.label} label={option.label} selected={Math.abs(option.value - selectedValue) < 0.001} onPress={() => onSelect(option.value)} palette={palette} />)}
+    </View>
+  );
+}
+
+/** Opção de um grupo. Seleção por contorno mais grosso, peso do texto e marca (não só cor), sem bloco sólido. */
+function Segment({ label, selected, onPress, palette, sample, sampleFont }: { label: string; selected: boolean; onPress: () => void; palette: Palette; sample?: string; sampleFont?: string }) {
+  return (
+    <Pressable accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ selected }} aria-pressed={selected} onPress={onPress} android_ripple={{ color: palette.separator }}
+      style={[styles.segment, { borderColor: selected ? palette.accent : palette.separator, borderWidth: selected ? 2 : 1 }]}>
+      {sample ? <Text style={[styles.segmentSample, { color: palette.text, fontFamily: sampleFont }]}>{sample}</Text> : null}
+      <Text numberOfLines={2} style={[styles.segmentText, { color: selected ? palette.text : palette.secondaryText, fontWeight: selected ? "700" : "400" }]}>{selected && !sample ? "✓ " : ""}{label}</Text>
     </Pressable>
   );
 }
 
-function ActionButton({
-  label,
-  onPress,
-  palette,
-  accessibilityLabel,
-}: {
-  label: string;
-  onPress: () => void;
-  palette: ReturnType<typeof useReaderSettings>["palette"];
-  accessibilityLabel?: string;
-}) {
+function StepButton({ label, onPress, palette, icon, text, textSize, disabled }: { label: string; onPress: () => void; palette: Palette; icon?: "add" | "remove"; text?: string; textSize?: number; disabled?: boolean }) {
   return (
-    <Pressable accessibilityRole="button" accessibilityLabel={accessibilityLabel ?? label} onPress={onPress} style={[styles.option, { borderColor: palette.separator }]}>
-      <Text style={{ color: palette.text }}>{label}</Text>
+    <Pressable accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ disabled: !!disabled }} disabled={disabled} onPress={onPress} android_ripple={{ color: palette.separator }}
+      style={[styles.stepButton, { borderColor: palette.separator, opacity: disabled ? 0.4 : 1 }]}>
+      {icon ? <Ionicons name={icon} size={20} color={palette.text} /> : <Text style={{ color: palette.text, fontSize: textSize, fontWeight: "600" }}>{text}</Text>}
+    </Pressable>
+  );
+}
+
+function ActionButton({ label, onPress, palette, accessibilityLabel }: { label: string; onPress: () => void; palette: Palette; accessibilityLabel?: string }) {
+  return (
+    <Pressable accessibilityRole="button" accessibilityLabel={accessibilityLabel ?? label} onPress={onPress} android_ripple={{ color: palette.separator }} style={[styles.action, { borderColor: palette.separator }]}>
+      <Text style={{ color: palette.text, fontWeight: "500" }}>{label}</Text>
     </Pressable>
   );
 }

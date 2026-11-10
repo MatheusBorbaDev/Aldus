@@ -95,6 +95,10 @@ Persistência (legado mantido, não renomear `kindle-*`/`@kindle/*`): Native SQL
   `CINEMATIC_CHROME_ANGLE=d3d11`). `test:marketing:web` com SwiftShader FALHA neste PC também no baseline `eef30e6` (worktree temporário,
   lockfile antigo, mesmo erro de quadro na rolagem): ambiente, não regressão. `test:legal:browser` NÃO EXECUTADO: exige Chrome de prévia
   em `127.0.0.1:9333` e a porta está ocupada por outro processo (não tocado).
+- **Redesenho, Etapa 1 — painel de leitura (10/11, sobre `432849d`)**: typecheck PASS; `test:critical` 93/93; `export:web` PASS; Chromium:
+  `test:reader:settings:web` PASS (125 layouts: 5 larguras × claro/escuro × texto 1/1,3/1,6 × recolhido/Texto/Página/Conforto + PDF),
+  `test:reader:{browser,epub:web,study:web,pdf:web,concentration:web,markings:web}` e `test:library:web` PASS; `reflow:web` FAIL só BUG 20.
+  Capturas antes/depois em `.expo/redesign-step1/`. **Não está no APK `6883532`**; Android NÃO TESTADO.
 - **APK de ensaio do HEAD `6883532` (09/11, primeiro build Android deste PC)**: `ALDUS_ALLOW_DEVELOPMENT_SIGNING=device-rehearsal npm run build:apk:local`,
   árvore limpa, Gradle 14 min 16 s (log `.expo/apk-6883532-build.log`). `artifacts/apk/Aldus-6883532-device-rehearsal.apk` (ignorado; cópia de
   `android/app/build/outputs/apk/release/app-release.apk`), 253.255.362 bytes, SHA-256 `6fecb41c…6931812f5c`. `aapt`: `com.aldus.reader`
@@ -275,6 +279,20 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
 
 ## 10. Log (mais recente primeiro; máx. 5 entradas, resto → docs/context/historico/)
 
+### 10/11/2026 — Redesenho, Etapa 1: painel de ajustes de leitura (Claude)
+- Pedido do usuário após ver o APK no Redmi (painel confuso). Plano em 5 etapas aprovado, com liberdade para mudar estrutura: 1 painel de
+  leitura; 2 cabeçalho/avisos do Reader; 3 menu do livro; 4 Descobrir e Estudo; 5 telas antigas (Batalha, decks, Plano, Admin, Community).
+- IMPLEMENTADO Etapa 1 (`ReaderSettingsPanel.tsx`, mesma interface de props; `ReaderScreen`, contextos, valores, limites e padrões intocados):
+  folha baixa (62% recolhida, 90% expandida, fundo 18% para ver o texto mudar) com **sempre à mão** tamanho da letra (A−/slider/A+), temas como
+  amostras com a cor real e brilho (slider + "Automático"; mexer no slider sai do automático); **Texto · Página · Conforto** no lugar das 4 abas
+  em grade; seleção por contorno + peso + ✓ (sem bloco sólido); rótulos em frase, sem caixa alta; fonte com prévia na própria família;
+  "Compacto/Padrão/Amplo"; alinhamento do Reflow como par de opções; "Restaurar texto e página padrão" com confirmação (não toca tema/brilho);
+  PDF: Original/Leitura Livre no topo, zoom na área rápida, Original sem a seção Texto. **"Modo e-reader" removido**: só alternava Papel/Sépia
+  (não tinha valor próprio; quem usava segue no tema Papel). Seções ficam montadas (controles não são recriados; navegar não grava nada).
+- Testes reescritos: `test-reader-settings-categories`, `test-reader-settings-web` (exige folha recolhida com texto visível, 5 amostras sem
+  rolagem, abas 44 px); fixture Web com temas reais e ícones em texto. Não feito do plano: virar página e alinhamento do EPUB (não existem
+  no motor; seriam Reader/onda 6), OCR no menu do livro (Etapa 3). VALIDADO: ver §3. NÃO TESTADO: Android.
+
 ### 09/11/2026 — Dependências: patches do SDK 57 (Claude)
 - IMPLEMENTADO por decisão do usuário (opção 1 do BUG 13): `npx expo install --fix` alinhou 9 pacotes do Expo ao patch esperado do SDK 57;
   `package.json` só com essas faixas; lockfile só com a família Expo (+ `react-native-gesture-handler` 3.5.0). Audit de produção 6→3 altos.
@@ -306,21 +324,6 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
   `test-auth-flows` inclui `AuthDivider`. VALIDADO: ver §3. NÃO TESTADO: Android/Hermes e `fontScale` real, teclado/autofill do sistema,
   login real (nenhum envio ao Supabase); telas de `app/account/*` não capturadas. Sem primeiro uso guiado (fora do escopo da onda).
 
-### 09/11/2026 — Revisão de qualidade: Onda 3, tela de uma Fonte/Drive (Claude)
-- IMPLEMENTADO D1 (`SourceLibraryScreen.tsx` sobre `src/ui`; dados, Sync, cancelamento, pastas e importação inalterados): uma linha de
-  ações alinhadas (voltar · Atualizar/Reconectar · ⋯, alvos de 44 px); título único (nome da fonte na raiz, nome da pasta dentro dela) e
-  caminho só com as pastas acima; **um** aviso de estado (carregando com cancelar · reconectar · falha sem catálogo com "Tentar novamente" ·
-  falha com catálogo · sem conexão) no lugar de até três mensagens empilhadas; lista vazia não repete o aviso; busca e ordenação só com
-  catálogo; ordenação em `Chip`, lista/grade em `IconButton`, menu ⋯ em `ActionMenu`; pastas em cartões do tema. Data legível
-  (`sourceUpdatedLabel`: "Atualizada hoje às 09:05"/"ontem"/"3 de nov."; sem Intl), também na lista de bibliotecas (`SourceSummaryRow`).
-  Rota `/sources/[id]`: carregamento com fundo do tema e estados "não encontrada"/"somente pesquisa" em `EmptyState`.
-- Mudança de comportamento visível: reabrir uma fonte com catálogo salvo (status `stale` sem erro) não mostra mais "Exibindo a última
-  atualização disponível"; a data de atualização cumpre esse papel. `SourceCatalogService` só passou a exportar as duas mensagens genéricas.
-- Testes: `test-source-presentation` (data: hoje/ontem/ano/futuro/ausente → null); `test-source-library-browser` com matriz visual e asserções de
-  alinhamento (centros iguais, 44 px), nome uma vez, caminho só com pais, 1 alerta no erro, data legível; rótulos novos ("Exibir em lista",
-  "Voltar para …"). VALIDADO: ver §3. NÃO TESTADO: Android/Hermes e `fontScale` real; Drive real. Captura `remove-confirmation` pega o
-  menu ainda saindo por animação sobre o diálogo (o teste confirma e remove normalmente).
-
 ### 06/11/2026 — Entradas anteriores
 - Fechamento UX/UI e Onboarding 1: ver `docs/context/historico/2026-11-06-ux-fechamento-e-onboarding-1.md`.
 - Onboarding 2 (auditoria e reescrita do contexto): ver `docs/context/historico/2026-11-06-onboarding-2.md`.
@@ -332,3 +335,4 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
 - Revisão de qualidade, Etapa A e Onda 0 (09/11): ver `docs/context/historico/2026-11-09-qualidade-etapa-a-onda-0.md`.
 - Revisão de qualidade, Onda 1 (09/11): ver `docs/context/historico/2026-11-09-qualidade-onda-1.md`.
 - Revisão de qualidade, Onda 2 (09/11): ver `docs/context/historico/2026-11-09-qualidade-onda-2.md`.
+- Revisão de qualidade, Onda 3 (09/11): ver `docs/context/historico/2026-11-09-qualidade-onda-3.md`.

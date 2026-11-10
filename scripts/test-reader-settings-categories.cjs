@@ -1,45 +1,78 @@
-// Real panel with controlled platform boundaries; not physical Android proof.
-const fs=require('fs'),ts=require('typescript'),assert=require('node:assert/strict');
-const React=require('../.expo/auth-test-tools/node_modules/react');
-const {act,create}=require('../.expo/auth-test-tools/node_modules/react-test-renderer');
-global.IS_REACT_ACT_ENVIRONMENT=true;
-const palette={text:'#222',secondaryText:'#555',accent:'#174',onAccent:'#fefefe',separator:'#ddd',panel:'#fff'};
-const changes=[];const settings={palette,hideReadingCounts:false,theme:'paper',font:'serif',fontSize:20,lineHeight:1.5,paragraphSpacing:.8,marginSize:24,maxWidth:900,brightness:80,useSystemBrightness:true};
-for(const key of ['HideReadingCounts','Theme','Font','FontSize','LineHeight','ParagraphSpacing','Margin','MaxWidth','Brightness','UseSystemBrightness'])settings['set'+key]=value=>changes.push([key,value]);
-const output={};new Function('require','exports',ts.transpileModule(fs.readFileSync('src/presentation/components/ReaderSettingsPanel.tsx','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.ReactJSX}}).outputText)(name=>{
- if(name==='react')return React;if(name==='react/jsx-runtime')return require('../.expo/auth-test-tools/node_modules/react/jsx-runtime');
- if(name==='react-native')return {Modal:'Modal',View:'View',Text:'Text',Pressable:'Pressable',ScrollView:'ScrollView',Switch:'Switch',TextInput:'TextInput',Platform:{OS:'android'},StyleSheet:{create:x=>x,absoluteFill:{}}};
- if(name.includes('ReaderSettingsContext'))return{useReaderSettings:()=>settings,DEFAULT_READER_LINE_HEIGHT:1.65,DEFAULT_READER_PARAGRAPH_SPACING:1};
- if(name.includes('pdfReader'))return{defaultPdfReaderSettings:{lineHeight:1.6,paragraphSpacing:1}};
- if(name.includes('safe-area'))return{useSafeAreaInsets:()=>({top:24,bottom:24})};
- if(name.includes('ReaderSettingsSlider'))return{ReaderSettingsSlider:'Slider'};
- if(name.includes('MotionCuesControl'))return{MotionCuesControl:'Motion'};
- if(name.includes('readerUiDiagnostics'))return{readerUiDiagnostic(){}};
- if(name.includes('/tokens'))return{pdfReaderThemes:{paper:palette}};
- return{};
-},output);
-(async()=>{let tree,closed=0,focused=0;await act(async()=>{tree=create(React.createElement(output.ReaderSettingsPanel,{visible:true,panelMode:'appearance',onClose:()=>closed++,onReadInFocus:()=>focused++}));});
- const scroll=tree.root.findByType('ScrollView'),slider=tree.root.findAllByType('Slider').find(x=>x.props.accessibilityLabel==='Tamanho da fonte');
- for(const label of ['Tipografia','Página e layout','Concentração e conforto','Aparência']){
-  const category=tree.root.findAllByType('Pressable').find(x=>x.findAllByType('Text').some(t=>t.children.includes(label)));assert(category,label);
-  await act(async()=>category.props.onPress());assert.equal(category.props.accessibilityState.selected,true);
-  assert.strictEqual(tree.root.findByType('ScrollView'),scroll);assert.strictEqual(tree.root.findAllByType('Slider').find(x=>x.props.accessibilityLabel==='Tamanho da fonte'),slider);
- }
- assert.deepEqual(changes,[],'Category navigation never writes reader preferences');
- await act(async()=>slider.props.onValueChange(24));assert.deepEqual(changes,[['FontSize',24]]);
- const hide=tree.root.findAllByType('Switch').find(x=>x.props.accessibilityLabel==='Ocultar porcentagem e contagem de páginas');await act(async()=>hide.props.onValueChange(true));assert.deepEqual(changes.at(-1),['HideReadingCounts',true]);
- const close=tree.root.findAllByType('Pressable').find(x=>x.props.accessibilityLabel==='Fechar ajustes de leitura');assert(!close.parent.findAllByType('ScrollView').length,'Close remains outside scroll content');await act(async()=>close.props.onPress());assert.equal(closed,1);
- // BUG 15: the saved legacy 1.5/0.8 are not options, so nothing is marked and nothing is rewritten.
- const segmentsFor=label=>{const heading=tree.root.findAllByType('Text').find(t=>t.children.join('')===label);const row=heading.parent.children[heading.parent.children.indexOf(heading)+1];return row.findAllByType('Pressable');};
- assert.deepEqual(segmentsFor('ESPAÇAMENTO ENTRE LINHAS').map(x=>x.props.accessibilityState.selected),[false,false,false],'legacy 1.5 marks no option');
- // Defaults: 'Médio' is exactly the default, so tapping the marked option keeps the reading layout.
- settings.lineHeight=1.65;settings.paragraphSpacing=1;await act(async()=>tree.update(React.createElement(output.ReaderSettingsPanel,{visible:true,panelMode:'appearance',onClose:()=>closed++,onReadInFocus:()=>focused++})));
- for(const [label,key,expected] of [['ESPAÇAMENTO ENTRE LINHAS','LineHeight',[1.4,1.65,1.9]],['ESPAÇO ENTRE PARÁGRAFOS','ParagraphSpacing',[0.5,1,1.5]]]){
-  const segments=segmentsFor(label);assert.deepEqual(segments.map(x=>x.props.accessibilityState.selected),[false,true,false],label+' default marked as Médio');
-  for(const [i,segment] of segments.entries()){assert.ok(segment.props.style.some(s=>s&&s.minHeight>=44),label+' 44px target');await act(async()=>segment.props.onPress());assert.deepEqual(changes.at(-1),[key,expected[i]]);}
-  assert.equal(segments[1].findByType('Text').props.style.at(-1).color,palette.onAccent,'selected text uses onAccent (BUG 16)');
- }
- const source=fs.readFileSync('src/presentation/components/ReaderSettingsPanel.tsx','utf8');
- assert.match(source,/accessibilityLabel="Diminuir zoom"/);assert.match(source,/accessibilityLabel="Aumentar zoom"/);assert.doesNotMatch(source,/["']#fff(fff)?["']/i,'selected text follows the theme (onAccent), never fixed white');
- await act(async()=>tree.unmount());console.log('PASS real settings categories: stable controls, no preference writes on navigation, slider/switch handlers, fixed close; spacing defaults marked as Médio, legacy values untouched, 44px segments, onAccent, zoom labels. Controlled platform, not device proof.');
-})().catch(e=>{console.error(e);process.exitCode=1;});
+// Real settings sheet (redesign step 1) with controlled platform boundaries; not physical Android proof.
+// Quick controls (size, theme samples, brightness) + sections Texto/Página/Conforto. Navigation never writes preferences
+// and never recreates controls; spacing defaults (BUG 15), 44px targets, no fixed white (BUG 16), zoom labels.
+const fs = require('fs'), ts = require('typescript'), assert = require('node:assert/strict');
+const React = require('../.expo/auth-test-tools/node_modules/react');
+const { act, create } = require('../.expo/auth-test-tools/node_modules/react-test-renderer');
+global.IS_REACT_ACT_ENVIRONMENT = true;
+const palette = { background: '#fafafa', text: '#222', secondaryText: '#555', accent: '#174', onAccent: '#fefefe', separator: '#ddd', panel: '#eee' };
+const changes = []; const settings = { palette, saveError: null, hideReadingCounts: false, theme: 'paper', font: 'serif', fontSize: 20, lineHeight: 1.5, paragraphSpacing: .8, marginSize: 24, maxWidth: 900, brightness: 80, useSystemBrightness: true };
+for (const key of ['HideReadingCounts', 'Theme', 'Font', 'FontSize', 'LineHeight', 'ParagraphSpacing', 'Margin', 'MaxWidth', 'Brightness', 'UseSystemBrightness']) settings['set' + key] = value => changes.push([key, value]);
+const themesMap = Object.fromEntries(['light', 'paper', 'sepia', 'dark', 'black'].map(k => [k, palette]));
+const output = {}; const source = fs.readFileSync('src/presentation/components/ReaderSettingsPanel.tsx', 'utf8');
+new Function('require', 'exports', ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX } }).outputText)(name => {
+  if (name === 'react') return React; if (name === 'react/jsx-runtime') return require('../.expo/auth-test-tools/node_modules/react/jsx-runtime');
+  if (name === 'react-native') return { Modal: 'Modal', View: 'View', Text: 'Text', Pressable: 'Pressable', ScrollView: 'ScrollView', Switch: 'Switch', TextInput: 'TextInput', Platform: { OS: 'android' }, StyleSheet: { create: x => x, absoluteFill: {}, hairlineWidth: 1 } };
+  if (name.includes('vector-icons')) return { Ionicons: 'Icon' };
+  if (name.includes('ReaderSettingsContext')) return { useReaderSettings: () => settings, DEFAULT_READER_LINE_HEIGHT: 1.65, DEFAULT_READER_PARAGRAPH_SPACING: 1 };
+  if (name.includes('pdfReader')) return { defaultPdfReaderSettings: { font: 'serif', fontSize: 18, lineHeight: 1.6, paragraphSpacing: 1, margin: 24, maxWidth: 760, alignment: 'left' } };
+  if (name.includes('safe-area')) return { useSafeAreaInsets: () => ({ top: 24, bottom: 24 }) };
+  if (name.includes('ReaderSettingsSlider')) return { ReaderSettingsSlider: 'Slider' };
+  if (name.includes('MotionCuesControl')) return { MotionCuesControl: 'Motion' };
+  if (name.includes('readerUiDiagnostics')) return { readerUiDiagnostic() {} };
+  if (name.includes('/tokens')) return { pdfReaderThemes: themesMap, readerThemes: themesMap, fontFamilies: { serif: 'Georgia', sans: 'System', dyslexic: 'Verdana' } };
+  return {};
+}, output);
+(async () => {
+  let tree, closed = 0, focused = 0; const props = () => ({ visible: true, panelMode: 'appearance', onClose: () => closed++, onReadInFocus: () => focused++ });
+  await act(async () => { tree = create(React.createElement(output.ReaderSettingsPanel, props())); });
+  const byLabel = label => tree.root.findAllByType('Pressable').find(x => x.props.accessibilityLabel === label);
+  const flat = style => Object.assign({}, ...[style].flat(Infinity).filter(Boolean));
+  const scroll = tree.root.findByType('ScrollView'), slider = tree.root.findAllByType('Slider').find(x => x.props.accessibilityLabel === 'Tamanho da fonte');
+  assert(slider, 'size slider is in the quick area'); assert.equal(byLabel('Expandir ajustes').props.accessibilityState.expanded, false, 'starts as a low sheet');
+  assert.equal(flat(scroll.parent.props.style).maxHeight, '62%', 'collapsed sheet keeps the page visible');
+  for (const label of ['Texto', 'Página', 'Conforto', 'Texto']) {
+    const tab = byLabel('Mais ajustes: ' + label); assert(tab, label); await act(async () => tab.props.onPress());
+    assert.equal(byLabel('Mais ajustes: ' + label).props.accessibilityState.selected, true); assert.ok(flat(tab.props.style).minHeight >= 44);
+    assert.strictEqual(tree.root.findByType('ScrollView'), scroll); assert.strictEqual(tree.root.findAllByType('Slider').find(x => x.props.accessibilityLabel === 'Tamanho da fonte'), slider, 'controls are never recreated');
+  }
+  assert.equal(flat(scroll.parent.props.style).maxHeight, '90%'); assert.deepEqual(changes, [], 'Section navigation and expanding never write reader preferences');
+  // Quick controls.
+  await act(async () => slider.props.onValueChange(24)); assert.deepEqual(changes, [['FontSize', 24]]);
+  await act(async () => byLabel('Aumentar letra').props.onPress()); assert.deepEqual(changes.at(-1), ['FontSize', 21]);
+  await act(async () => byLabel('Diminuir letra').props.onPress()); assert.deepEqual(changes.at(-1), ['FontSize', 19]);
+  const swatches = tree.root.findAllByType('Pressable').filter(x => String(x.props.accessibilityLabel).startsWith('Tema '));
+  assert.deepEqual(swatches.map(x => x.props.accessibilityLabel), ['Tema Claro', 'Tema Papel', 'Tema Sépia', 'Tema Escuro', 'Tema Preto']);
+  assert.deepEqual(swatches.map(x => x.props.accessibilityState.selected), [false, true, false, false, false]);
+  await act(async () => swatches[3].props.onPress()); assert.deepEqual(changes.at(-1), ['Theme', 'dark']);
+  assert.ok(!source.includes('Modo e-reader'), 'the redundant e-reader switch is gone; Papel stays a theme, saved values untouched');
+  // Brightness: moving the slider leaves automatic mode first; the chip toggles it.
+  const brightness = tree.root.findAllByType('Slider').find(x => x.props.accessibilityLabel === 'Brilho do leitor'); const before = changes.length;
+  await act(async () => brightness.props.onValueChange(60)); assert.deepEqual(changes.slice(before), [['UseSystemBrightness', false], ['Brightness', 60]]);
+  const auto = byLabel('Usar brilho do aparelho'); assert.equal(auto.props.accessibilityState.checked, true); await act(async () => auto.props.onPress()); assert.deepEqual(changes.at(-1), ['UseSystemBrightness', false]);
+  const hide = tree.root.findAllByType('Switch').find(x => x.props.accessibilityLabel === 'Ocultar porcentagem e contagem de páginas'); await act(async () => hide.props.onValueChange(true)); assert.deepEqual(changes.at(-1), ['HideReadingCounts', true]);
+  await act(async () => byLabel('Ler em foco').props.onPress()); assert.equal(focused, 1);
+  const close = byLabel('Fechar ajustes de leitura'); assert(!close.parent.findAllByType('ScrollView').length, 'Close remains outside scroll content');
+  // BUG 15: the saved legacy 1.5/0.8 are not options, so nothing is marked and nothing is rewritten.
+  const segmentsFor = label => { const heading = tree.root.findAllByType('Text').find(t => t.children.join('') === label); return heading.parent.findAllByType('Pressable'); };
+  assert.deepEqual(segmentsFor('Espaço entre linhas').map(x => x.props.accessibilityState.selected), [false, false, false], 'legacy 1.5 marks no option');
+  settings.lineHeight = 1.65; settings.paragraphSpacing = 1; await act(async () => tree.update(React.createElement(output.ReaderSettingsPanel, props())));
+  for (const [label, key, expected] of [['Espaço entre linhas', 'LineHeight', [1.4, 1.65, 1.9]], ['Espaço entre parágrafos', 'ParagraphSpacing', [0.5, 1, 1.5]]]) {
+    const segments = segmentsFor(label); assert.deepEqual(segments.map(x => x.props.accessibilityState.selected), [false, true, false], label + ' default marked as Padrão');
+    for (const [i, segment] of segments.entries()) { assert.ok(flat(segment.props.style).minHeight >= 44, label + ' 44px target'); await act(async () => segment.props.onPress()); assert.deepEqual(changes.at(-1), [key, expected[i]]); }
+  }
+  // Restore asks first and never touches theme/brightness/position.
+  const beforeRestore = changes.length; await act(async () => byLabel('Restaurar texto e página padrão').props.onPress()); assert.equal(changes.length, beforeRestore, 'restore needs confirmation');
+  await act(async () => byLabel('Confirmar: voltar ao padrão').props.onPress());
+  assert.deepEqual(changes.slice(beforeRestore), [['Font', 'serif'], ['FontSize', 16], ['LineHeight', 1.65], ['ParagraphSpacing', 1], ['Margin', 'medium'], ['MaxWidth', 900]]);
+  // Original PDF: file typography is preserved (no Texto section), zoom in the quick area.
+  const pdfChanges = []; const pdf = { theme: 'paper', font: 'serif', fontSize: 18, lineHeight: 1.6, paragraphSpacing: 1, margin: 24, maxWidth: 760, alignment: 'left', zoom: 1, fitMode: 'page', layout: 'single', rotation: 0 };
+  await act(async () => tree.update(React.createElement(output.ReaderSettingsPanel, { ...props(), pdfMode: 'original', pdfSettings: pdf, onPdfModeChange: () => {}, onPdfSettingsChange: next => pdfChanges.push(next) })));
+  assert.equal(byLabel('Mais ajustes: Texto'), undefined); assert.equal(byLabel('Mais ajustes: Página').props.accessibilityState.selected, true, 'falls back to Página');
+  await act(async () => byLabel('Aumentar zoom').props.onPress()); assert.equal(pdfChanges.at(-1).zoom, 1.25); assert.equal(byLabel('Diminuir zoom').props.accessibilityState.disabled, false);
+  assert.match(source, /label="Diminuir zoom"/); assert.match(source, /label="Aumentar zoom"/); assert.doesNotMatch(source, /["']#fff(fff)?["']/i, 'colors follow the book theme, never fixed white');
+  assert.doesNotMatch(source, /style=\{\(\{\s*pressed/, 'static Pressable styles only');
+  await act(async () => close.props.onPress()); assert.equal(closed, 1);
+  await act(async () => tree.unmount());
+  console.log('PASS real settings sheet: low sheet + Texto/Página/Conforto with stable controls, no writes on navigation, steppers/slider/theme samples, brightness auto, restore with confirmation, spacing defaults (BUG 15), 44px targets, no e-reader switch, Original PDF without Texto. Controlled platform, not device proof.');
+})().catch(e => { console.error(e); process.exitCode = 1; });
