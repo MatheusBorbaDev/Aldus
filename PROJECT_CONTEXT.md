@@ -102,6 +102,9 @@ Persistência (legado mantido, não renomear `kindle-*`/`@kindle/*`): Native SQL
 - **Redesenho, Etapa 2 — cabeçalho e avisos do Reader (10/11, sobre `1cafdae`)**: typecheck PASS; `test:critical` 94/94 (nova `book-display`);
   `export:web` PASS; Chromium PASS: `test:reader:{browser,epub:web,study:web,pdf:web,concentration:web,markings:web}`, `test:library:{web,bulk:web}`;
   `reflow:web` FAIL só BUG 20. Fora do APK `6883532`; Android NÃO TESTADO.
+- **Redesenho, Etapa 3 — menu do livro (10/11, sobre `d5d27d6`)**: typecheck PASS; `test:critical` 94/94; `export:web` PASS; Chromium PASS:
+  `test:library:{web,bulk:web}` (remoção do aparelho e da conta no export real), `test:source-library:browser`, `test:saas:web`. Capturas do menu
+  (fixture de rascunho, claro/escuro/confirmação) em `.expo/redesign-step3/`. Fora do APK `6883532`; Android NÃO TESTADO.
 - **APK de ensaio do HEAD `6883532` (09/11, primeiro build Android deste PC)**: `ALDUS_ALLOW_DEVELOPMENT_SIGNING=device-rehearsal npm run build:apk:local`,
   árvore limpa, Gradle 14 min 16 s (log `.expo/apk-6883532-build.log`). `artifacts/apk/Aldus-6883532-device-rehearsal.apk` (ignorado; cópia de
   `android/app/build/outputs/apk/release/app-release.apk`), 253.255.362 bytes, SHA-256 `6fecb41c…6931812f5c`. `aapt`: `com.aldus.reader`
@@ -282,6 +285,16 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
 
 ## 10. Log (mais recente primeiro; máx. 5 entradas, resto → docs/context/historico/)
 
+### 10/11/2026 — Redesenho, Etapa 3: menu do livro na Biblioteca (Claude)
+- IMPLEMENTADO (`BookCloudControls` em `LibrarySyncControls.tsx`; lógica de remoção/Sync inalterada): o cartão passa a ter **uma** linha
+  "situação · disponibilidade" + "⋯" (antes duas linhas e um botão de etiqueta separado). O menu é uma folha compacta (máx. 480 px) com título de
+  exibição e autor · formato · tamanho · disponibilidade; ações **Abrir** e **Organizar**; depois, em cor de perigo, **Remover deste
+  dispositivo** e **Remover da minha biblioteca**, cada uma com a consequência escrita (e o motivo quando indisponível: acervo do app, ainda
+  não enviado, arquivo ausente); confirmação com "Confirmar remoção" (perigo) e "Cancelar". Rótulos acessíveis antigos preservados.
+- Não feito: "Marcar como lido" direto no menu (fica em Organizar, que já grava a situação pelo `LibraryOrganizationStore`); OCR no menu.
+- Testes: `test-library-ui` cobre linha única, título de exibição, abrir/organizar, textos das remoções, cancelar sem remover e motivo do
+  bloqueio. VALIDADO: ver §3. NÃO TESTADO: Android.
+
 ### 10/11/2026 — Redesenho, Etapa 2: título e avisos do Reader (Claude)
 - IMPLEMENTADO: `src/presentation/services/bookDisplay.ts` (`readableBookTitle`, `catalogBookFor`) é a regra única de título para Biblioteca e
   Reader: livro do acervo embutido mostra o título do catálogo (antes o Reader mostrava o nome do arquivo, ex. "sobre-a-vida-feliz"); título
@@ -315,18 +328,6 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
 - VALIDADO: ver §3. Depois, por pedido do usuário, APK de ensaio `6883532` compilado e conferido (pacote/versão/assinatura/ABIs/bundle; §3),
   sem instalar. NÃO TESTADO: execução no Android/Hermes com os módulos nativos novos (exige instalar no Redmi), `test:legal:browser`.
 
-### 09/11/2026 — Revisão de qualidade: Onda 5, erros silenciosos e dependências (Claude)
-- R4 classificado (86 `catch` que engolem erro por `rg` amplo; lista e critérios no BUG 21). IMPLEMENTADO só onde havia perda de dado:
-  ajustes de leitura (`ReaderSettingsContext`), tema (`AppThemeContext`) e ajustes do PDF (`ReaderScreen` → `pdfReaderSettings.save`) agora
-  passam por `latestWriteTracker` (`src/core/utils/latestWrite.ts`): falha da gravação mais recente vira `saveError`, mostrado no painel de
-  ajustes do Reader e em Aparência, e some no próximo sucesso; o valor segue em memória. **BUG 21** corrigido: leitura de preferências que
-  falhava gravava os padrões por cima das salvas (reproduzido com o HEAD anterior); agora nada é gravado até o usuário mudar algo. No Reader
-  só mudou a gravação dos ajustes do PDF e um aviso no painel (sem remontagem, posição ou âncora). `DownloadManager` não precisava de mudança.
-- R5 só investigado (nada instalado): ver BUG 13 (audit 0 crít./6 altos; 9 patches do SDK 57 pendentes; `js-polyfills` 0.76.9 e
-  `metro-cache` 0.81.5 declarados à mão). Proposta aguarda o usuário; qualquer opção exige novo APK.
-- Testes: `test-preference-persistence` (critical); `test-reader-concentration` libera o módulo puro `latestWrite`. VALIDADO: ver §3.
-  NÃO TESTADO: Android e falha real do AsyncStorage/IndexedDB.
-
 ### 06/11/2026 — Entradas anteriores
 - Fechamento UX/UI e Onboarding 1: ver `docs/context/historico/2026-11-06-ux-fechamento-e-onboarding-1.md`.
 - Onboarding 2 (auditoria e reescrita do contexto): ver `docs/context/historico/2026-11-06-onboarding-2.md`.
@@ -340,3 +341,4 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
 - Revisão de qualidade, Onda 2 (09/11): ver `docs/context/historico/2026-11-09-qualidade-onda-2.md`.
 - Revisão de qualidade, Onda 3 (09/11): ver `docs/context/historico/2026-11-09-qualidade-onda-3.md`.
 - Revisão de qualidade, Onda 4 (09/11): ver `docs/context/historico/2026-11-09-qualidade-onda-4.md`.
+- Revisão de qualidade, Onda 5 (09/11): ver `docs/context/historico/2026-11-09-qualidade-onda-5.md`.

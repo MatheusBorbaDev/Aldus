@@ -37,6 +37,16 @@ async function render(component,props){if(renderer)await act(async()=>renderer.u
   await press(`Ações de ${book.title}`);await press('Remover deste dispositivo');await press('Confirmar remoção');assert.deepEqual(removed,['book']);
   await press(`Ações de ${book.title}`);await press('Remover da minha biblioteca');await press('Confirmar remoção');assert.deepEqual(deleted,['book']);
   await render(BookCloudControls,{book:{...book,bundledAssetId:'bundled'}});await press(`Ações de ${book.title}`);assert.equal(button('Remover deste dispositivo').props.disabled,true);
+  // Redesign step 3: one status line, common actions first, removals explained and cancellable.
+  let opened=0,organized=0;await render(BookCloudControls,{book,title:'Título do catálogo',status:'Lendo',onOpen:()=>opened++,onOrganize:()=>organized++});
+  assert.ok(text().includes('Lendo · Neste dispositivo e na nuvem'),'reading status and availability share one line');
+  await press(`Ações de ${book.title}`);assert.ok(text().includes('Título do catálogo'),'sheet shows the display title');
+  assert.ok(text().includes('continuam na sua conta'),'device removal says what stays');assert.ok(text().includes('todos os seus dispositivos'),'library removal says its reach');
+  await press('Abrir');assert.equal(opened,1);assert.equal(button('Abrir'),undefined,'the sheet closes before the action runs');
+  await press(`Ações de ${book.title}`);await press('Organizar');assert.equal(organized,1);
+  const removedBefore=removed.length,deletedBefore=deleted.length;await press(`Ações de ${book.title}`);await press('Remover da minha biblioteca');await press('Cancelar remoção');
+  assert.ok(button('Remover da minha biblioteca'),'cancel returns to the list');assert.equal(removed.length,removedBefore);assert.equal(deleted.length,deletedBefore,'cancelling removes nothing');
+  await render(BookCloudControls,{book:{...book,bundledAssetId:'bundled'}});await press(`Ações de ${book.title}`);assert.ok(text().includes('acervo do app'),'disabled device removal explains why');
   availability='UPLOADING';await render(BookCloudControls,{book});await press(`Ações de ${book.title}`);assert.equal(button('Remover da minha biblioteca').props.disabled,true);
   availability='LOCAL_AND_CLOUD';
   availability='QUOTA_BLOCKED';await render(BookCloudControls,{book});await press('Ver franquia em Meu Plano');assert.equal(routes.at(-1),'/plan');availability='LOCAL_AND_CLOUD';

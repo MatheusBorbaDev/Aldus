@@ -375,13 +375,9 @@ const LibraryBookCell = memo(function LibraryBookCell({ item, record, selecting,
     <View style={{ width: cellWidth, minWidth: 0, gap: space.xs, marginBottom: space.lg }}>
       {selecting ? <SharedBookCard layout={layout} book={cardBook} themeMode={themeMode} colors={palette} selection={selected} onPress={toggle} /> : <>
         <SharedBookCard layout={layout} book={cardBook} themeMode={themeMode} colors={palette} onPress={open} />
-        <View style={styles.cardMeta}>
-          <AppText variant="caption" tone="secondary" numberOfLines={1} style={{ flex: 1 }}>
-            {record?.favorite ? "★ · " : ""}{readingStatusLabels[inferredReadingStatus(item, record)]}{record?.series ? ` · ${record.series}${record.volume ? ` ${record.volume}` : ""}` : ""}
-          </AppText>
-          <IconButton icon="pricetag-outline" size={18} label={`Organizar ${cardBook.title}`} disabled={organizationDisabled} onPress={() => onOrganize(item, cardBook)} />
-        </View>
-        <BookCloudControls book={item} />
+        {/* Uma linha só: situação de leitura · disponibilidade, e o menu "⋯" com abrir, organizar e remover. */}
+        <BookCloudControls book={item} title={cardBook.title} organizeDisabled={organizationDisabled} onOpen={open} onOrganize={() => onOrganize(item, cardBook)}
+          status={`${record?.favorite ? "★ · " : ""}${readingStatusLabels[inferredReadingStatus(item, record)]}${record?.series ? ` · ${record.series}${record.volume ? ` ${record.volume}` : ""}` : ""}`} />
       </>}
     </View>
   );

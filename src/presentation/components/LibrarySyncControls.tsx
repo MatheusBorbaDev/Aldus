@@ -1,5 +1,5 @@
 import { useEffect, useState, useSyncExternalStore } from 'react';
-import { Modal, Pressable, ScrollView, Text, View } from 'react-native';
+import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { LibraryBook } from '@/src/domain/entities/LibraryBook';
 import { LibrarySyncEntry, LibraryEntityKind } from '@/src/domain/types/librarySync';
 import { appDependencies } from '@/src/presentation/services/dependencies';
@@ -45,15 +45,93 @@ export function LibrarySyncControls({showPlanLink=true,showQuotaSummary=true}:{s
   </View>;
 }
 
-export function BookCloudControls({book}:{book:LibraryBook}){
+interface BookMenuProps {
+  book: LibraryBook;
+  /** Título de exibição (o mesmo do cartão); por padrão o título salvo. */
+  title?: string;
+  /** Situação de leitura mostrada antes da disponibilidade, na mesma linha (ex.: "Lendo"). */
+  status?: string;
+  onOpen?(): void;
+  onOrganize?(): void;
+  organizeDisabled?: boolean;
+}
+
+/**
+ * Linha de situação do livro + menu "⋯" (redesenho, etapa 3). O menu é uma folha compacta: ações comuns em lista e, separadas,
+ * as duas remoções com a consequência de cada uma escrita e uma confirmação. A lógica de remoção é a mesma de antes.
+ */
+export function BookCloudControls({book,title,status,onOpen,onOrganize,organizeDisabled=false}:BookMenuProps){
   const sync=useLibrarySync(),{palette}=useAppTheme();const [visible,setVisible]=useState(false),[confirm,setConfirm]=useState<'device'|'library'|null>(null),[busy,setBusy]=useState(false),[error,setError]=useState<string|null>(null);
   const state=sync.availability(book),transfer=state==='DOWNLOADING'||state==='UPLOADING';
+  const name=title??book.title,danger=palette.danger??palette.accent;
   useEffect(()=>{setVisible(false);setConfirm(null);setError(null);},[book.ownerUserId]);
-  return <><View style={{flexDirection:'row',alignItems:'center',gap:6}}>
-    <Text numberOfLines={2} style={{flex:1,color:palette.secondaryText,fontSize:11}}>{availabilityLabels[state]}</Text>
-    {state==='QUOTA_BLOCKED'?<Pressable accessibilityRole="button" accessibilityLabel="Ver franquia em Meu Plano" onPress={()=>router.push('/plan' as never)} style={{minHeight:44,justifyContent:'center',padding:6}}><Text style={{color:palette.accent,fontSize:12}}>Meu Plano</Text></Pressable>:null}
-    <Pressable accessibilityRole="button" accessibilityLabel={`Ações de ${book.title}`} accessibilityHint="Remover a cópia deste dispositivo ou o livro da conta" onPress={()=>setVisible(true)} style={{width:44,height:44,alignItems:'center',justifyContent:'center'}}>
+  const close=()=>{if(!busy){setVisible(false);setConfirm(null);setError(null);}};
+  const deviceBlocked=!book.filePath||!book.remotePath||!!book.bundledAssetId;
+  const deviceHint=book.bundledAssetId?'Livro do acervo do app: não ocupa espaço extra neste aparelho.':!book.remotePath?'Disponível depois que o livro for enviado para a sua conta.':!book.filePath?'O arquivo já não está neste aparelho.':'O arquivo sai deste aparelho. O livro, o progresso e as notas continuam na sua conta e ele é baixado de novo ao abrir.';
+  const run=(action:()=>void)=>{setVisible(false);setConfirm(null);action();};
+  const remove=async()=>{setBusy(true);setError(null);try{if(confirm==='device')await sync.removeDeviceCopy(book.id);else{await appDependencies.bookRepository.softDelete(book.id);await useLibraryStore.getState().refresh();sync.schedule(0);}setVisible(false);setConfirm(null);}catch(e){setError(e instanceof Error?e.message:'Falha na remoção.');}finally{setBusy(false);}};
+  return <><View style={menu.line}>
+    <Text numberOfLines={2} style={[menu.lineText,{color:palette.secondaryText}]}>{status?status+' · ':''}{availabilityLabels[state]}</Text>
+    {state==='QUOTA_BLOCKED'?<Pressable accessibilityRole="button" accessibilityLabel="Ver franquia em Meu Plano" onPress={()=>router.push('/plan' as never)} style={menu.planLink}><Text style={{color:palette.accent,fontSize:12}}>Meu Plano</Text></Pressable>:null}
+    <Pressable accessibilityRole="button" accessibilityLabel={`Ações de ${book.title}`} accessibilityHint="Abrir, organizar ou remover este livro" onPress={()=>setVisible(true)} android_ripple={{color:palette.separator,borderless:true}} style={menu.more}>
       <Ionicons name="ellipsis-horizontal" size={21} color={palette.secondaryText}/>
     </Pressable>
-  </View>{visible?<Dialog onClose={()=>{if(!busy){setVisible(false);setConfirm(null);}}}><Text style={{color:palette.text,fontWeight:'600'}}>{book.title}</Text>{error?<Text accessibilityRole="alert" style={{color:palette.accent}}>{error}</Text>:null}<Action label="Remover deste dispositivo" disabled={busy||transfer||!book.filePath||!book.remotePath||!!book.bundledAssetId} onPress={()=>setConfirm('device')}/><Action label="Remover da minha biblioteca" disabled={busy||transfer} onPress={()=>setConfirm('library')}/>{confirm?<><Text style={{color:palette.text}}>{confirm==='device'?'Apagar a cópia local? O livro permanece na conta e pode ser baixado ao abrir novamente.':'Remover da sua biblioteca em todos os dispositivos? A exclusão ficará pendente se estiver offline. O arquivo remoto será excluído após confirmação da sincronização.'}</Text><Action label="Confirmar remoção" disabled={busy} onPress={()=>void(async()=>{setBusy(true);setError(null);try{if(confirm==='device')await sync.removeDeviceCopy(book.id);else{await appDependencies.bookRepository.softDelete(book.id);await useLibraryStore.getState().refresh();sync.schedule(0);}setVisible(false);setConfirm(null);}catch(e){setError(e instanceof Error?e.message:'Falha na remoção.');}finally{setBusy(false);}})()}/></>:null}</Dialog>:null}</>;
+  </View>{visible?<Modal transparent animationType="fade" onRequestClose={close}><View style={menu.backdrop}>
+    <Pressable accessibilityLabel="Fechar menu do livro" style={menu.fill} onPress={close}/>
+    <View accessibilityViewIsModal style={[menu.sheet,{backgroundColor:palette.panel??palette.surface,borderColor:palette.border}]}>
+      <View style={menu.header}>
+        <Text accessibilityRole="header" numberOfLines={2} style={[menu.title,{color:palette.text}]}>{name}</Text>
+        <Text numberOfLines={1} style={[menu.meta,{color:palette.secondaryText}]}>{[book.author,book.mimeType==='application/pdf'?'PDF':book.mimeType==='application/epub+zip'?'EPUB':null,typeof book.fileSize==='number'&&book.fileSize>0?formatBytes(book.fileSize):null,availabilityLabels[state]].filter(Boolean).join(' · ')}</Text>
+      </View>
+      {error?<Text accessibilityRole="alert" style={[menu.alert,{color:danger}]}>{error}</Text>:null}
+      {confirm?<View style={menu.confirm}>
+        <Text style={[menu.confirmTitle,{color:palette.text}]}>{confirm==='device'?'Apagar a cópia deste aparelho?':'Remover da sua biblioteca?'}</Text>
+        <Text style={{color:palette.secondaryText,lineHeight:20}}>{confirm==='device'?'O livro permanece na conta e pode ser baixado ao abrir novamente.':'Ele sai de todos os seus dispositivos. A exclusão ficará pendente se estiver offline. O arquivo remoto será excluído após confirmação da sincronização.'}</Text>
+        <View style={menu.confirmActions}>
+          <Pressable accessibilityRole="button" accessibilityLabel="Confirmar remoção" accessibilityState={{disabled:busy,busy}} disabled={busy} onPress={()=>void remove()} android_ripple={{color:palette.separator}} style={[menu.button,{backgroundColor:danger,borderColor:danger,opacity:busy?.5:1}]}><Text style={[menu.buttonText,{color:palette.onDanger??palette.panel??palette.surface}]}>{busy?'Removendo…':'Confirmar remoção'}</Text></Pressable>
+          <Pressable accessibilityRole="button" accessibilityLabel="Cancelar remoção" disabled={busy} onPress={()=>setConfirm(null)} android_ripple={{color:palette.separator}} style={[menu.button,{borderColor:palette.border}]}><Text style={[menu.buttonText,{color:palette.text}]}>Cancelar</Text></Pressable>
+        </View>
+      </View>:<>
+        {onOpen?<MenuRow icon="book-outline" label="Abrir" onPress={()=>run(onOpen)}/>:null}
+        {onOrganize?<MenuRow icon="pricetag-outline" label="Organizar" description="Coleções, etiquetas, série, favorito e situação de leitura" disabled={organizeDisabled} onPress={()=>run(onOrganize)}/>:null}
+        {onOpen||onOrganize?<View style={[menu.divider,{backgroundColor:palette.separator??palette.border}]}/>:null}
+        <MenuRow icon="phone-portrait-outline" tone="danger" label="Remover deste dispositivo" description={deviceHint} disabled={busy||transfer||deviceBlocked} onPress={()=>setConfirm('device')}/>
+        <MenuRow icon="trash-outline" tone="danger" label="Remover da minha biblioteca" description="Sai de todos os seus dispositivos, com progresso e notas." disabled={busy||transfer} onPress={()=>setConfirm('library')}/>
+        <Pressable accessibilityRole="button" accessibilityLabel="Fechar" onPress={close} android_ripple={{color:palette.separator}} style={menu.closeRow}><Text style={{color:palette.accent,fontWeight:'600'}}>Fechar</Text></Pressable>
+      </>}
+    </View>
+  </View></Modal>:null}</>;
 }
+
+function MenuRow({icon,label,description,onPress,disabled=false,tone='default'}:{icon:React.ComponentProps<typeof Ionicons>['name'];label:string;description?:string;onPress:()=>void;disabled?:boolean;tone?:'default'|'danger'}){
+  const {palette}=useAppTheme();const ink=tone==='danger'?palette.danger??palette.accent:palette.text;
+  return <Pressable accessibilityRole="button" accessibilityLabel={label} accessibilityHint={description} accessibilityState={{disabled}} disabled={disabled} onPress={onPress} android_ripple={{color:palette.separator}} style={[menu.row,{opacity:disabled?.5:1}]}>
+    <View style={menu.rowIcon}><Ionicons name={icon} size={20} color={ink}/></View>
+    <View style={menu.rowText}><Text style={{color:ink,fontSize:15,fontWeight:'600'}}>{label}</Text>{description?<Text style={[menu.rowDescription,{color:palette.secondaryText}]}>{description}</Text>:null}</View>
+  </Pressable>;
+}
+
+const menu=StyleSheet.create({
+  line:{flexDirection:'row',alignItems:'center',gap:6},
+  lineText:{flex:1,fontSize:12,lineHeight:16},
+  planLink:{minHeight:44,justifyContent:'center',padding:6},
+  more:{width:44,height:44,alignItems:'center',justifyContent:'center',borderRadius:22},
+  fill:{position:'absolute',top:0,right:0,bottom:0,left:0},
+  backdrop:{flex:1,justifyContent:'flex-end',alignItems:'center',backgroundColor:'rgba(0,0,0,.45)'},
+  sheet:{width:'100%',maxWidth:480,maxHeight:'88%',borderTopLeftRadius:20,borderTopRightRadius:20,borderWidth:1,paddingTop:18,paddingBottom:14,paddingHorizontal:8},
+  header:{paddingHorizontal:12,paddingBottom:10,gap:3},
+  title:{fontSize:17,fontWeight:'600',lineHeight:23},
+  meta:{fontSize:12},
+  alert:{paddingHorizontal:12,paddingBottom:8},
+  row:{minHeight:52,flexDirection:'row',alignItems:'center',gap:14,paddingHorizontal:12,paddingVertical:8,borderRadius:10},
+  rowIcon:{width:24,alignItems:'center'},
+  rowText:{flex:1,minWidth:0,gap:2},
+  rowDescription:{fontSize:12,lineHeight:17},
+  divider:{height:1,marginVertical:6,marginHorizontal:12},
+  closeRow:{minHeight:44,alignItems:'center',justifyContent:'center',marginTop:4},
+  confirm:{paddingHorizontal:12,gap:10,paddingBottom:4},
+  confirmTitle:{fontSize:16,fontWeight:'600'},
+  confirmActions:{flexDirection:'row',flexWrap:'wrap',gap:10,marginTop:4},
+  button:{minHeight:44,justifyContent:'center',paddingHorizontal:16,borderRadius:10,borderWidth:1},
+  buttonText:{fontWeight:'600'},
+});
