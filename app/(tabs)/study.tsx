@@ -27,11 +27,13 @@ import {
 import { FeatureDenied } from "@/src/presentation/components/FeatureDenied";
 import { AuthGuard } from "@/src/presentation/components/AuthGuard";
 import { generateLocalFlashcardCandidates } from "@/src/domain/study/flashcardGeneration";
+import { reviewSummary } from "@/src/domain/study/flashcardSrs";
 import {
   Flashcard,
   FlashcardDeck,
   FlashcardGenerationCandidate,
   FlashcardSnapshot,
+  isPlayableFlashcard,
 } from "@/src/domain/types/flashcards";
 import { FlashcardCreateModal } from "@/src/presentation/components/flashcards/FlashcardCreateModal";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -102,6 +104,13 @@ function StudyContent() {
       ),
     [snapshot],
   );
+
+  // Flashcards prontos (aprovados e completos) com revisão vencida, por deck. Contagem medida no snapshot local; sem snapshot, nada é exibido.
+  const review = useMemo(() => {
+    if (!snapshot) return null;
+    const summary = reviewSummary(snapshot.decks, snapshot.cards, isPlayableFlashcard);
+    return { total: summary.total, byDeck: summary.byDeck, next: snapshot.decks.find(deck => deck.id === summary.nextDeckId) ?? null };
+  }, [snapshot]);
 
   const createDeck = async () => {
     if (!canUse("flashcards")) {
@@ -245,8 +254,19 @@ function StudyContent() {
 
   return (
     <Screen inTabs header={<ScreenHeader title="Estudo" subtitle="Revise o que você leu, no seu ritmo." large />}>
+      {review && snapshot?.decks.length ? (
+        <View accessibilityLabel="Para revisar hoje" style={[styles.review, { backgroundColor: palette.surface, borderColor: palette.border }]}>
+          <AppText variant="overline" tone="secondary">Para revisar hoje</AppText>
+          <AppText variant="title">{review.total === 0 ? "Tudo em dia" : `${review.total} ${review.total === 1 ? "flashcard" : "flashcards"}`}</AppText>
+          <AppText variant="bodySmall" tone="secondary">
+            {review.total === 0 ? "Nenhum flashcard aprovado está com a revisão vencida." : review.next ? `Comece por “${review.next.title}” (${review.byDeck.get(review.next.id)}).` : ""}
+          </AppText>
+          {review.next ? <Button label="Revisar" icon="play" variant="primary" accessibilityLabel={`Revisar o deck ${review.next.title}`} onPress={() => router.push(`/study/${review.next!.id}` as never)} /> : null}
+        </View>
+      ) : null}
       <View style={styles.actions}>
-        <Button label="Novo deck" icon="add" variant="primary" onPress={() => setModal("deck")} />
+        {/* Um primário por tela: havendo revisão pendente, "Revisar" é o principal e criar deck vira ação comum. */}
+        <Button label="Novo deck" icon="add" variant={review?.next ? "secondary" : "primary"} onPress={() => setModal("deck")} />
         <Button
           label="Criar flashcard"
           icon="create-outline"
@@ -310,7 +330,7 @@ function StudyContent() {
               <ListRow
                 key={deck.id}
                 title={deck.title}
-                description={`${cardCount.get(deck.id) ?? 0} flashcards · ${deck.category}${origin ? ` · ${origin}` : ""}`}
+                description={`${cardCount.get(deck.id) ?? 0} flashcards${review?.byDeck.get(deck.id) ? ` · ${review.byDeck.get(deck.id)} para revisar` : ""} · ${deck.category}${origin ? ` · ${origin}` : ""}`}
                 icon={deck.isGenerated ? "document-text-outline" : "albums-outline"}
                 onPress={() => router.push(`/decks/${deck.id}` as never)}
               />
@@ -513,6 +533,7 @@ const styles = StyleSheet.create({
   empty: { alignItems: "center", padding: 32, gap: 8 },
   sectionTitle: { fontSize: 17, fontWeight: "700", marginBottom: 5 },
   preview: { borderWidth: 1, borderRadius: 14, padding: 16, gap: 10 },
+  review: { borderWidth: 1, borderRadius: 14, padding: 16, gap: 6, alignItems: "flex-start" },
   candidate: { borderBottomWidth: 1, paddingVertical: 9, gap: 4 },
   modalBackdrop: {
     flex: 1,

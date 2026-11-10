@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
-import { Pressable, ScrollView, StyleSheet } from "react-native";
-import { PropsWithChildren } from "react";
+import { Pressable, ScrollView, StyleSheet, View } from "react-native";
+import { PropsWithChildren, useState } from "react";
 import { useAppTheme } from "@/src/presentation/contexts/AppThemeContext";
 import { AppText } from "./Text";
 import type { IconName } from "./Button";
@@ -46,15 +46,32 @@ export function Chip({ label, selected = false, onPress, icon, disabled = false,
 
 /** Linha de chips com rolagem horizontal (não quebra layout em telas estreitas). */
 export function ChipRow({ children, label }: PropsWithChildren<{ label?: string }>) {
+  const { palette } = useAppTheme();
+  // Quando há chips além da borda, um esmaecido à direita indica que a linha rola (antes o último chip só aparecia cortado).
+  const [width, setWidth] = useState(0), [content, setContent] = useState(0), [offset, setOffset] = useState(0);
+  const more = content > width + 1 && offset + width < content - 4;
   return (
-    <ScrollView
-      horizontal
-      showsHorizontalScrollIndicator={false}
-      accessibilityLabel={label}
-      contentContainerStyle={styles.row}
-    >
-      {children}
-    </ScrollView>
+    <View style={styles.rowWrap}>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        accessibilityLabel={label}
+        contentContainerStyle={styles.row}
+        onLayout={event => setWidth(event.nativeEvent.layout.width)}
+        onContentSizeChange={value => setContent(value)}
+        onScroll={event => setOffset(event.nativeEvent.contentOffset.x)}
+        scrollEventThrottle={32}
+      >
+        {children}
+      </ScrollView>
+      {more ? (
+        <View pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={styles.fade}>
+          <View style={[styles.fadeStep, { backgroundColor: palette.background, opacity: 0.35 }]} />
+          <View style={[styles.fadeStep, { backgroundColor: palette.background, opacity: 0.65 }]} />
+          <View style={[styles.fadeStep, { backgroundColor: palette.background, opacity: 0.9 }]} />
+        </View>
+      ) : null}
+    </View>
   );
 }
 
@@ -69,4 +86,7 @@ const styles = StyleSheet.create({
     gap: space.xs + 2,
   },
   row: { gap: space.sm, paddingVertical: space.xs, alignItems: "center" },
+  rowWrap: { position: "relative" },
+  fade: { position: "absolute", top: 0, bottom: 0, right: 0, width: 36, flexDirection: "row" },
+  fadeStep: { flex: 1 },
 });

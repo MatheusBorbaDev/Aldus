@@ -141,7 +141,7 @@ export default function Search() {
     <View style={styles.discover}>
       <Section
         title="Suas fontes"
-        action={<Button label="Adicionar fonte" icon="add" variant="primary" onPress={() => router.push("/sources?add=1" as never)} />}
+        action={<Button label="Adicionar fonte" icon="add" variant="ghost" onPress={() => router.push("/sources?add=1" as never)} />}
       >
         {accountSources.length ? (
           <ListGroup>
@@ -176,7 +176,8 @@ export default function Search() {
         <View style={styles.searchField}>
           <SearchField value={query} onChangeText={setQuery} onSubmit={submitSearch} placeholder="Título, autor ou assunto" label="Buscar livros" />
         </View>
-        <IconButton icon="arrow-forward" label="Buscar" appearance="filled" disabled={!query.trim()} onPress={submitSearch} />
+        {/* Sem texto o botão fica neutro (não um primário desbotado); com texto vira a ação principal. */}
+        <IconButton icon="search" label="Buscar" appearance={query.trim() ? "filled" : "tonal"} disabled={!query.trim()} onPress={submitSearch} />
       </View>
       <ChipRow label="Filtrar por fonte">
         {filters.map(filter => (

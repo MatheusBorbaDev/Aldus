@@ -105,6 +105,9 @@ Persistência (legado mantido, não renomear `kindle-*`/`@kindle/*`): Native SQL
 - **Redesenho, Etapa 3 — menu do livro (10/11, sobre `d5d27d6`)**: typecheck PASS; `test:critical` 94/94; `export:web` PASS; Chromium PASS:
   `test:library:{web,bulk:web}` (remoção do aparelho e da conta no export real), `test:source-library:browser`, `test:saas:web`. Capturas do menu
   (fixture de rascunho, claro/escuro/confirmação) em `.expo/redesign-step3/`. Fora do APK `6883532`; Android NÃO TESTADO.
+- **Redesenho, Etapa 4 — Descobrir e Estudo (10/11, sobre `69d6fe0`)**: typecheck PASS; `test:critical` **95/95** (nova `study-review`);
+  `export:web` PASS; Chromium PASS: `test:source-library:browser` (Descobrir 320–1440 e Estudo vazio; capturas em `.expo/redesign-step4/`),
+  `test:library:{bulk:web,web}`. Bloco "Para revisar hoje" com decks reais NÃO exercitado no navegador (só teste da função). Android NÃO TESTADO.
 - **APK de ensaio do HEAD `6883532` (09/11, primeiro build Android deste PC)**: `ALDUS_ALLOW_DEVELOPMENT_SIGNING=device-rehearsal npm run build:apk:local`,
   árvore limpa, Gradle 14 min 16 s (log `.expo/apk-6883532-build.log`). `artifacts/apk/Aldus-6883532-device-rehearsal.apk` (ignorado; cópia de
   `android/app/build/outputs/apk/release/app-release.apk`), 253.255.362 bytes, SHA-256 `6fecb41c…6931812f5c`. `aapt`: `com.aldus.reader`
@@ -285,6 +288,16 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
 
 ## 10. Log (mais recente primeiro; máx. 5 entradas, resto → docs/context/historico/)
 
+### 10/11/2026 — Redesenho, Etapa 4: Descobrir e Estudo (Claude)
+- IMPLEMENTADO Descobrir (`search.tsx`): botão de busca neutro (`tonal`, ícone de lupa) sem texto e principal com texto (antes um primário
+  desbotado que parecia quebrado); "Adicionar fonte" discreto (`ghost`). `ChipRow` (`src/ui/Chip.tsx`, vale para Biblioteca/Fontes também):
+  esmaecido à direita só quando há chips além da borda e some ao rolar até o fim.
+- IMPLEMENTADO Estudo (`study.tsx`): bloco **Para revisar hoje** com a contagem medida (`reviewSummary` em `flashcardSrs.ts`: aprovados,
+  completos, vencidos, de decks existentes), "Tudo em dia" quando zero medido, nada antes do snapshot; "Revisar" (primário) abre o deck com
+  mais pendências; "Novo deck" só é primário quando não há revisão; cada deck mostra "N para revisar". Rótulos existentes preservados.
+- Não feito: menu "+" único no Estudo (mantive "Novo deck"/"Criar flashcard"/"Mais ferramentas" visíveis; o ganho era pequeno e mudava
+  rótulos usados por testes). VALIDADO: ver §3. NÃO TESTADO: Android; bloco de revisão com dados reais no navegador.
+
 ### 10/11/2026 — Redesenho, Etapa 3: menu do livro na Biblioteca (Claude)
 - IMPLEMENTADO (`BookCloudControls` em `LibrarySyncControls.tsx`; lógica de remoção/Sync inalterada): o cartão passa a ter **uma** linha
   "situação · disponibilidade" + "⋯" (antes duas linhas e um botão de etiqueta separado). O menu é uma folha compacta (máx. 480 px) com título de
@@ -319,15 +332,6 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
   rolagem, abas 44 px); fixture Web com temas reais e ícones em texto. Não feito do plano: virar página e alinhamento do EPUB (não existem
   no motor; seriam Reader/onda 6), OCR no menu do livro (Etapa 3). VALIDADO: ver §3. NÃO TESTADO: Android.
 
-### 09/11/2026 — Dependências: patches do SDK 57 (Claude)
-- IMPLEMENTADO por decisão do usuário (opção 1 do BUG 13): `npx expo install --fix` alinhou 9 pacotes do Expo ao patch esperado do SDK 57;
-  `package.json` só com essas faixas; lockfile só com a família Expo (+ `react-native-gesture-handler` 3.5.0). Audit de produção 6→3 altos.
-  `THIRD_PARTY_NOTICES.md`/`thirdPartyNotices.generated.ts` regenerados (só versões).
-- `test-marketing-web`: base `prefers-reduced-motion: no-preference` emulada (este Windows reporta `reduce` e a cena 3D não iniciava; o caminho
-  `reduce` continua testado) e rota autenticada verificada por `/library` + busca da Biblioteca (o texto "Sua Biblioteca" saiu da tela em `02bb6f4`).
-- VALIDADO: ver §3. Depois, por pedido do usuário, APK de ensaio `6883532` compilado e conferido (pacote/versão/assinatura/ABIs/bundle; §3),
-  sem instalar. NÃO TESTADO: execução no Android/Hermes com os módulos nativos novos (exige instalar no Redmi), `test:legal:browser`.
-
 ### 06/11/2026 — Entradas anteriores
 - Fechamento UX/UI e Onboarding 1: ver `docs/context/historico/2026-11-06-ux-fechamento-e-onboarding-1.md`.
 - Onboarding 2 (auditoria e reescrita do contexto): ver `docs/context/historico/2026-11-06-onboarding-2.md`.
@@ -342,3 +346,4 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
 - Revisão de qualidade, Onda 3 (09/11): ver `docs/context/historico/2026-11-09-qualidade-onda-3.md`.
 - Revisão de qualidade, Onda 4 (09/11): ver `docs/context/historico/2026-11-09-qualidade-onda-4.md`.
 - Revisão de qualidade, Onda 5 (09/11): ver `docs/context/historico/2026-11-09-qualidade-onda-5.md`.
+- Dependências, patches do SDK 57 e APK de ensaio `6883532` (09/11): ver `docs/context/historico/2026-11-09-dependencias-sdk-57.md`.

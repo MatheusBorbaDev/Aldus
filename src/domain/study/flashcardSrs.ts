@@ -43,3 +43,17 @@ export function difficultyForIndex(index: number): FlashcardDifficulty {
 export function dueCards(cards: Flashcard[], now = Date.now()): Flashcard[] {
   return cards.filter(card => card.status === "approved" && card.dueAt <= now).sort((a, b) => a.dueAt - b.dueAt);
 }
+
+/**
+ * Resumo "para revisar hoje": flashcards prontos (aprovados e completos) com revisão vencida, por deck, e o deck com mais
+ * pendências para começar. Só conta o que está no snapshot local; não estima nada.
+ */
+export function reviewSummary(decks: Array<{ id: string }>, cards: Flashcard[], isPlayable: (card: Flashcard) => boolean, now = Date.now()): { total: number; byDeck: Map<string, number>; nextDeckId: string | null } {
+  const byDeck = new Map<string, number>();
+  const known = new Set(decks.map(deck => deck.id));
+  const due = dueCards(cards.filter(isPlayable), now).filter(card => known.has(card.deckId));
+  for (const card of due) byDeck.set(card.deckId, (byDeck.get(card.deckId) ?? 0) + 1);
+  let nextDeckId: string | null = null;
+  for (const deck of decks) if (byDeck.has(deck.id) && (nextDeckId === null || byDeck.get(deck.id)! > byDeck.get(nextDeckId)!)) nextDeckId = deck.id;
+  return { total: due.length, byDeck, nextDeckId };
+}
