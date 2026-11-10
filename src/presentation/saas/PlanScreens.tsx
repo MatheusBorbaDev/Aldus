@@ -22,24 +22,25 @@ const errors: Record<PlanFailure, string> = {
   authorization: 'O servidor não autorizou esta consulta. Verifique a situação da sua conta.',
   contract: 'Os dados recebidos estão incompletos ou inconsistentes. Atualize para consultar novamente.',
 };
-export function PlanButton({ title, onPress, disabled = false }: { title: string; onPress?: () => void; disabled?: boolean }) {
+/** `quiet`: ação de navegação/apoio, sem caixa (ex.: voltar), para não competir com as ações da tela. */
+export function PlanButton({ title, onPress, disabled = false, quiet = false }: { title: string; onPress?: () => void; disabled?: boolean; quiet?: boolean }) {
   const { palette } = useAppTheme();
   return <Pressable accessibilityRole="button" accessibilityLabel={title} accessibilityState={{ disabled }} disabled={disabled} onPress={onPress}
-    android_ripple={{ color: palette.surfaceSecondary }} style={[styles.button, { borderColor: palette.border, backgroundColor: palette.surface, opacity: disabled ? 0.65 : 1 }]}>
-    <Text style={{ color: palette.text, fontWeight: '600', textAlign: 'center' }}>{title}</Text>
+    android_ripple={{ color: palette.surfaceSecondary }} style={[styles.button, quiet ? styles.quiet : null, { borderColor: quiet ? 'transparent' : palette.border, backgroundColor: quiet ? 'transparent' : palette.surface, opacity: disabled ? 0.65 : 1 }]}>
+    <Text style={{ color: quiet ? palette.accent : palette.text, fontWeight: '600', textAlign: 'center' }}>{quiet ? '← ' : ''}{title}</Text>
   </Pressable>;
 }
 function Copy({ children, muted = false }: { children: React.ReactNode; muted?: boolean }) {
-  const { palette } = useAppTheme(); return <Text style={{ color: muted ? palette.secondaryText : palette.text, fontSize: 15, lineHeight: 23 }}>{children}</Text>;
+  const { palette } = useAppTheme(); return <Text style={{ color: muted ? palette.secondaryText : palette.text, fontSize: 14, lineHeight: 21 }}>{children}</Text>;
 }
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
-  const { palette } = useAppTheme(); return <View style={[styles.section, { borderColor: palette.border, backgroundColor: 'transparent' }]}>
+  const { palette } = useAppTheme(); return <View style={[styles.section, { borderColor: palette.border, backgroundColor: palette.surface }]}>
     <Text accessibilityRole="header" style={[styles.sectionTitle, { color: palette.text }]}>{title}</Text>{children}</View>;
 }
 function Layout({ title, subtitle, children }: { title: string; subtitle: string; children: React.ReactNode }) {
   const { palette } = useAppTheme(), insets = useSafeAreaInsets();
   return <AuthGuard><View style={{ flex: 1, backgroundColor: palette.background }}><ScrollView contentContainerStyle={[styles.page, { paddingTop: Math.max(insets.top, 24), paddingBottom: Math.max(insets.bottom, 28) }]}>
-    <View style={styles.actions}><PlanButton title="Voltar aos Ajustes" onPress={() => router.push('/settings' as never)} /></View>
+    <View style={styles.actions}><PlanButton quiet title="Voltar aos Ajustes" onPress={() => router.push('/settings' as never)} /></View>
     <Text accessibilityRole="header" style={[appUi.title, { color: palette.text }]}>{title}</Text><Copy muted>{subtitle}</Copy>{children}
   </ScrollView></View></AuthGuard>;
 }
@@ -130,9 +131,10 @@ export function ComparePlansScreen() {
   </Layout>;
 }
 const styles = StyleSheet.create({
-  page: { padding: 24, gap: 18, width: '100%', maxWidth: 1000, alignSelf: 'center' },
-  title: { fontSize: 30, fontWeight: '700' }, sectionTitle: { fontSize: 21, fontWeight: '600' },
-  section: { paddingVertical: 24, gap: 16, borderTopWidth: 1 }, actions: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  page: { padding: 20, gap: 14, width: '100%', maxWidth: 1000, alignSelf: 'center' },
+  title: { fontSize: 30, fontWeight: '700' }, sectionTitle: { fontFamily: appUi.title.fontFamily, fontSize: 20, lineHeight: 27, fontWeight: '600' },
+  // Cartão do sistema visual (como os grupos de Conta/Estudo), no lugar de blocos soltos separados por linha.
+  section: { padding: 18, gap: 10, borderWidth: StyleSheet.hairlineWidth, borderRadius: 14 }, quiet: { paddingHorizontal: 4, borderWidth: 0 }, actions: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   button: { minHeight: 46, paddingVertical: 13, paddingHorizontal: 16, justifyContent: 'center', borderWidth: 1, borderRadius: 9, flexShrink: 1 },
   divider: { height: 1 }, loading: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 20 },
   catalogs: { flexDirection: 'row', flexWrap: 'wrap', gap: 18 }, catalog: { flexBasis: 320, flexGrow: 1, flexShrink: 1, minWidth: 0, padding: 20, gap: 16, borderWidth: 1, borderRadius: 14 },

@@ -16,7 +16,7 @@ export function CommunityPage({ title, children }: PropsWithChildren<{ title: st
     <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={[styles.page, { paddingTop: Math.max(insets.top, 16), paddingBottom: Math.max(insets.bottom, 24) }]}>
       <View style={styles.header}>
         <Pressable accessibilityRole="button" accessibilityLabel="Voltar" style={styles.back} onPress={() => router.canGoBack() ? router.back() : router.replace("/(tabs)/settings")}>
-          <Ionicons name="chevron-back" size={24} color={palette.text} />
+          <Ionicons name="arrow-back" size={22} color={palette.text} />
         </Pressable>
         <Text accessibilityRole="header" style={[appUi.title, { color: palette.text, flex: 1 }]}>{title}</Text>
       </View>
@@ -30,7 +30,7 @@ export function Copy({ children, secondary = false }: PropsWithChildren<{ second
 }
 export function Card({ title, children }: PropsWithChildren<{ title?: string }>) {
   const { palette } = useAppTheme();
-  return <View style={[styles.card, { backgroundColor: 'transparent', borderColor: palette.border }]}>
+  return <View style={[styles.card, { backgroundColor: palette.surface, borderColor: palette.border }]}>
     {title && <Text accessibilityRole="header" style={[styles.cardTitle, { color: palette.text }]}>{title}</Text>}{children}
   </View>;
 }
@@ -76,9 +76,9 @@ export function Timeline({ activities }: { activities: ReadingActivity[] }) {
 export const styles = StyleSheet.create({
   page: { alignSelf: "center", width: "100%", maxWidth: 680, paddingHorizontal: 18, gap: 16 },
   header: { flexDirection: "row", alignItems: "center", gap: 8 }, back: { minWidth: 48, minHeight: 48, alignItems: "center", justifyContent: "center" },
-  title: { fontSize: 27, fontWeight: "700", flex: 1 }, card: { borderTopWidth: 1, paddingVertical: 20, gap: 12 },
-  cardTitle: { fontSize: 18, fontWeight: "600" }, copy: { fontSize: 14, lineHeight: 21 },
-  action: { borderWidth: 1, borderRadius: 6, minHeight: 48, padding: 12, alignItems: "center", justifyContent: "center" }, actionText: { fontSize: 14, fontWeight: "600" },
+  title: { fontSize: 27, fontWeight: "700", flex: 1 }, card: { borderWidth: StyleSheet.hairlineWidth, borderRadius: 14, padding: 18, gap: 10 },
+  cardTitle: { fontFamily: appUi.title.fontFamily, fontSize: 19, lineHeight: 26, fontWeight: "600" }, copy: { fontSize: 14, lineHeight: 21 },
+  action: { borderWidth: StyleSheet.hairlineWidth, borderRadius: 10, minHeight: 48, padding: 12, alignItems: "center", justifyContent: "center" }, actionText: { fontSize: 14, fontWeight: "600" },
   identity: { flexDirection: "row", alignItems: "center", gap: 14 }, avatar: { height: 64, width: 64, borderRadius: 32, alignItems: "center", justifyContent: "center" },
   name: { fontSize: 21, fontWeight: "600" }, track: { height: 6, borderRadius: 3, overflow: "hidden" },
   stats: { flexDirection: "row", flexWrap: "wrap", gap: 14 }, stat: { width: "45%", minWidth: 110, gap: 4 }, statValue: { fontSize: 24, fontWeight: "600" },

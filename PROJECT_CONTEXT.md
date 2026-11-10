@@ -108,6 +108,9 @@ Persistência (legado mantido, não renomear `kindle-*`/`@kindle/*`): Native SQL
 - **Redesenho, Etapa 4 — Descobrir e Estudo (10/11, sobre `69d6fe0`)**: typecheck PASS; `test:critical` **95/95** (nova `study-review`);
   `export:web` PASS; Chromium PASS: `test:source-library:browser` (Descobrir 320–1440 e Estudo vazio; capturas em `.expo/redesign-step4/`),
   `test:library:{bulk:web,web}`. Bloco "Para revisar hoje" com decks reais NÃO exercitado no navegador (só teste da função). Android NÃO TESTADO.
+- **Redesenho, Etapa 5 parcial — deck, Plano e Community (10/11, sobre `9ccb201`)**: typecheck PASS; `test:critical` 95/95; `export:web` PASS;
+  Chromium PASS: `test:saas:web` (Meu Plano/Comparar; antes/depois em `.expo/redesign-step5/`), `test:admin:web`, `test:source-library:browser`.
+  Tela do deck e telas da Community SEM cobertura de navegador (só typecheck). Android NÃO TESTADO.
 - **APK de ensaio do HEAD `6883532` (09/11, primeiro build Android deste PC)**: `ALDUS_ALLOW_DEVELOPMENT_SIGNING=device-rehearsal npm run build:apk:local`,
   árvore limpa, Gradle 14 min 16 s (log `.expo/apk-6883532-build.log`). `artifacts/apk/Aldus-6883532-device-rehearsal.apk` (ignorado; cópia de
   `android/app/build/outputs/apk/release/app-release.apk`), 253.255.362 bytes, SHA-256 `6fecb41c…6931812f5c`. `aapt`: `com.aldus.reader`
@@ -288,6 +291,16 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
 
 ## 10. Log (mais recente primeiro; máx. 5 entradas, resto → docs/context/historico/)
 
+### 10/11/2026 — Redesenho, Etapa 5 (parcial): deck, Plano e Community (Claude)
+- IMPLEMENTADO: `app/decks/[deckId].tsx` reescrito sobre `src/ui` (mesma lógica de dados): cabeçalho com voltar e contagem (flashcards · prontos
+  · para revisar), **Estudar** primário (desabilitado sem flashcard pronto, com dica), criar/batalha/editar como ações comuns, renomear em
+  cartão, lista com "✓ Pronto"/"Completar" por flashcard e estados vazios. `PlanScreens.tsx`: seções viram cartões (superfície + raio),
+  títulos serifados, texto 14/21, "← Voltar aos Ajustes" discreto (rótulo acessível igual). Community `components.tsx`: `Card` como cartão,
+  título serifado, seta de voltar; todas as telas da Community herdam.
+- **PENDENTE da Etapa 5** (não feito, por tamanho/risco): `app/battle.tsx` (436 linhas), Admin (ferramenta do dono, com layout Web próprio e
+  testes de layout), componentes de flashcard (`FlashcardCardView` 369 linhas, `FlashcardCreateModal` 842 linhas com cores fixas) e sessão de estudo.
+- VALIDADO: ver §3. NÃO TESTADO: deck e Community no navegador; Android.
+
 ### 10/11/2026 — Redesenho, Etapa 4: Descobrir e Estudo (Claude)
 - IMPLEMENTADO Descobrir (`search.tsx`): botão de busca neutro (`tonal`, ícone de lupa) sem texto e principal com texto (antes um primário
   desbotado que parecia quebrado); "Adicionar fonte" discreto (`ghost`). `ChipRow` (`src/ui/Chip.tsx`, vale para Biblioteca/Fontes também):
@@ -318,20 +331,6 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
 - Corrigido no caminho: a faixa de acentos do regex ficou literal no arquivo novo e quebrava o bundle da fixture servido sem charset; voltou a
   escapes Unicode (faixa U+0300–U+036F) com trava no teste. VALIDADO: ver §3. NÃO TESTADO: Android.
 
-### 10/11/2026 — Redesenho, Etapa 1: painel de ajustes de leitura (Claude)
-- Pedido do usuário após ver o APK no Redmi (painel confuso). Plano em 5 etapas aprovado, com liberdade para mudar estrutura: 1 painel de
-  leitura; 2 cabeçalho/avisos do Reader; 3 menu do livro; 4 Descobrir e Estudo; 5 telas antigas (Batalha, decks, Plano, Admin, Community).
-- IMPLEMENTADO Etapa 1 (`ReaderSettingsPanel.tsx`, mesma interface de props; `ReaderScreen`, contextos, valores, limites e padrões intocados):
-  folha baixa (62% recolhida, 90% expandida, fundo 18% para ver o texto mudar) com **sempre à mão** tamanho da letra (A−/slider/A+), temas como
-  amostras com a cor real e brilho (slider + "Automático"; mexer no slider sai do automático); **Texto · Página · Conforto** no lugar das 4 abas
-  em grade; seleção por contorno + peso + ✓ (sem bloco sólido); rótulos em frase, sem caixa alta; fonte com prévia na própria família;
-  "Compacto/Padrão/Amplo"; alinhamento do Reflow como par de opções; "Restaurar texto e página padrão" com confirmação (não toca tema/brilho);
-  PDF: Original/Leitura Livre no topo, zoom na área rápida, Original sem a seção Texto. **"Modo e-reader" removido**: só alternava Papel/Sépia
-  (não tinha valor próprio; quem usava segue no tema Papel). Seções ficam montadas (controles não são recriados; navegar não grava nada).
-- Testes reescritos: `test-reader-settings-categories`, `test-reader-settings-web` (exige folha recolhida com texto visível, 5 amostras sem
-  rolagem, abas 44 px); fixture Web com temas reais e ícones em texto. Não feito do plano: virar página e alinhamento do EPUB (não existem
-  no motor; seriam Reader/onda 6), OCR no menu do livro (Etapa 3). VALIDADO: ver §3. NÃO TESTADO: Android.
-
 ### 06/11/2026 — Entradas anteriores
 - Fechamento UX/UI e Onboarding 1: ver `docs/context/historico/2026-11-06-ux-fechamento-e-onboarding-1.md`.
 - Onboarding 2 (auditoria e reescrita do contexto): ver `docs/context/historico/2026-11-06-onboarding-2.md`.
@@ -347,3 +346,4 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
 - Revisão de qualidade, Onda 4 (09/11): ver `docs/context/historico/2026-11-09-qualidade-onda-4.md`.
 - Revisão de qualidade, Onda 5 (09/11): ver `docs/context/historico/2026-11-09-qualidade-onda-5.md`.
 - Dependências, patches do SDK 57 e APK de ensaio `6883532` (09/11): ver `docs/context/historico/2026-11-09-dependencias-sdk-57.md`.
+- Redesenho, Etapa 1, painel de leitura e plano das 5 etapas (10/11): ver `docs/context/historico/2026-11-10-redesenho-etapa-1.md`.
