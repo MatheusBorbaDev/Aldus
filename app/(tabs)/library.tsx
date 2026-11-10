@@ -18,7 +18,8 @@ import { libraryOrganization } from "@/src/presentation/services/dependencies";
 import { BookOrganizationModal, readingStatusLabels } from "@/src/presentation/components/BookOrganizationModal";
 import { BookOrganization, inferredReadingStatus, normalizeLibraryText, OrganizationRecords } from "@/src/domain/types/libraryOrganization";
 import { BookCard as SharedBookCard } from "@/src/presentation/components/BookCard";
-import { Book, MOCK_BOOKS } from "@/src/constants/mockBooks";
+import { Book } from "@/src/constants/mockBooks";
+import { catalogBookFor } from "@/src/presentation/services/bookDisplay";
 import { markEpubLibraryReady, startEpubOpenTrace } from "@/src/utils/epubOpenMetrics";
 import { useBookImport } from "@/src/presentation/hooks/useBookImport";
 import { BookImportModal } from "@/src/presentation/components/BookImportModal";
@@ -50,12 +51,6 @@ const sorts: { value: BookSort; label: string }[] = [
   { value: "series", label: "Série e volume" },
 ];
 
-const mockBooksByTitle = new Map(
-  MOCK_BOOKS.map((book) => [normalizeBookTitle(book.title), book])
-);
-const mockBooksByFileName = new Map(
-  MOCK_BOOKS.map((book) => [normalizeBookTitle(book.fileUri.split(/[\\/]/).pop() ?? ""), book])
-);
 
 export default function Library() {
   const generation = useSyncExternalStore(listener => libraryAccountScope.subscribe(listener), () => libraryAccountScope.generation, () => 0);
@@ -393,9 +388,7 @@ const LibraryBookCell = memo(function LibraryBookCell({ item, record, selecting,
 });
 
 function toCardBook(book: LibraryBook, hasOrganization = false): Book {
-  const mockBook =
-    mockBooksByTitle.get(normalizeBookTitle(book.title)) ??
-    mockBooksByFileName.get(normalizeBookTitle(book.fileName));
+  const mockBook = catalogBookFor(book);
   return {
     id: book.id,
     title: hasOrganization ? book.title : mockBook?.title ?? book.title,
@@ -407,14 +400,6 @@ function toCardBook(book: LibraryBook, hasOrganization = false): Book {
   };
 }
 
-function normalizeBookTitle(title: string): string {
-  return title
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLocaleLowerCase("pt-BR")
-    .replace(/[^a-z0-9]+/g, " ")
-    .trim();
-}
 
 const styles = StyleSheet.create({
   screen: { flex: 1, width: "100%" },

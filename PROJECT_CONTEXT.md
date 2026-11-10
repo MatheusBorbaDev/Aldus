@@ -99,6 +99,9 @@ Persistência (legado mantido, não renomear `kindle-*`/`@kindle/*`): Native SQL
   `test:reader:settings:web` PASS (125 layouts: 5 larguras × claro/escuro × texto 1/1,3/1,6 × recolhido/Texto/Página/Conforto + PDF),
   `test:reader:{browser,epub:web,study:web,pdf:web,concentration:web,markings:web}` e `test:library:web` PASS; `reflow:web` FAIL só BUG 20.
   Capturas antes/depois em `.expo/redesign-step1/`. **Não está no APK `6883532`**; Android NÃO TESTADO.
+- **Redesenho, Etapa 2 — cabeçalho e avisos do Reader (10/11, sobre `1cafdae`)**: typecheck PASS; `test:critical` 94/94 (nova `book-display`);
+  `export:web` PASS; Chromium PASS: `test:reader:{browser,epub:web,study:web,pdf:web,concentration:web,markings:web}`, `test:library:{web,bulk:web}`;
+  `reflow:web` FAIL só BUG 20. Fora do APK `6883532`; Android NÃO TESTADO.
 - **APK de ensaio do HEAD `6883532` (09/11, primeiro build Android deste PC)**: `ALDUS_ALLOW_DEVELOPMENT_SIGNING=device-rehearsal npm run build:apk:local`,
   árvore limpa, Gradle 14 min 16 s (log `.expo/apk-6883532-build.log`). `artifacts/apk/Aldus-6883532-device-rehearsal.apk` (ignorado; cópia de
   `android/app/build/outputs/apk/release/app-release.apk`), 253.255.362 bytes, SHA-256 `6fecb41c…6931812f5c`. `aapt`: `com.aldus.reader`
@@ -279,6 +282,16 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
 
 ## 10. Log (mais recente primeiro; máx. 5 entradas, resto → docs/context/historico/)
 
+### 10/11/2026 — Redesenho, Etapa 2: título e avisos do Reader (Claude)
+- IMPLEMENTADO: `src/presentation/services/bookDisplay.ts` (`readableBookTitle`, `catalogBookFor`) é a regra única de título para Biblioteca e
+  Reader: livro do acervo embutido mostra o título do catálogo (antes o Reader mostrava o nome do arquivo, ex. "sobre-a-vida-feliz"); título
+  que é só nome de arquivo troca `-`/`_` por espaço; título salvo com espaços não muda. Nada gravado no banco (só exibição).
+  Aviso "Leitura livre pronta." virou confirmação passageira (4 s, faixa estreita, sem botão, sem `alert`); avisos de falha, OCR e âncora
+  continuam até o leitor fechar (botão com alvo de 44 px). O temporizador só limpa a própria confirmação, nunca um aviso mais novo.
+- Não feito: subtítulo "Início" do Reflow (é o nome do primeiro capítulo gerado pelo `PdfReflowDocumentBuilder`; mudar é do motor).
+- Corrigido no caminho: a faixa de acentos do regex ficou literal no arquivo novo e quebrava o bundle da fixture servido sem charset; voltou a
+  escapes Unicode (faixa U+0300–U+036F) com trava no teste. VALIDADO: ver §3. NÃO TESTADO: Android.
+
 ### 10/11/2026 — Redesenho, Etapa 1: painel de ajustes de leitura (Claude)
 - Pedido do usuário após ver o APK no Redmi (painel confuso). Plano em 5 etapas aprovado, com liberdade para mudar estrutura: 1 painel de
   leitura; 2 cabeçalho/avisos do Reader; 3 menu do livro; 4 Descobrir e Estudo; 5 telas antigas (Batalha, decks, Plano, Admin, Community).
@@ -314,16 +327,6 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
 - Testes: `test-preference-persistence` (critical); `test-reader-concentration` libera o módulo puro `latestWrite`. VALIDADO: ver §3.
   NÃO TESTADO: Android e falha real do AsyncStorage/IndexedDB.
 
-### 09/11/2026 — Revisão de qualidade: Onda 4, telas de entrada (Claude)
-- IMPLEMENTADO D2 (só apresentação; `authService`, sessão, OAuth/PKCE, callback, diagnósticos e regras **intocados**): `AuthForm.tsx` sobre
-  `src/ui` com a mesma API — `AuthButton` = `Button` (primário/secundário, largura total), textos em `AppText`, marca com `overline`, título
-  `display`; campos sem placeholder repetindo o rótulo e com `hint` opcional; erro com cor de erro + ícone + `alert`/live region (antes cor
-  de link); links legais com 44 px (Política tinha 34 px); `AuthDivider` novo. `login.tsx`/`signup.tsx` só trocaram marcação (divisor e dica
-  do usuário). Herdam o visual também `callback`, `forgot/reset-password`, `complete-profile` e `app/account/*` (mesmo componente).
-- Testes: `scripts/test-auth-ui-web.cjs` (`test:auth:web`) com matriz, estouro horizontal, alvos ≥ 44 px e erros locais como `alert`; mock de
-  `test-auth-flows` inclui `AuthDivider`. VALIDADO: ver §3. NÃO TESTADO: Android/Hermes e `fontScale` real, teclado/autofill do sistema,
-  login real (nenhum envio ao Supabase); telas de `app/account/*` não capturadas. Sem primeiro uso guiado (fora do escopo da onda).
-
 ### 06/11/2026 — Entradas anteriores
 - Fechamento UX/UI e Onboarding 1: ver `docs/context/historico/2026-11-06-ux-fechamento-e-onboarding-1.md`.
 - Onboarding 2 (auditoria e reescrita do contexto): ver `docs/context/historico/2026-11-06-onboarding-2.md`.
@@ -336,3 +339,4 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
 - Revisão de qualidade, Onda 1 (09/11): ver `docs/context/historico/2026-11-09-qualidade-onda-1.md`.
 - Revisão de qualidade, Onda 2 (09/11): ver `docs/context/historico/2026-11-09-qualidade-onda-2.md`.
 - Revisão de qualidade, Onda 3 (09/11): ver `docs/context/historico/2026-11-09-qualidade-onda-3.md`.
+- Revisão de qualidade, Onda 4 (09/11): ver `docs/context/historico/2026-11-09-qualidade-onda-4.md`.

@@ -8,6 +8,11 @@ import { Highlight } from "@/src/domain/repositories/HighlightRepository";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { latestWriteTracker } from "@/src/core/utils/latestWrite";
 
+import { readableBookTitle } from "@/src/presentation/services/bookDisplay";
+
+/** Confirmação passageira: some sozinha. Avisos de falha/âncora continuam até o leitor fechar. */
+const REFLOW_READY_MESSAGE = "Leitura livre pronta.";
+const TRANSIENT_FEEDBACK_MS = 4000;
 const PDF_SETTINGS_SAVE_ERROR = "Não foi possível salvar os ajustes deste PDF. Eles valem até você fechar o livro.";
 import {
   ActivityIndicator,
@@ -140,6 +145,12 @@ export function ReaderScreen({ bookId }: Props) {
   const [reflowProgress, setReflowProgress] = useState({ currentPage: 0, totalPages: 0 });
   const [pdfModeChooserVisible, setPdfModeChooserVisible] = useState(false);
   const [reflowFeedback, setReflowFeedback] = useState<string | null>(null);
+  const transientFeedback = reflowFeedback === REFLOW_READY_MESSAGE;
+  useEffect(() => {
+    if (!transientFeedback) return;
+    const timer = setTimeout(() => setReflowFeedback(current => current === REFLOW_READY_MESSAGE ? null : current), TRANSIENT_FEEDBACK_MS);
+    return () => clearTimeout(timer);
+  }, [transientFeedback]);
   const [epubPage, setEpubPageRaw] = useState(1);
   const setEpubPage = useCallback((page: number | ((prev: number) => number)) => {
     const invocationStack = new Error().stack?.split("\n").slice(1, 6).join(" | ");
@@ -370,7 +381,7 @@ export function ReaderScreen({ bookId }: Props) {
         setPdfTotalPages(0);
         setEpubPage(1);
         setEpubTotalPages(0);
-        setBookTitle(result.book.title);
+        setBookTitle(readableBookTitle(result.book));
         setBookMimeType(result.book.mimeType);
         setPdfPageMode(getPdfPageMode(result.book.fileName));
         setBookFilePath(filePath);
@@ -540,7 +551,7 @@ export function ReaderScreen({ bookId }: Props) {
       setPdfReflowChapters(prepared);
       setPdfReflowDocument(document);
       setPdfReaderSettings(current => ({ ...(current ?? defaultPdfReaderSettings), mode: "reflow" }));
-      setReflowFeedback("Leitura livre pronta.");
+      setReflowFeedback(REFLOW_READY_MESSAGE);
       setReflowPreparing(false);
     } catch (error) {
       if (!publication.signal.aborted && generation === reflowModeGeneration.current) {
@@ -1090,21 +1101,25 @@ export function ReaderScreen({ bookId }: Props) {
 
         {reflowFeedback ? (
           <View
-            accessibilityRole="alert"
+            accessibilityRole={transientFeedback ? undefined : "alert"}
             onLayout={event => readerUiDiagnostic("LAYOUT", "feedback", readerControlProps.diagnosticContext, event.nativeEvent.layout, { pointerEvents: "box-none", zIndex: 40 })}
             pointerEvents="box-none"
             style={[
               styles.reflowFeedback,
+              transientFeedback ? styles.reflowFeedbackTransient : null,
               {
                 backgroundColor: activePalette.panel,
+                borderColor: activePalette.separator,
                 top: readerFeedbackTop(insets.top, controlsVisible && !studySelecting, headerHeight),
               },
             ]}
           >
             <Text accessibilityLiveRegion="polite" style={[styles.reflowFeedbackText, { color: activePalette.text }]}>{reflowFeedback}</Text>
-            <Pressable accessibilityRole="button" onPress={() => setReflowFeedback(null)} style={styles.reflowFeedbackClose}>
-              <Text style={{ color: activePalette.accent, fontWeight: "600" }}>Fechar</Text>
-            </Pressable>
+            {transientFeedback ? null : (
+              <Pressable accessibilityRole="button" accessibilityLabel="Fechar aviso" onPress={() => setReflowFeedback(null)} style={styles.reflowFeedbackClose}>
+                <Text style={{ color: activePalette.accent, fontWeight: "600" }}>Fechar</Text>
+              </Pressable>
+            )}
           </View>
         ) : null}
 
@@ -1182,7 +1197,18 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 12,
     padding: 12,
-    borderRadius: 6,
+    borderRadius: 12,
+    borderWidth: StyleSheet.hairlineWidth,
+  },
+  // Confirmação curta: faixa estreita e centralizada, sem botão; não cobre a largura do texto.
+  reflowFeedbackTransient: {
+    alignSelf: "center",
+    left: undefined,
+    right: undefined,
+    maxWidth: 320,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 20,
   },
   reflowFeedbackText: {
     flex: 1,
@@ -1192,7 +1218,9 @@ const styles = StyleSheet.create({
   reflowFeedbackClose: {
     flexShrink: 0,
     alignSelf: "center",
-    paddingVertical: 6,
-    paddingHorizontal: 2,
+    minHeight: 44,
+    minWidth: 44,
+    alignItems: "center",
+    justifyContent: "center",
   },
 });
