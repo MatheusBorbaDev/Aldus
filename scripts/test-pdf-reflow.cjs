@@ -74,7 +74,7 @@ function load(file) {
   assert.match(nativeSource,/Reconhecer texto/);assert.match(nativeSource,/Continuar no PDF Original/);assert.match(nativeSource,/cancelPdfOcr/);
   assert.match(webSource,/OCR local .* aplicativo Android/);
   assert.match(kotlinSource,/PdfRenderer/);assert.match(kotlinSource,/cancelledOperations/);assert.match(gradleSource,/com\.google\.mlkit:text-recognition:16\.0\.1/);
-  assert.match(readerSource,/reflowFeedbackText:[\s\S]*?flex: 1[\s\S]*?minWidth: 0/);assert.match(readerSource,/reflowFeedbackClose:[\s\S]*?flexShrink: 0/);
+  {const bannerSource=require('node:fs').readFileSync('src/presentation/components/reader/ReaderFeedbackBanner.tsx','utf8');assert.match(bannerSource,/reflowFeedbackText:[\s\S]*?flex: 1[\s\S]*?minWidth: 0/);assert.match(bannerSource,/reflowFeedbackClose:[\s\S]*?flexShrink: 0/);}
   console.log('PASS quality, OCR page policy/validation/provenance, legacy cache rejection, async cancel, progress, consent, Web fallback, Native bridge/module and narrow feedback layout');
   if(process.argv.includes('--pdfs')){
     const pdfjs=await import('pdfjs-dist/legacy/build/pdf.mjs');

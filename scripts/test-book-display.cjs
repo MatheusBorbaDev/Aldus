@@ -17,7 +17,8 @@ const reader = fs.readFileSync('src/presentation/screens/ReaderScreen.tsx', 'utf
 assert.match(reader, /setBookTitle\(readableBookTitle\(result\.book\)\)/); assert.match(library, /catalogBookFor\(book\)/);
 // Only the success confirmation is transient; failure/anchor warnings keep their close button and alert role.
 assert.match(reader, /const transientFeedback = reflowFeedback === REFLOW_READY_MESSAGE;/);
-assert.match(reader, /accessibilityRole=\{transientFeedback \? undefined : "alert"\}/);
+assert.match(reader, /transient=\{transientFeedback\}/);
+assert.match(fs.readFileSync('src/presentation/components/reader/ReaderFeedbackBanner.tsx', 'utf8'), /accessibilityRole=\{transient \? undefined : "alert"\}/);
 assert.match(reader, /current === REFLOW_READY_MESSAGE \? null : current/, 'the timer never clears a newer warning');
 console.log('PASS book display: catalog title for bundled files in Library and Reader, readable file-name titles, saved titles untouched; only the success notice is transient.');
 // The accent-stripping range must stay escaped: literal combining marks break bundles served without a charset.

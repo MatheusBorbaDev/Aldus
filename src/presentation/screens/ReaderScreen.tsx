@@ -7,6 +7,7 @@ import { Highlight } from "@/src/domain/repositories/HighlightRepository";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { latestWriteTracker } from "@/src/core/utils/latestWrite";
 import { useNativeReaderBrightness } from "@/src/presentation/hooks/useNativeReaderBrightness";
+import { ReaderFeedbackBanner } from "@/src/presentation/components/reader/ReaderFeedbackBanner";
 
 import { readableBookTitle } from "@/src/presentation/services/bookDisplay";
 
@@ -1034,27 +1035,14 @@ export function ReaderScreen({ bookId }: Props) {
         ) : null}
 
         {reflowFeedback ? (
-          <View
-            accessibilityRole={transientFeedback ? undefined : "alert"}
+          <ReaderFeedbackBanner
+            message={reflowFeedback}
+            transient={transientFeedback}
+            palette={activePalette}
+            top={readerFeedbackTop(insets.top, controlsVisible && !studySelecting, headerHeight)}
+            onDismiss={() => setReflowFeedback(null)}
             onLayout={event => readerUiDiagnostic("LAYOUT", "feedback", readerControlProps.diagnosticContext, event.nativeEvent.layout, { pointerEvents: "box-none", zIndex: 40 })}
-            pointerEvents="box-none"
-            style={[
-              styles.reflowFeedback,
-              transientFeedback ? styles.reflowFeedbackTransient : null,
-              {
-                backgroundColor: activePalette.panel,
-                borderColor: activePalette.separator,
-                top: readerFeedbackTop(insets.top, controlsVisible && !studySelecting, headerHeight),
-              },
-            ]}
-          >
-            <Text accessibilityLiveRegion="polite" style={[styles.reflowFeedbackText, { color: activePalette.text }]}>{reflowFeedback}</Text>
-            {transientFeedback ? null : (
-              <Pressable accessibilityRole="button" accessibilityLabel="Fechar aviso" onPress={() => setReflowFeedback(null)} style={styles.reflowFeedbackClose}>
-                <Text style={{ color: activePalette.accent, fontWeight: "600" }}>Fechar</Text>
-              </Pressable>
-            )}
-          </View>
+          />
         ) : null}
 
         {/* Aa Typography & Theme Settings Modal */}
@@ -1121,40 +1109,5 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     paddingHorizontal: 20,
     borderRadius: 8,
-  },
-  reflowFeedback: {
-    position: "absolute",
-    left: 16,
-    right: 16,
-    zIndex: 40,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    padding: 12,
-    borderRadius: 12,
-    borderWidth: StyleSheet.hairlineWidth,
-  },
-  // Confirmação curta: faixa estreita e centralizada, sem botão; não cobre a largura do texto.
-  reflowFeedbackTransient: {
-    alignSelf: "center",
-    left: undefined,
-    right: undefined,
-    maxWidth: 320,
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 20,
-  },
-  reflowFeedbackText: {
-    flex: 1,
-    flexShrink: 1,
-    minWidth: 0,
-  },
-  reflowFeedbackClose: {
-    flexShrink: 0,
-    alignSelf: "center",
-    minHeight: 44,
-    minWidth: 44,
-    alignItems: "center",
-    justifyContent: "center",
   },
 });
