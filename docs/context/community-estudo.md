@@ -89,3 +89,24 @@ Sequência real: Social Graph/perfis públicos → feed → clubes/leitura conju
 teorias/spoilers → desafios/achievements ampliados → moderação/denúncias/bloqueios.
 Relações/verificações, acesso a clubes, autoria e eventos/XP devem ser autoritativos no servidor.
 Sem criar followers/clubes/posts falsos, ativar FOLLOWERS ou enviar livros privados por padrão.
+
+### 13.1 Plano de mercado — FASE 5a: leitura conjunta (planejamento, 11/11/2026; nada implementado)
+
+Ideia: pessoas lendo o mesmo título no mesmo ritmo, com comentários que só aparecem para quem já passou daquele ponto. Cada pessoa
+usa a **própria cópia**; o Aldus nunca envia, empresta ou hospeda o arquivo do livro para outra pessoa, e cópias com DRM de loja
+podem não abrir no app (aviso obrigatório na entrada do clube). Sem ranking, sem "quem leu mais", sem comparação de ritmo.
+
+- **Âncora entre edições:** posições do Reader (âncora EPUB, página do PDF, Leitura Livre) dependem do arquivo de cada um e não valem
+  entre edições. Comentário e spoiler ancoram em **marcos do clube** (capítulo ou trecho combinado, p.ex. "até o fim do cap. 7"), e
+  cada pessoa marca "cheguei ao marco" (ou o app sugere pelo título do capítulo do próprio arquivo, sem afirmar quando não reconhecer).
+- **Ordem (a mesma do §13):** (1) grafo social e perfis públicos (**G**: `SupabaseCommunityRepository`, migration
+  `202610130001` aplicada com autorização, RLS, testes A/B/anônimo); (2) clubes e participação (**G**: convite por link, dono,
+  saída, exclusão, limite de membros; tudo autoritativo no servidor); (3) comentários ancorados em marco (**M/G**: visíveis só para
+  membros que marcaram o marco; edição/exclusão pelo autor; nada de feed global); (4) moderação (**G**, pré-requisito para abrir a
+  clubes públicos: denunciar, bloquear, remover, fila do dono, termos de conduta e canal legal). Clubes só por convite até (4) existir.
+- **Dados e privacidade:** progresso compartilhado é só "marco N alcançado" com data, opt-in por clube; nunca porcentagem, tempo de
+  leitura ou sessões medidas (FASE 2 continua só no aparelho). Sair do clube apaga as marcações dele no servidor.
+- **Riscos:** spoiler por marco mal definido; conteúdo ilegal em comentário (moderação antes de abrir); pressão social (nada de
+  lembretes de "você está atrasado"). Dependências remotas exigem autorização específica (schema/Auth/RLS).
+
+A FASE 5b é a parte **local** disso, sem servidor: marcos de um livro, cartão-cronograma e "marco 2 de 3" (ver log do PROJECT_CONTEXT).
