@@ -27,6 +27,11 @@ Diagnóstico sobre `main` `3cc1107`, neste PC (Windows). Evidência por código 
   passam a mesma verificação. Antes deste PC a suíte lia `Livros/sobre-o-ocio.pdf` pessoal (arquivo possivelmente diferente), por isso o PASS
   registrado em 06/11 não contradiz. Causa provável na contagem de colunas do documento (`EpubReaderDocument.ts`), **não investigada**: o motor
   do Reader está fora das ondas aprovadas. Status: ABERTO; Android NÃO TESTADO.
+  **CORRIGIDO NO CÓDIGO (11/11, onda B2):** causa confirmada em `calculateTotalPages` (`EpubReaderDocument.ts`): o total vinha dos fragmentos
+  de cada seção, e a margem inferior da última seção criava um fragmento sem texto. Agora o total é a página do último conteúdo real (texto
+  não vazio ou mídia), com a regra antiga só como reserva. VALIDADO no Chromium: `test:reader:reflow:web` PASS (24→23 páginas, 17 trechos
+  visíveis na última) e as outras 7 suítes do Reader PASS; EPUB inalterado (121 páginas). Durante a correção, um `S` dentro da template do
+  iframe virou `/S/` e o teste passou por acaso; trocado por `trim()` e travado em `test-reader-last-page`. NÃO TESTADO: Android.
 - **BUG 14 — Sem fronteira de erro de renderização.** Nenhum `ErrorBoundary`/`componentDidCatch` em `app/` ou `src/` (rg). Uma exceção de
   render derruba a árvore inteira (tela branca na Web; tela de erro/fechamento no Android) sem caminho de volta.
   **Onda 0 (09/11): CORRIGIDO NO CÓDIGO.** `app/_layout.tsx` exporta `ErrorBoundary` (expo-router) com `src/ui/ErrorScreen.tsx` (fora dos

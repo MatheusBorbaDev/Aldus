@@ -288,12 +288,40 @@ export function createEpubReaderDocument(chapters: StoredChapter[], options: Rea
     content.style.setProperty("--reader-page-height", getPageHeight() + "px");
   }
 
+  // BUG 20: a seção é um contêiner com margem inferior; quando o texto termina perto do fim de uma coluna, essa margem sozinha cria
+  // mais um fragmento da seção e uma página final sem nada para ler. A última página passa a ser a do último conteúdo real (texto
+  // não vazio ou mídia), medido pelos retângulos desse conteúdo. Sem conteúdo encontrado, vale a regra anterior (fragmentos).
+  var READER_MEDIA = { IMG: 1, SVG: 1, VIDEO: 1, CANVAS: 1, HR: 1, IFRAME: 1, OBJECT: 1, TABLE: 1, svg: 1 };
+  function lastContentPage(left, width) {
+    var sections = content.children;
+    for (var s = sections.length - 1; s >= 0; s--) {
+      var walker = document.createTreeWalker(sections[s], NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_TEXT, null);
+      var last = null, node;
+      while ((node = walker.nextNode())) {
+        // Sem regex aqui: este script mora numa template string e "\S" viraria "S" (texto com a letra S maiúscula).
+        if (node.nodeType === 3 ? (node.nodeValue || "").trim().length > 0 : READER_MEDIA[node.nodeName] === 1) last = node;
+      }
+      if (!last) continue;
+      var rects;
+      if (last.nodeType === 3) { var range = document.createRange(); range.selectNodeContents(last); rects = range.getClientRects(); }
+      else rects = last.getClientRects();
+      var page = 0;
+      Array.prototype.forEach.call(rects, function(rect) {
+        if (rect.width > 0 && rect.height > 0) page = Math.max(page, Math.floor((rect.left - left + 1) / width) + 1);
+      });
+      if (page > 0) return page;
+    }
+    return 0;
+  }
+
   function calculateTotalPages() {
     var width = getPageWidth();
     if (!content || width <= 0) return 1;
+    var left = content.getBoundingClientRect().left;
+    var byContent = lastContentPage(left, width);
+    if (byContent > 0) return byContent;
     // Full-width chapter fragments start at column boundaries. Measuring their
     // integer column indices avoids rounding an extent into a phantom page.
-    var left = content.getBoundingClientRect().left;
     var pages = 1;
     Array.prototype.forEach.call(content.children, function(section) {
       Array.prototype.forEach.call(section.getClientRects(), function(fragment) {
