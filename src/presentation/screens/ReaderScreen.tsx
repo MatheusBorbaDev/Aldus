@@ -1,4 +1,3 @@
-import * as Brightness from "expo-brightness";
 import { MotionCuesOverlay } from "@/src/presentation/components/MotionCuesOverlay";
 import { StudyBookmarksPanel } from "@/src/presentation/components/StudyBookmarksPanel";
 import { ReadingAnchor, TextReadingAnchor, parseReadingAnchor } from "@/src/domain/types/readingAnchor";
@@ -7,6 +6,7 @@ import { ReaderStudyRequest, ReaderStudyResult } from "@/src/presentation/compon
 import { Highlight } from "@/src/domain/repositories/HighlightRepository";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { latestWriteTracker } from "@/src/core/utils/latestWrite";
+import { useNativeReaderBrightness } from "@/src/presentation/hooks/useNativeReaderBrightness";
 
 import { readableBookTitle } from "@/src/presentation/services/bookDisplay";
 
@@ -16,7 +16,6 @@ const TRANSIENT_FEEDBACK_MS = 4000;
 const PDF_SETTINGS_SAVE_ERROR = "Não foi possível salvar os ajustes deste PDF. Eles valem até você fechar o livro.";
 import {
   ActivityIndicator,
-  AppState,
   BackHandler,
   Platform,
   Pressable,
@@ -76,10 +75,6 @@ export function ReaderScreen({ bookId }: Props) {
   const reflowPublication = useRef<AbortController | null>(null);
   const reflowSourceSignature = useRef<string | null>(null);
   useEffect(() => { reflowModeGeneration.current++; reflowSourceSignature.current = null; return () => { reflowModeGeneration.current++; reflowPublication.current?.abort(); reflowSourceSignature.current = null; }; }, [bookId]);
-  const nativeBrightnessApplied = useRef(false);
-  const originalBrightnessRef = useRef<number | null>(null);
-  const nativeBrightnessOperation = useRef(0);
-  const nativeBrightnessQueue = useRef(Promise.resolve());
   renderCount.current++;
   const insets = useSafeAreaInsets();
   const settings = useReaderSettings();
@@ -655,71 +650,7 @@ export function ReaderScreen({ bookId }: Props) {
     [setProgress]
   );
 
-  useEffect(() => {
-    if (Platform.OS === "web" || bookStatus !== "ready") return;
-
-    let disposed = false;
-    const operation = ++nativeBrightnessOperation.current;
-    const enqueue = (task: () => Promise<void>) => {
-      const next = nativeBrightnessQueue.current.then(task, task);
-      nativeBrightnessQueue.current = next.catch(() => undefined);
-      return next;
-    };
-
-    const restore = async () => {
-      if (disposed || nativeBrightnessOperation.current !== operation) return;
-      if (!nativeBrightnessApplied.current || originalBrightnessRef.current === null) return;
-      try {
-        await Brightness.restoreSystemBrightnessAsync();
-      } catch {
-        return;
-      }
-      if (disposed || nativeBrightnessOperation.current !== operation) return;
-      nativeBrightnessApplied.current = false;
-      originalBrightnessRef.current = null;
-    };
-
-    const applyNativeBrightness = async () => {
-      try {
-        const available = await Brightness.isAvailableAsync();
-        if (!available || disposed || nativeBrightnessOperation.current !== operation) return;
-
-        if (!settings.useSystemBrightness) {
-          if (originalBrightnessRef.current === null) {
-            const current = await Brightness.getBrightnessAsync();
-            if (disposed || nativeBrightnessOperation.current !== operation) return;
-            originalBrightnessRef.current = current;
-          }
-          await Brightness.setBrightnessAsync(Math.min(1, Math.max(0.2, settings.brightness / 100)));
-          if (disposed || nativeBrightnessOperation.current !== operation) return;
-          nativeBrightnessApplied.current = true;
-          return;
-        }
-
-        await restore();
-      } catch {
-        // Ignore native brightness failures and keep the reader usable.
-      }
-    };
-
-    void enqueue(applyNativeBrightness);
-    const subscription = AppState.addEventListener("change", state => {
-      if (state === "background" || state === "inactive") void enqueue(restore);
-      if (state === "active") void enqueue(applyNativeBrightness);
-    });
-
-    return () => {
-      disposed = true;
-      nativeBrightnessOperation.current++;
-      subscription.remove();
-      void enqueue(async () => Brightness.restoreSystemBrightnessAsync()).catch(() => undefined).finally(() => {
-        if (nativeBrightnessOperation.current > operation) {
-          nativeBrightnessApplied.current = false;
-          originalBrightnessRef.current = null;
-        }
-      });
-    };
-  }, [bookId, bookStatus, settings.brightness, settings.useSystemBrightness]);
+  useNativeReaderBrightness({ bookId, ready: bookStatus === "ready", brightness: settings.brightness, useSystemBrightness: settings.useSystemBrightness });
 
   const handleProgress = (nextProgress: number, origin: ReaderNavigationOrigin = "SLIDER_COMMIT") => {
     if (studySelecting) return;
