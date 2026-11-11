@@ -50,6 +50,11 @@ Diagnóstico sobre `main` `3cc1107`, neste PC (Windows). Evidência por código 
   (`<html>` na linha 46) e o parser não extrai `dc:language`; Chromium/WebView só hifenizam com idioma declarado. A opção de justificar existe
   no documento (`alignment`), mas nenhum chamador a passa ao EPUB (só o Reflow tem o controle). Status: ABERTO (código); efeito visual no
   Android NÃO TESTADO.
+  **CORRIGIDO NO CÓDIGO (11/11, onda B3):** `chapterLanguage` lê `lang`/`xml:lang` do `<html>`/`<body>` de cada capítulo (validado como BCP 47
+  simples; sem declaração não há idioma, nada é presumido) e o documento recebe `<html lang>` e `lang` por seção. Funciona para livros já
+  importados (o XHTML original fica guardado). O EPUB do acervo declara idioma em 25 de 26 capítulos. Novo `alignment` do EPUB nos ajustes
+  (salvo; Texto → Alinhamento), já ligado ao documento. VALIDADO: `test-epub-language` e 6 suítes Chromium do Reader. NÃO TESTADO: efeito da
+  hifenização no WebView do Android e EPUB sem idioma declarado (continua sem hifenizar).
 - **BUG 18 — Estilo-função em `Pressable` ainda presente** (padrão que empilhou conteúdo no Redmi, ver design-system.md):
   `StudyPanelControls.tsx:13` (Reader), `community/presentation/components.tsx:40`, `admin/presentation/components.tsx:16`,
   `saas/PlanScreens.tsx:28`. **Onda 0 (09/11): CORRIGIDO NO CÓDIGO** (estilo estático + `android_ripple`; feedback de opacidade ao pressionar

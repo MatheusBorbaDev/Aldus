@@ -126,7 +126,7 @@ export function ReaderSettingsPanel({
       updatePdfSettings({ font, fontSize: size, lineHeight, paragraphSpacing, margin, maxWidth, alignment });
     } else {
       settings.setFont("serif"); settings.setFontSize(16); settings.setLineHeight(DEFAULT_READER_LINE_HEIGHT);
-      settings.setParagraphSpacing(DEFAULT_READER_PARAGRAPH_SPACING); settings.setMargin("medium"); settings.setMaxWidth(900);
+      settings.setParagraphSpacing(DEFAULT_READER_PARAGRAPH_SPACING); settings.setMargin("medium"); settings.setMaxWidth(900); settings.setAlignment?.("left");
     }
     setConfirmingReset(false);
   };
@@ -321,14 +321,12 @@ export function ReaderSettingsPanel({
                   onSelect={(value) => pdfSettings ? updatePdfSettings({ paragraphSpacing: Number(value) }) : settings.setParagraphSpacing(Number(value))}
                 />
               </Field>
-              {pdfSettings ? (
-                <Field label="Alinhamento" palette={palette}>
-                  <View style={styles.segmented}>
-                    <Segment label="À esquerda" selected={pdfSettings.alignment !== "justify"} onPress={() => updatePdfSettings({ alignment: "left" })} palette={palette} />
-                    <Segment label="Justificado" selected={pdfSettings.alignment === "justify"} onPress={() => updatePdfSettings({ alignment: "justify" })} palette={palette} />
-                  </View>
-                </Field>
-              ) : null}
+              <Field label="Alinhamento" palette={palette}>
+                <View style={styles.segmented}>
+                  <Segment label="À esquerda" selected={(pdfSettings ? pdfSettings.alignment : settings.alignment) !== "justify"} onPress={() => pdfSettings ? updatePdfSettings({ alignment: "left" }) : settings.setAlignment?.("left")} palette={palette} />
+                  <Segment label="Justificado" selected={(pdfSettings ? pdfSettings.alignment : settings.alignment) === "justify"} onPress={() => pdfSettings ? updatePdfSettings({ alignment: "justify" }) : settings.setAlignment?.("justify")} palette={palette} />
+                </View>
+              </Field>
               {confirmingReset ? (
                 <View style={styles.row}>
                   <ActionButton label="Confirmar: voltar ao padrão" onPress={restoreDefaults} palette={palette} />

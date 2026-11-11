@@ -25,6 +25,9 @@ interface ReaderSettingsValue {
   brightness: number;
   useSystemBrightness: boolean;
   hideReadingCounts: boolean;
+  /** Alinhamento do texto do EPUB (o PDF Reflow tem o seu, nos ajustes do PDF). */
+  alignment: "left" | "justify";
+  setAlignment: (value: "left" | "justify") => void;
   palette: ReaderPalette;
   fontFamily: string;
   marginSize: number;
@@ -63,6 +66,7 @@ export function ReaderSettingsProvider({ children }: PropsWithChildren) {
   const [ready, setReady] = useState(false);
   const [hideReadingCounts, setHideReadingCounts] = useState(false);
   const [followAppTheme, setFollowAppTheme] = useState(false);
+  const [alignment, setAlignment] = useState<"left" | "justify">("left");
   const appTheme = useResolvedAppTheme();
   const [saveError, setSaveError] = useState<string | null>(null);
   const trackSave = useMemo(() => latestWriteTracker(failed => setSaveError(failed ? READER_SETTINGS_SAVE_ERROR : null)), []);
@@ -91,6 +95,7 @@ export function ReaderSettingsProvider({ children }: PropsWithChildren) {
           useSystemBrightness: boolean;
           hideReadingCounts: boolean;
           followAppTheme: boolean;
+          alignment: "left" | "justify";
         }>;
 
         if (parsed.theme && parsed.theme in readerThemes) setTheme(parsed.theme);
@@ -104,6 +109,7 @@ export function ReaderSettingsProvider({ children }: PropsWithChildren) {
         if (typeof parsed.useSystemBrightness === "boolean") setUseSystemBrightness(parsed.useSystemBrightness);
         if (typeof parsed.hideReadingCounts === "boolean") setHideReadingCounts(parsed.hideReadingCounts);
         if (typeof parsed.followAppTheme === "boolean") setFollowAppTheme(parsed.followAppTheme);
+        if (parsed.alignment === "left" || parsed.alignment === "justify") setAlignment(parsed.alignment);
       } catch {
         // Ignore invalid persisted settings and keep defaults.
       } finally {
@@ -133,8 +139,9 @@ export function ReaderSettingsProvider({ children }: PropsWithChildren) {
       useSystemBrightness,
       hideReadingCounts,
       followAppTheme,
+      alignment,
     })));
-  }, [brightness, followAppTheme, font, fontSize, hideReadingCounts, lineHeight, margin, maxWidth, paragraphSpacing, ready, theme, trackSave, useSystemBrightness]);
+  }, [alignment, brightness, followAppTheme, font, fontSize, hideReadingCounts, lineHeight, margin, maxWidth, paragraphSpacing, ready, theme, trackSave, useSystemBrightness]);
 
   const value = useMemo<ReaderSettingsValue>(() => {
     const resolveTheme = <T extends ReaderTheme>(selected: T) => resolveReaderTheme(selected, followAppTheme, appTheme);
@@ -154,6 +161,8 @@ export function ReaderSettingsProvider({ children }: PropsWithChildren) {
     brightness,
     useSystemBrightness,
     hideReadingCounts,
+    alignment,
+    setAlignment,
     palette: readerThemes[effective],
     fontFamily: fontFamilies[font],
     marginSize: marginSizes[margin],
@@ -170,7 +179,7 @@ export function ReaderSettingsProvider({ children }: PropsWithChildren) {
     setHideReadingCounts,
     saveError,
   };
-  }, [appTheme, brightness, followAppTheme, font, fontSize, hideReadingCounts, lineHeight, margin, maxWidth, paragraphSpacing, saveError, theme, useSystemBrightness]);
+  }, [alignment, appTheme, brightness, followAppTheme, font, fontSize, hideReadingCounts, lineHeight, margin, maxWidth, paragraphSpacing, saveError, theme, useSystemBrightness]);
 
   return <ReaderSettingsContext.Provider value={value}>{children}</ReaderSettingsContext.Provider>;
 }

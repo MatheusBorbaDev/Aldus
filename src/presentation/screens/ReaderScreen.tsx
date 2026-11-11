@@ -616,7 +616,7 @@ export function ReaderScreen({ bookId }: Props) {
         lineHeight: settings.lineHeight,
         paragraphSpacing: settings.paragraphSpacing,
         maxWidth: settings.maxWidth,
-        alignment: "left" as const,
+        alignment: settings.alignment ?? "left",
         allowTextSelection: false,
         palette: activePalette,
         theme: settings.theme,

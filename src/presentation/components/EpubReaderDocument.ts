@@ -15,7 +15,23 @@ export interface ReaderDocumentOptions {
   backgroundColor: string;
 }
 
+/**
+ * BUG 17: idioma declarado no próprio capítulo (`<html lang>`/`xml:lang`, ou no `<body>`), validado como etiqueta BCP 47 simples.
+ * O navegador só hifeniza com idioma declarado. Sem declaração não há idioma: nada é presumido (um livro em inglês não pode ser
+ * hifenizado com regras do português).
+ */
+export function chapterLanguage(html: string): string | null {
+  const tag = html.match(/<(?:html|body)\b[^>]*>/gi) ?? [];
+  for (const open of tag) {
+    const value = open.match(/\s(?:xml:)?lang\s*=\s*["']([^"']+)["']/i)?.[1]?.trim();
+    if (value && /^[A-Za-z]{2,3}(?:-[A-Za-z0-9]{2,8})*$/.test(value)) return value;
+  }
+  return null;
+}
+
 export function createEpubReaderDocument(chapters: StoredChapter[], options: ReaderDocumentOptions): string {
+  const languages = chapters.map(chapter => chapterLanguage(chapter.html));
+  const documentLanguage = languages.find(Boolean) ?? null;
   const sections = chapters.map((chapter, index) => {
     const rawBody = chapter.html.match(/<body\b[^>]*>([\s\S]*?)<\/body>/i)?.[1] ?? chapter.html.replace(/<\/?(?:html|head|body|\?xml)[^>]*>/gi, "");
     const chapterStyles = [...chapter.html.matchAll(/<style\b[^>]*>([\s\S]*?)<\/style>/gi)].map((match) => `<style>${match[1]}</style>`).join("");
@@ -29,7 +45,8 @@ export function createEpubReaderDocument(chapters: StoredChapter[], options: Rea
         const loading = inlinePdfImage ? "eager" : "lazy";
         return `<img ${attrs} onerror="this.dataset.epubError='true'" loading="${loading}" />`;
       });
-    return `<section id="epub-chapter-${index}" class="epub-chapter" data-chapter-id="${escapeAttribute(chapter.id)}" data-chapter-index="${index}" data-chapter-title="${escapeAttribute(chapter.title)}">${chapterStyles}${safeBody}</section>`;
+    const lang = languages[index];
+    return `<section id="epub-chapter-${index}" class="epub-chapter"${lang ? ` lang="${escapeAttribute(lang)}"` : ""} data-chapter-id="${escapeAttribute(chapter.id)}" data-chapter-index="${index}" data-chapter-title="${escapeAttribute(chapter.title)}">${chapterStyles}${safeBody}</section>`;
   }).join("\n");
 
   const pagePadding = Math.max(16, Math.min(48, Math.round(options.marginSize)));
@@ -43,7 +60,7 @@ export function createEpubReaderDocument(chapters: StoredChapter[], options: Rea
   const textSelection = options.allowTextSelection ? "text" : "none";
 
   return `<!doctype html>
-<html>
+<html${documentLanguage ? ` lang="${escapeAttribute(documentLanguage)}"` : ""}>
 <head>
 <meta charset="utf-8">
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data: blob:; font-src data:; style-src 'unsafe-inline'; script-src 'unsafe-inline'; connect-src 'none'; frame-src 'none'; form-action 'none'">
