@@ -58,7 +58,8 @@ const themes = [
 const fonts = [
   { value: "serif", label: "Serifada" },
   { value: "sans", label: "Sem serifa" },
-  { value: "dyslexic", label: "Disléxica" },
+  // Valor interno "dyslexic" mantido: é a chave salva nas preferências existentes.
+  { value: "dyslexic", label: "Alta legibilidade (Verdana)" },
 ] as const;
 const sections: Array<{ id: SectionId; label: string }> = [
   { id: "text", label: "Texto" },
@@ -305,7 +306,7 @@ export function ReaderSettingsPanel({
           {appearance && !isOriginalPdf ? (
             <View style={[styles.section, { display: expanded && activeSection === "text" ? "flex" : "none" }]}>
               <Field label="Fonte" palette={palette}>
-                <View style={styles.segmented}>
+                <View style={styles.fontList}>
                   {fonts.map(font => (
                     <Segment key={font.value} label={font.label} sample="Aa" sampleFont={fontFamilies[font.value]} selected={currentFont === font.value} palette={palette}
                       onPress={() => pdfSettings ? updatePdfSettings({ font: font.value }) : settings.setFont(font.value)} />
@@ -470,6 +471,10 @@ const styles = StyleSheet.create({
   segment: { flex: 1, minWidth: 0, minHeight: 44, alignItems: "center", justifyContent: "center", paddingVertical: 8, paddingHorizontal: 6, borderRadius: 12, gap: 2 },
   segmentText: { fontSize: 13, textAlign: "center", flexShrink: 1 },
   segmentSample: { fontSize: 20 },
+  // Fontes em linhas inteiras: "Alta legibilidade (Verdana)" não cabe em um terço da largura a 320 px.
+  fontList: { width: "100%", gap: 8 },
+  fontOption: { flexGrow: 0, flexShrink: 0, flexBasis: "auto", width: "100%", flexDirection: "row", justifyContent: "flex-start", gap: 12, paddingHorizontal: 14 },
+  fontOptionText: { textAlign: "left" },
   action: { minHeight: 44, justifyContent: "center", borderWidth: 1, borderRadius: 12, paddingVertical: 10, paddingHorizontal: 14 },
   pageInput: { minWidth: 88, height: 44, paddingHorizontal: 10, borderWidth: 1, borderRadius: 10 },
   searchInput: { flex: 1, minWidth: 120, height: 44, paddingHorizontal: 10, borderWidth: 1, borderRadius: 10 },
@@ -524,9 +529,9 @@ function SegmentedControl({ options, selectedValue, palette, onSelect }: {
 function Segment({ label, selected, onPress, palette, sample, sampleFont }: { label: string; selected: boolean; onPress: () => void; palette: Palette; sample?: string; sampleFont?: string }) {
   return (
     <Pressable accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ selected }} aria-pressed={selected} onPress={onPress} android_ripple={{ color: palette.separator }}
-      style={[styles.segment, { borderColor: selected ? palette.accent : palette.separator, borderWidth: selected ? 2 : 1 }]}>
+      style={[styles.segment, sample ? styles.fontOption : null, { borderColor: selected ? palette.accent : palette.separator, borderWidth: selected ? 2 : 1 }]}>
       {sample ? <Text style={[styles.segmentSample, { color: palette.text, fontFamily: sampleFont }]}>{sample}</Text> : null}
-      <Text numberOfLines={2} style={[styles.segmentText, { color: selected ? palette.text : palette.secondaryText, fontWeight: selected ? "700" : "400" }]}>{selected && !sample ? "✓ " : ""}{label}</Text>
+      <Text numberOfLines={2} style={[styles.segmentText, sample ? styles.fontOptionText : null, { color: selected ? palette.text : palette.secondaryText, fontWeight: selected ? "700" : "400" }]}>{selected && !sample ? "✓ " : ""}{label}</Text>
     </Pressable>
   );
 }

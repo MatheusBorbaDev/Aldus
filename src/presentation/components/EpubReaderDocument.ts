@@ -51,6 +51,7 @@ export function createEpubReaderDocument(chapters: StoredChapter[], options: Rea
 
   const pagePadding = Math.max(16, Math.min(48, Math.round(options.marginSize)));
   const safeFont = readerCssFontFamily(options.fontFamily);
+  const fontSpacing = readerFontSpacingCss(options.fontFamily);
   const safeTextColor = /^#[\da-f]{3,8}$/i.test(options.textColor) ? options.textColor : "#2b2b2b";
   const safeBackgroundColor = /^#[\da-f]{3,8}$/i.test(options.backgroundColor) ? options.backgroundColor : "#f5ebd9";
   const lineHeight = Math.max(1.1, Math.min(2.4, options.lineHeight ?? 1.65));
@@ -227,6 +228,7 @@ export function createEpubReaderDocument(chapters: StoredChapter[], options: Rea
   p, div, span, li, blockquote {
     font-size: ${options.fontSize}px !important;
     line-height: ${Math.round(options.fontSize * lineHeight)}px !important;
+    ${fontSpacing}
   }
   body, html, #reader-viewport {
     background-color: ${safeBackgroundColor} !important;
@@ -246,6 +248,9 @@ export function createEpubReaderDocument(chapters: StoredChapter[], options: Rea
     if (font === "Verdana") return "Verdana, sans-serif";
     var family = font.replace(/[<>";]/g, "");
     return family.includes("serif") ? family : (family || "Georgia") + ", serif";
+  }
+  function readerFontSpacingCss(font) {
+    return font === "Verdana" ? "letter-spacing: 0.05em !important; word-spacing: 0.16em !important;" : "";
   }
   // Keep the high-volume forensic trace opt-in.
   var console = {
@@ -594,6 +599,7 @@ export function createEpubReaderDocument(chapters: StoredChapter[], options: Rea
         "font-size: " + size + "px !important; " +
         "line-height: " + lineH + "px !important; " +
         "text-align: " + alignment + " !important; " +
+        readerFontSpacingCss(options.fontFamily || "Georgia") + " " +
       "} " +
       "p { margin-bottom: " + paragraphSpacing + "em !important; } " +
       ".epub-chapter > * { max-width: min(100%, " + maxWidth + "px) !important; margin-left: auto !important; margin-right: auto !important; " +
@@ -797,4 +803,9 @@ export function readerCssFontFamily(font: string): string {
   if (font === "Verdana") return "Verdana, sans-serif";
   const family = font.replace(/[<>";]/g, "");
   return family.includes("serif") ? family : `${family || "Georgia"}, serif`;
+}
+
+/** "Alta legibilidade (Verdana)" abre letras e palavras; as demais fontes não mudam. Cópia embutida igual no documento. */
+export function readerFontSpacingCss(font: string): string {
+  return font === "Verdana" ? "letter-spacing: 0.05em !important; word-spacing: 0.16em !important;" : "";
 }
