@@ -115,6 +115,9 @@ Persistência (legado mantido, não renomear `kindle-*`/`@kindle/*`): Native SQL
   `test-flashcards`, `test-flashcard-sessions`, `test-flashcard-battles`, `test-battle-account`, `test-ui-primitives` PASS; `export:web` PASS; Chromium PASS:
   `test:source-library:browser`, `test:saas:web`. Sessão de estudo vista em fixture de rascunho (pergunta/resposta/resumo, `.expo/redesign-step5/study/`).
   Batalha SEM cobertura de navegador (exige partida remota); só typecheck e testes de lógica. Android NÃO TESTADO.
+- **Melhorias, Onda D (11/11, `fca5591`…D3)**: typecheck PASS; `test:critical` **108/108** (nova `pdfjs-lazy`); `export:web` PASS; Chromium PASS:
+  `test:reader:{pdf,reflow,browser,markings,epub}:web`, `test:library:{web,bulk:web}`, `test:source-library:browser`. Bundle Web principal
+  5656→5121 KiB (1,48→1,38 MB gzip). `npm audit --omit=dev`: 0 crít./3 altos/6 moderados/0 baixo. `redmi-qa.cjs` NÃO executado (sem aparelho).
 - **Melhorias, Onda C (11/11, `d356f61`…C3)**: typecheck PASS; `test:critical` **107/107** (novas `read-aloud`, `review-reminder`, `open-with`);
   `export:web` PASS; Chromium PASS: 4 suítes do Reader (C1), `test:source-library:browser`, `test:saas:web`, `test:auth:web`, `test:library:{web,bulk:web}`,
   `test:marketing:web` (d3d11). `test:library:web` falhou 1 vez por corrida do teste (sync em segundo plano grava o estado lido antes/depois) e
@@ -282,8 +285,7 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
    e etapa 3 (remover os 33 arquivos do APK/`dist`) pendentes.
    **Revisão de qualidade (09/11)**: Ondas 0–5 aprovadas concluídas (commits locais, sem push); 6 e 7 fora. R5: patches do SDK 57 aplicados
    (BUG 13); APK de ensaio `6883532` compilado e conferido (§3), **não instalado**; remover `js-polyfills` 0.76/`metro-cache` 0.81 segue pendente. Levantamento do
-   **Melhorias (11/11)**: Ondas A, B e C concluídas (C precisa de APK novo para valer no aparelho); D (pdf.js, dependências antigas,
-   Maestro) pendente; rolagem contínua avaliada e adiada (segundo sistema de posição; ver log). Dependem do usuário: acervo, Play/Firebase, Redmi, Literata.
+   **Melhorias (11/11)**: Ondas A–D concluídas (C precisa de APK novo para valer no aparelho); Maestro não adotado (ver log D); rolagem contínua avaliada e adiada (segundo sistema de posição; ver log). Dependem do usuário: acervo, Play/Firebase, Redmi, Literata.
    acervo entregue ao usuário (34 arquivos, 92,7 MB; 8 usados como fixture de teste), aguardando decisão do que sai; nada removido.
    Candidatos de bundle (sem decisão): pdfjs-dist duplicado no entry, reanimated só para motion cues, `react-native-render-html` em `ChapterRenderer`.
    Abertos da revisão: BUG 17 (EPUB sem `lang`/justificar; onda 6, fora), **BUG 20** (Reflow com página final em branco; motor do Reader,
@@ -315,6 +317,17 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
 
 ## 10. Log (mais recente primeiro; máx. 5 entradas, resto → docs/context/historico/)
 
+### 11/11/2026 — Melhorias, Onda D: base técnica (Claude)
+- D1 `pdfjsRuntime.web.ts`: pdf.js por `import()` no visualizador, no Reflow e nas capas (worker/documento iguais); bundle principal −535 KiB,
+  pdf.js vira chunk de 536 KiB baixado só ao abrir PDF; trava em `test-pdfjs-lazy`. Erro de procedimento: o commit `fca5591` saiu com
+  `cover-thumbnails` falhando (o `grep` da verificação retornou sucesso); corrigido em `c8a5265` e a verificação passou a exigir "N/N".
+  Capa de PDF na Web sem suíte de navegador. Observação: `PdfPageViewer.web` usa cMaps do CDN na versão 3.11.174 (pacote 6.3.289); não alterado.
+- D2 (BUG 13, opção 2): a hipótese de que o Metro usava `js-polyfills` 0.76.9 estava errada (usa a 0.86.3 do `react-native`); `metro-cache`
+  0.81.5 não era usado. Removidos (−4 pacotes, nenhum novo). `fast-xml-parser` 5.11→5.12 (dentro de `^5.11.0`; aviso de CPU em EPUB malformado).
+- D3 Maestro **não adotado**: duplicaria `scripts/redmi-qa.cjs` (adb/UI Automator, sem instalar/limpar/trocar conta), exigiria baixar ferramenta
+  externa e rodaria contra a conta pessoal do Redmi (regra: testes não usam sessão/biblioteca pessoal). `redmi-qa.cjs` atualizado: título do
+  painel "Ajustes de leitura" e adb lido de `android/local.properties`. Precisa de rodada com aparelho e conta de teste.
+
 ### 11/11/2026 — Melhorias, Onda C: voz alta, lembrete de revisão e "Abrir com Aldus" (Claude)
 - Dependências nativas novas (justificadas, via `expo install`, compatíveis com SDK 57): `expo-speech` ~57.0.3 (voz do sistema, offline) e
   `expo-notifications` ~57.0.25 (notificação local; manifesto do pacote já declara POST_NOTIFICATIONS e BOOT_COMPLETED). Avisos de licença regenerados.
@@ -337,19 +350,6 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
 - B5 rolagem contínua **adiada**: o motor é paginado (colunas, âncoras por página, progresso/restauração por página); rolar exige outro sistema
   de posição com as mesmas garantias de âncora e validação em aparelho. Fica como projeto próprio.
 
-### 11/11/2026 — Melhorias, Onda A: estudo, estante, tema automático, histórico e primeiros passos (Claude)
-- Pedido do usuário: executar todas as melhorias propostas (ondas A–D). Dependem dele: livros do acervo que saem, conta Play Console/Firebase,
-  validação no Redmi e download da Literata. Onda A concluída (sem dependência nova, sem mexer no motor):
-- A1 `StudyHighlightsPanel`: "Criar flashcard deste grifo" logo após salvar; confirmação; duplicado explicado (antes `return` silencioso);
-  deck com título legível. A2 `readingShelves.ts`: "Continue lendo" com até 3 leituras (barra de progresso) e chip "Parados há 30 dias" só com
-  atividade medida; sem "Concluídos este ano" (não há data de conclusão gravada). A3 `readerThemeAuto.ts` + `ReaderSettingsContext`:
-  "Automático" (desligado por padrão; salvo como `followAppTheme`) mostra tema escuro com o app escuro, preservando o tema escolhido; vale
-  para EPUB e PDF; escolher um tema desliga. A4 `reviewHistory.ts`: revisões e acertos por semana (4 janelas de 7 dias) e mais errados, só de
-  `reviews` gravados (sessões antigas são substituídas por deck; eventos ficam). A5 `FirstStepsCard`: 3 passos no topo da Biblioteca, não
-  bloqueante, uma vez por aparelho (`@kindle/first-steps-seen.v1`).
-- `test-library-bulk-web`: falhava 3/4 também no código anterior (foco devolvido pelo menu ao fechar); agora espera o menu fechar e confere o
-  foco antes da tecla espaço. VALIDADO: ver §3. NÃO TESTADO: Android.
-
 ### 06/11/2026 — Entradas anteriores
 - Fechamento UX/UI e Onboarding 1: ver `docs/context/historico/2026-11-06-ux-fechamento-e-onboarding-1.md`.
 - Onboarding 2 (auditoria e reescrita do contexto): ver `docs/context/historico/2026-11-06-onboarding-2.md`.
@@ -370,3 +370,4 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
 - Redesenho, Etapa 3, menu do livro (10/11): ver `docs/context/historico/2026-11-10-redesenho-etapa-3.md`.
 - Redesenho, Etapa 4, Descobrir e Estudo (10/11): ver `docs/context/historico/2026-11-10-redesenho-etapa-4.md`.
 - Redesenho, Etapa 5, deck/Plano/Community/estudo/Batalha (10/11): ver `docs/context/historico/2026-11-10-redesenho-etapa-5.md`.
+- Melhorias, Onda A (11/11): ver `docs/context/historico/2026-11-11-melhorias-onda-a.md`.

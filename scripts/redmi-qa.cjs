@@ -7,7 +7,9 @@ const path = require('node:path');
 const assert = require('node:assert/strict');
 const packageName = 'com.aldus.reader';
 const output = path.resolve(__dirname, '../.expo/redmi-qa');
-const adb = process.env.ADB_PATH || path.join(process.env.LOCALAPPDATA, 'Android/Sdk/platform-tools/adb.exe');
+// ADB_PATH, ou o SDK de android/local.properties (sdk.dir), ou o caminho padrão do Android Studio.
+const localSdk = (() => { try { const m = fs.readFileSync(path.resolve(__dirname, '../android/local.properties'), 'utf8').match(/^sdk.dir=(.+)$/m); return m ? m[1].trim().replace(/\:/g, ':').replace(/\\/g, '/') : null; } catch { return null; } })();
+const adb = process.env.ADB_PATH || (localSdk ? path.join(localSdk, 'platform-tools/adb.exe') : path.join(process.env.LOCALAPPDATA, 'Android/Sdk/platform-tools/adb.exe'));
 const command = process.argv[2] || 'inventory';
 const exec = (args, binary = false) => cp.execFileSync(adb, args, { encoding: binary ? undefined : 'utf8', timeout: 30000, maxBuffer: 20 * 1024 * 1024 });
 const devices = exec(['devices']).split(/\r?\n/).slice(1).filter(line => /\S+\s+(device|unauthorized|offline)\b/.test(line));
@@ -182,7 +184,7 @@ async function main() {
     tap('Próxima página');
     assert.deepEqual(await readerReady(target), target);
     report.results.push({ status: 'PASS físico', scenario: 'Reader footer next/previous', target });
-    for (const [label, title] of [['Buscar no livro','Buscar no livro'], ['Abrir sumário','Sumário'], ['Abrir configurações de leitura','Aparência'], ['Abrir marcadores e notas','Marcadores e notas']]) {
+    for (const [label, title] of [['Buscar no livro','Buscar no livro'], ['Abrir sumário','Sumário'], ['Abrir configurações de leitura','Ajustes de leitura'], ['Abrir marcadores e notas','Marcadores e notas']]) {
       scenario = 'Reader panel: ' + title;
       console.log('STEP', scenario);
       await new Promise(resolve => setTimeout(resolve, 1000));
