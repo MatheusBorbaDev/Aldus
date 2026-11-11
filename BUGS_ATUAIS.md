@@ -556,6 +556,11 @@ e 7f50a90^:DIAGNOSTICO_BUGS_APK.md. Não restaurar esses arquivos como contexto.
   restantes são a cadeia `decode-uri-component` do `expo-router` (só SDK 58). Avisos de licença regenerados (`npm run legal:notices`).
   **Exige novo APK** para chegar ao aparelho (módulos nativos mudaram): APK de ensaio `6883532` compilado e conferido em 09/11
   (PROJECT_CONTEXT §3), **não instalado**; execução em Android NÃO TESTADA. Opção (2) segue pendente.
+- **Opção (2) aplicada em 11/11 (onda D2):** a hipótese estava errada. O Metro resolve `@react-native/js-polyfills` pela cópia do próprio
+  `react-native` (0.86.3, via `rn-get-polyfills`), não pela 0.76.9 da raiz; `metro-cache` 0.81.5 não era usado (o Expo usa 0.84.5 do `@expo/metro`).
+  Nenhum script importava os dois. Removidos com `npm uninstall`: saíram 4 pacotes (os dois + `metro-core`/`metro-resolver` 0.81.5), nenhum entrou.
+  VALIDADO: typecheck, `test:critical` 108/108, `export:web` e 3 suítes Chromium. Como nada disso entrava no build, o APK não muda por esta remoção
+  (não recompilado).
 
 ### SaaS Etapa 2 — quotas de Sync/Storage e validação remota pendente
 

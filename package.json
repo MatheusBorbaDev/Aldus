@@ -64,7 +64,6 @@
     "@noble/hashes": "2.0.1",
     "@react-native-async-storage/async-storage": "2.2.0",
     "@react-native-community/slider": "5.2.0",
-    "@react-native/js-polyfills": "0.76.9",
     "@supabase/supabase-js": "^2.117.2",
     "cheerio": "^1.2.0",
     "expo": "~57.0.32",
@@ -107,7 +106,6 @@
     "@types/react": "~19.2.0",
     "@types/three": "0.186.0",
     "metro": "^0.84.4",
-    "metro-cache": "^0.81.5",
     "tailwindcss": "^3.4.17",
     "typescript": "~6.0.3"
   },

@@ -48,14 +48,6 @@ export const thirdPartyPackages: ThirdPartyPackageNotice[] = [
     "groupId": "mit-37df1fbad83b"
   },
   {
-    "name": "@react-native/js-polyfills",
-    "version": "0.76.9",
-    "license": "MIT",
-    "repository": "https://github.com/facebook/react-native",
-    "copyright": [],
-    "groupId": "mit-37df1fbad83b"
-  },
-  {
     "name": "@supabase/supabase-js",
     "version": "2.117.2",
     "license": "MIT",
@@ -559,7 +551,6 @@ export const thirdPartyNoticeGroups: ThirdPartyNoticeGroup[] = [
     "license": "MIT",
     "packages": [
       "@react-native-community/slider@5.2.0",
-      "@react-native/js-polyfills@0.76.9",
       "expo-router@57.0.30"
     ],
     "text": "O pacote não forneceu um arquivo LICENSE/NOTICE na instalação auditada; consulte os metadados e o repositório do pacote antes da distribuição."

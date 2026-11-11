@@ -11,7 +11,6 @@
 | @noble/hashes | 2.0.1 | MIT | Copyright (c) 2022 Paul Miller (https://paulmillr.com); The above copyright notice and this permission notice shall be included in; AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER | [origem](https://github.com/paulmillr/noble-hashes) |
 | @react-native-async-storage/async-storage | 2.2.0 | MIT | Copyright (c) 2015-present, Facebook, Inc.; The above copyright notice and this permission notice shall be included in all; AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER | [origem](https://github.com/react-native-async-storage/async-storage) |
 | @react-native-community/slider | 5.2.0 | MIT | não destacado no arquivo | [origem](https://github.com/callstack/react-native-slider) |
-| @react-native/js-polyfills | 0.76.9 | MIT | não destacado no arquivo | [origem](https://github.com/facebook/react-native) |
 | @supabase/supabase-js | 2.117.2 | MIT | Copyright (c) 2020 Supabase; The above copyright notice and this permission notice shall be included in all; AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER | [origem](https://github.com/supabase/supabase-js) |
 | cheerio | 1.2.0 | MIT | Copyright (c) 2022 The Cheerio contributors; The above copyright notice and this permission notice shall be included in all; AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER | [origem](git://github.com/cheeriojs/cheerio) |
 | expo | 57.0.32 | MIT | Copyright (c) 2015-present 650 Industries, Inc. (aka Expo); The above copyright notice and this permission notice shall be included in all; AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER | [origem](https://github.com/expo/expo) |
@@ -1003,7 +1002,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### MIT — @react-native-community/slider@5.2.0, @react-native/js-polyfills@0.76.9, expo-router@57.0.30
+### MIT — @react-native-community/slider@5.2.0, expo-router@57.0.30
 
 ```text
 O pacote não forneceu um arquivo LICENSE/NOTICE na instalação auditada; consulte os metadados e o repositório do pacote antes da distribuição.
