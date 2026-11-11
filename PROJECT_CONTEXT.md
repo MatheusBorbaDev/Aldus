@@ -51,7 +51,7 @@ Persistência (legado mantido, não renomear `kindle-*`/`@kindle/*`): Native SQL
   No PC novo é preciso autorizar a depuração USB do Redmi de novo.
 - Redesign de UI em andamento (decisões e fases em `docs/context/design-system.md`): Fases 1 (fundação `src/ui`), 2 (abas Biblioteca ·
   Descobrir · Estudo · Conta; tela Descobrir com fontes) 3 (Biblioteca com "+"), 4 (Conta e Estudo) e 5 (moldura do Reader, só visual) concluídas.
-  Acervo: etapa 1 pronta no commit local `11cf66c` do branch `claude/acervo-dominio-publico-ae9294` (worktree próprio), **não integrado à `main`**.
+  Acervo: etapas 1–3 na `main` em 11/11 (`51f69f0`, `44cf826`, `809cfac`); o branch `claude/acervo-dominio-publico-ae9294` ficou histórico.
 - **APK de ensaio do HEAD `ae98991` (09/11)**: `artifacts/apk/Aldus-ae98991-device-rehearsal.apk` (ignorado pelo Git; cópia de
   `android/app/build/outputs/apk/release/app-release.apk`), 346.643.174 bytes, SHA-256 `5fcbd88e…df5e71`. `com.aldus.reader` 1.0.0-beta.2/code 3,
   sem debuggable, ABIs arm64-v8a/armeabi-v7a/x86/x86_64, assinatura v2 com certificado `fac61745…033b9c` (debug/`device-rehearsal`, o mesmo
@@ -121,6 +121,9 @@ Persistência (legado mantido, não renomear `kindle-*`/`@kindle/*`): Native SQL
   `expo-notifications`) e filtro VIEW `content://` PDF/EPUB; o `*/*` é a consulta OPEN_DOCUMENT já existente. `apksigner`: v2, certificado
   `fac61745…033b9c` (o do Redmi) — não é o Beta privado. dex com `expo/modules/speech`, `expo/modules/notifications`; bundle Hermes com textos
   das ondas A–D; 34 livros. **NÃO instalado**: o Redmi segue com `ae98991`.
+- **Acervo + FASES 3–5 (11/11, `51f69f0`…`80d2c88`)**: typecheck PASS; `test:critical` **113/113** (novas `bundled-catalog`, `legacy-reattach`,
+  `reading-milestones`); `export:web` PASS ("7 em domínio público"); Chromium PASS: `test:reader:{settings,epub,pdf,reflow}:web`, `test:reader:browser`,
+  `test:library:{web,bulk:web}`, `test:source-library:browser`. Mockup medido sem estouro em 320/390/1280 px.
 - **Plano de mercado, FASE 2 (11/11, `6da731d`, `21a001b`)**: typecheck PASS; `test:critical` **110/110** (nova `reading-session`); `export:web`
   PASS; Chromium PASS: `test:reader:{settings,epub,pdf,reflow}:web`. NÃO TESTADO: Android (AppState real, tela Não perturbe, sessão gravada no
   aparelho).
@@ -293,17 +296,17 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
 2. **Redesign concluído no código (fases 1–5)**; APK de ensaio `ae98991` instalado no Redmi (§3); falta o usuário entrar na conta e homologar: estilos estáticos, ripple, menus "+"/"⋯", texto ampliado;
    revisão visual humana, preview Vercel, Literata empacotada (exige autorização para baixar a fonte) e, se desejado, painéis do Reader (ajustes/marcações)
    no novo visual (`docs/context/design-system.md`).
-   **Acervo**: etapa 1 (contas novas só domínio público) pronta em `claude/acervo-dominio-publico-ae9294` (`11cf66c`), aguardando decisão de integrar; etapa 2 (cópia por usuário + nuvem privada, aprovada pelo usuário)
-   e etapa 3 (remover os 33 arquivos do APK/`dist`) pendentes.
+   **Acervo** (11/11): etapas 1–3 concluídas no código; os 33 títulos protegidos saíram do pacote. Falta: o usuário importar as próprias cópias
+   (reanexam ao mesmo livro da conta) e um APK/deploy novos; o APK `cde4ce8` e deploys anteriores ainda contêm os arquivos; os binários seguem no histórico Git.
    **Revisão de qualidade (09/11)**: Ondas 0–5 aprovadas concluídas (commits locais, sem push); 6 e 7 fora. R5: patches do SDK 57 aplicados
    (BUG 13); APK de ensaio `6883532` compilado e conferido (§3), **não instalado**; remover `js-polyfills` 0.76/`metro-cache` 0.81 segue pendente. Levantamento do
-   **Plano de mercado (11/11)**: FASES 0–2 concluídas (ver log); FASE 3 (planejamento P/M/G de anotações, diário/CSV e cartão de foco)
-   aguarda aprovação do usuário. Texto da política de dados sobre as sessões a aprovar. Fases 3–5 conforme o plano dele, cada uma só após aprovação.
+   **Plano de mercado (11/11)**: FASES 0–5 concluídas (3 e 5a só planejamento: `docs/context/reader.md` e `community-estudo.md` §13.1; 4 em
+   `docs/mockups/certo-errado/`). Pendentes do usuário: texto da política de dados sobre sessões e marcos; entrevistas da FASE 4; escolher itens da FASE 3.
    **Melhorias (11/11)**: Ondas A–D concluídas (C precisa de APK novo para valer no aparelho); Maestro não adotado (ver log D); rolagem contínua avaliada e adiada (segundo sistema de posição; ver log). Dependem do usuário: acervo, Play/Firebase, Redmi, Literata.
-   acervo entregue ao usuário (34 arquivos, 92,7 MB; 8 usados como fixture de teste), aguardando decisão do que sai; nada removido.
+   acervo: 33 protegidos removidos do pacote em 11/11 (ver item Acervo); fixtures de teste só com domínio público.
    Candidatos de bundle (sem decisão): pdfjs-dist duplicado no entry, reanimated só para motion cues, `react-native-render-html` em `ChapterRenderer`.
    Abertos da revisão: BUG 17 (EPUB sem `lang`/justificar; onda 6, fora), **BUG 20** (Reflow com página final em branco; motor do Reader,
-   fora das ondas aprovadas) e acervo embutido usado como fixture de testes. Botão OCR do Reflow (`PdfReflowProcessor.native.tsx`) ainda com
+   fora das ondas aprovadas). Botão OCR do Reflow (`PdfReflowProcessor.native.tsx`) ainda com
    terracota fixa `#B65F42` + branco (4,46:1), fora do tema.
 3. **Backend remoto não comprovado**: Library Sync/Battle/Admin/SaaS (BUG 02, 11), `username-login` (BUG 09), cadastro/recovery (BUG 08),
    Drive real (BUG 03). Nada disto é verificável pelo código.
@@ -330,6 +333,20 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
 - **IA externa:** não enviar livros/trechos a serviço de IA sem pedido e consentimento explícito do usuário final.
 
 ## 10. Log (mais recente primeiro; máx. 5 entradas, resto → docs/context/historico/)
+
+### 11/11/2026 — Acervo (etapas 1–3) e plano de mercado, FASES 3–5 (Claude)
+- Pedido: "pode iniciar a implementação de todas as fases" (sem parar entre fases). Acervo: o usuário escolheu **reanexar ao importar** em vez da
+  migração automática em duas versões. `51f69f0` cherry-pick da etapa 1 (`11cf66c`): conflitos resolvidos mantendo a decisão da onda 2 (o export
+  não copia livros para `dist`; só confere declaração e SHA-256) e as fixtures em domínio público. `44cf826` etapa 2: importar o MESMO arquivo
+  (SHA-256 do legado) restaura o livro da conta (mesmo ID, progresso, notas), sem vínculo com o pacote, e o Sync o envia à nuvem privada;
+  réplica de outro aparelho deixa de apontar para o arquivo embutido e espera `remotePath`. `809cfac` etapa 3: 33 arquivos fora de
+  `assets/Livros` (`dist` 110→16 MB); o export recusa título legado de volta. Nova suíte `legacy-reattach`.
+- `53b2ac5` FASE 3 e `1e7583c` FASE 5a: só planejamento (P/M/G). `d5b8767` FASE 4: mockup estático Certo/Errado (CF/88 art. 5º, dados
+  fictícios) e roteiro de 10 perguntas (sucesso: 6/10 querem testar, 3/10 pré-pagariam; só intenção, sem cobrança).
+- `80d2c88` FASE 5b: "Marcos de leitura" (2/3/4/6, prazo opcional), "marco N de M" no rodapé (oculto com as contagens), cronograma só em
+  texto com aviso de DRM; local por conta. Nova suíte `reading-milestones`.
+- Limites: sessões (FASE 2) e marcos são só locais; a política de dados ainda não os cita (texto a aprovar). Reanexar exige o mesmo arquivo
+  (outra edição vira livro novo). NÃO TESTADO: Android, upload real à nuvem privada, `Share` nativo.
 
 ### 11/11/2026 — Plano de mercado, FASE 2: sessão de leitura medida e "Ler em foco" (Claude)
 - `6da731d` `readingSession.ts`: só tempo ativo, ou seja, primeiro plano e no máximo **3 min** (escolha do usuário) após o último sinal (abrir,

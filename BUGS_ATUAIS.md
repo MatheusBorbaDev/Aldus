@@ -63,7 +63,7 @@ Diagnóstico sobre `main` `3cc1107`, neste PC (Windows). Evidência por código 
 - **BUG 19 — Suítes Chromium do Reader dependem da pasta pessoal `Livros/`.** `npm run test:reader:epub:web` falhava neste PC com
   `ENOENT scandir 'C:\KIndle\Livros'` (`scripts/test-reader-browser.cjs:45`), embora o mesmo EPUB exista em `assets/Livros`. As outras suítes
   já usavam `assets/Livros`. **Onda 0 (09/11): CORRIGIDO** — a suíte lê `assets/Livros` (versionado). Resultado neste PC: 7/8 `test:reader:*:web`
-  PASS; `reflow:web` FAIL pelo BUG 20. Atenção: as fixtures dependem de livros do acervo embutido (Freud EPUB, `sobre-o-ocio.pdf`).
+  PASS; `reflow:web` FAIL pelo BUG 20. Desde 11/11 (`51f69f0`, `809cfac`) as fixtures usam só obras em domínio público (Dom Casmurro EPUB, Memórias Póstumas PDF).
 
 ## 09/11/2026 — "Continue lendo" nunca aparece na Biblioteca (CORRIGIDO NO CÓDIGO; Android pendente)
 
