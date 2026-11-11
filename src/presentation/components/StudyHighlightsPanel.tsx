@@ -10,6 +10,7 @@ import { createFlashcardDeckId, createFlashcardId, flashcardsForUser } from "@/s
 import { useAuth } from "@/src/presentation/contexts/AuthContext";
 import { FlashcardSnapshot } from "@/src/domain/types/flashcards";
 import { Ionicons } from "@expo/vector-icons";
+import { readableBookTitle } from "@/src/presentation/services/bookDisplay";
 import { StudyAction, StudyDisclosure, StudyQuote, studyColorNames as colors, studyColorSwatches } from "@/src/presentation/components/StudyPanelControls";
 
 export function StudyHighlightsPanel({ book, capture, chapterTitle, highlights, onSaved, onSelect, onNavigate, onCaptureConsumed, onBusyChange, onCompose }: { book: LibraryBook; capture: TextReadingAnchor | null; chapterTitle: string; highlights: Highlight[]; onSaved: () => Promise<void>; onSelect: () => void; onNavigate: (anchor: TextReadingAnchor) => void; onCaptureConsumed?: () => void; onBusyChange?: (busy: boolean) => void; onCompose?: () => void }) {
@@ -19,6 +20,8 @@ export function StudyHighlightsPanel({ book, capture, chapterTitle, highlights, 
   const [note, setNote] = useState(""); const [editing, setEditing] = useState<Highlight | null>(null); const [query, setQuery] = useState("");
   const [busy, setBusy] = useState(false); const [error, setError] = useState<string | null>(null); const [backup, setBackup] = useState(""); const [preview, setPreview] = useState<Highlight[] | null>(null);
   const [menu, setMenu] = useState<string | null>(null); const [deleting, setDeleting] = useState<string | null>(null); const [message, setMessage] = useState<string | null>(null);
+  // Último grifo salvo nesta abertura do painel: oferece "Criar flashcard" na hora, sem procurar no menu do grifo.
+  const [justSaved, setJustSaved] = useState<Highlight | null>(null);
   const run = async (operation: () => Promise<void>) => { setBusy(true); onBusyChange?.(true); setError(null); setMessage(null); try { await operation(); } catch (e) { setError(e instanceof Error ? e.message : "Não foi possível salvar o grifo."); } finally { setBusy(false); onBusyChange?.(false); } };
   const button = (label: string, press: () => void, disabled = false, primary = false) => <StudyAction label={label} onPress={press} disabled={busy || disabled} primary={primary} />;
   const save = () => run(async () => {
@@ -27,8 +30,9 @@ export function StudyHighlightsPanel({ book, capture, chapterTitle, highlights, 
     if (note.length > 100000) throw new Error("A nota excede 100 mil caracteres.");
     const location: StudyHighlightLocation = { format: "kindle-study-highlight", version: 1, anchor, chapterTitle: old?.chapterTitle ?? chapterTitle, note: note.trim() };
     const encoded = JSON.stringify(location);
-    await appDependencies.highlightRepository.save({ id: editing?.id ?? `highlight-${Date.now()}-${Math.random().toString(36).slice(2)}`, bookId: book.id, chapterId: anchor.chapterId, startCfi: encoded, endCfi: encoded, highlightedText: anchor.quote, colorLabel: color, createdAt: editing?.createdAt ?? Date.now() });
-    await onSaved(); if (!editing) onCaptureConsumed?.(); setEditing(null); setNote(""); setMessage("Grifo salvo.");
+    const saved: Highlight = { id: editing?.id ?? `highlight-${Date.now()}-${Math.random().toString(36).slice(2)}`, bookId: book.id, chapterId: anchor.chapterId, startCfi: encoded, endCfi: encoded, highlightedText: anchor.quote, colorLabel: color, createdAt: editing?.createdAt ?? Date.now() };
+    await appDependencies.highlightRepository.save(saved);
+    await onSaved(); if (!editing) onCaptureConsumed?.(); setEditing(null); setNote(""); setMessage("Grifo salvo."); setJustSaved(anchor.kind === "epub-text" ? saved : null);
   });
   const exportData = (format: "json" | "markdown" | "text") => run(async () => {
     const text = exportStudyHighlights(book, await appDependencies.highlightRepository.listByBookId(book.id), format);
@@ -43,12 +47,13 @@ export function StudyHighlightsPanel({ book, capture, chapterTitle, highlights, 
     if (!location?.anchor || location.anchor.kind !== "epub-text") throw new Error("Este grifo não tem uma origem textual EPUB recuperável.");
     const snapshot: FlashcardSnapshot = await localFlashcards.load();
     let deck = snapshot.decks.find(value => value.bookIds.includes(book.id) && value.category === "Grifos");
+    const bookTitle = readableBookTitle(book);
     const now = Date.now();
     if (!deck) {
-      deck = { id: createFlashcardDeckId(), title: `Grifos: ${book.title}`, description: "Flashcards criados a partir dos grifos do livro", category: "Grifos", bookIds: [book.id], isGenerated: false, createdAt: now, updatedAt: now };
+      deck = { id: createFlashcardDeckId(), title: `Grifos: ${bookTitle}`, description: "Flashcards criados a partir dos grifos do livro", category: "Grifos", bookIds: [book.id], isGenerated: false, createdAt: now, updatedAt: now };
       await localFlashcards.createDeck(deck);
     }
-    if (snapshot.cards.some(card => card.deckId === deck!.id && card.source.kind === "highlight" && card.source.quote === highlight.highlightedText)) return;
+    if (snapshot.cards.some(card => card.deckId === deck!.id && card.source.kind === "highlight" && card.source.quote === highlight.highlightedText)) { setJustSaved(null); setMessage(`Este grifo já tem um flashcard no deck “${deck.title}”.`); return; }
     const highlightStatement = `Afirmação sobre o trecho em ${location.chapterTitle || "este capítulo"}: "${highlight.highlightedText.slice(0, 120)}${highlight.highlightedText.length > 120 ? "..." : ""}" representa fielmente o pensamento do autor.`;
     await localFlashcards.createCards([{
       id: createFlashcardId(),
@@ -60,7 +65,7 @@ export function StudyHighlightsPanel({ book, capture, chapterTitle, highlights, 
       front: highlightStatement,
       back: highlight.highlightedText,
       difficulty: "MEDIUM",
-      tags: [book.title, "grifo"],
+      tags: [bookTitle, "grifo"],
       status: "approved",
       interval: 1,
       repetition: 0,
@@ -70,6 +75,8 @@ export function StudyHighlightsPanel({ book, capture, chapterTitle, highlights, 
       createdAt: now,
       updatedAt: now,
     }]);
+    setJustSaved(null); setMenu(null);
+    setMessage(`Flashcard criado no deck “${deck.title}”. Revise o texto em Estudo.`);
   });
   const normalize = (v: string) => v.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
   const visible = highlights.filter(h => (filter === "all" || h.colorLabel === filter) && normalize(`${h.highlightedText} ${readHighlightLocation(h)?.note ?? ""}`).includes(normalize(query)));
@@ -92,6 +99,7 @@ export function StudyHighlightsPanel({ book, capture, chapterTitle, highlights, 
       <Text style={{ color: palette.secondaryText, fontSize: 13, lineHeight: 19 }}>Selecione o texto no livro. Depois escolha a cor e, se quiser, adicione uma nota.</Text>
     </>}
     {message ? <Text accessibilityLiveRegion="polite" style={{ color: palette.text }}>{message}</Text> : null}
+    {justSaved && canUse("flashcards") ? <StudyAction label="Criar flashcard deste grifo" icon="albums-outline" disabled={busy} onPress={() => void createFlashcard(justSaved)} /> : null}
     <Text style={[styles.label, { color: palette.text, marginTop: 10 }]}>Seus grifos{highlights.length ? ` · ${highlights.length}` : ""}</Text>
     {highlights.length ? <>
       <TextInput accessibilityLabel="Buscar grifos e notas" value={query} onChangeText={setQuery} placeholder="Buscar nos seus grifos" placeholderTextColor={palette.secondaryText} style={[styles.input, { color: palette.text, borderColor: palette.separator }]} />
