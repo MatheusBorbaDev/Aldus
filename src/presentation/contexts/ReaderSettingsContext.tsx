@@ -1,11 +1,21 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { PropsWithChildren, createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { latestWriteTracker } from "@/src/core/utils/latestWrite";
+import { resolveReaderTheme } from "@/src/domain/reader/readerThemeAuto";
+import { useResolvedAppTheme } from "@/src/presentation/contexts/AppThemeContext";
 import { ReaderFont, ReaderMargin, ReaderTheme } from "@/src/domain/types/reader";
 import { fontFamilies, marginSizes, readerThemes, ReaderPalette } from "@/src/theme/tokens";
 
 interface ReaderSettingsValue {
+  /** Tema efetivo do livro (já considera "Automático"). */
   theme: ReaderTheme;
+  /** Tema escolhido pelo leitor (o que é salvo). */
+  selectedTheme: ReaderTheme;
+  /** "Automático": o livro acompanha o claro/escuro do app. */
+  followAppTheme: boolean;
+  setFollowAppTheme: (value: boolean) => void;
+  /** Aplica a regra de "Automático" a um tema escolhido (usado pelos ajustes do PDF). */
+  resolveTheme: <T extends ReaderTheme>(selected: T) => T | ReaderTheme;
   font: ReaderFont;
   fontSize: number;
   margin: ReaderMargin;
@@ -52,6 +62,8 @@ export function ReaderSettingsProvider({ children }: PropsWithChildren) {
   const [useSystemBrightness, setUseSystemBrightness] = useState(true);
   const [ready, setReady] = useState(false);
   const [hideReadingCounts, setHideReadingCounts] = useState(false);
+  const [followAppTheme, setFollowAppTheme] = useState(false);
+  const appTheme = useResolvedAppTheme();
   const [saveError, setSaveError] = useState<string | null>(null);
   const trackSave = useMemo(() => latestWriteTracker(failed => setSaveError(failed ? READER_SETTINGS_SAVE_ERROR : null)), []);
   // Leitura falhou: os padrões em memória não podem sobrescrever os ajustes salvos; só uma mudança do leitor grava (onda 5).
@@ -78,6 +90,7 @@ export function ReaderSettingsProvider({ children }: PropsWithChildren) {
           brightness: number;
           useSystemBrightness: boolean;
           hideReadingCounts: boolean;
+          followAppTheme: boolean;
         }>;
 
         if (parsed.theme && parsed.theme in readerThemes) setTheme(parsed.theme);
@@ -90,6 +103,7 @@ export function ReaderSettingsProvider({ children }: PropsWithChildren) {
         if (typeof parsed.brightness === "number") setBrightness(clamp(parsed.brightness, 20, 100));
         if (typeof parsed.useSystemBrightness === "boolean") setUseSystemBrightness(parsed.useSystemBrightness);
         if (typeof parsed.hideReadingCounts === "boolean") setHideReadingCounts(parsed.hideReadingCounts);
+        if (typeof parsed.followAppTheme === "boolean") setFollowAppTheme(parsed.followAppTheme);
       } catch {
         // Ignore invalid persisted settings and keep defaults.
       } finally {
@@ -118,11 +132,19 @@ export function ReaderSettingsProvider({ children }: PropsWithChildren) {
       brightness,
       useSystemBrightness,
       hideReadingCounts,
+      followAppTheme,
     })));
-  }, [brightness, font, fontSize, hideReadingCounts, lineHeight, margin, maxWidth, paragraphSpacing, ready, theme, trackSave, useSystemBrightness]);
+  }, [brightness, followAppTheme, font, fontSize, hideReadingCounts, lineHeight, margin, maxWidth, paragraphSpacing, ready, theme, trackSave, useSystemBrightness]);
 
-  const value = useMemo<ReaderSettingsValue>(() => ({
-    theme,
+  const value = useMemo<ReaderSettingsValue>(() => {
+    const resolveTheme = <T extends ReaderTheme>(selected: T) => resolveReaderTheme(selected, followAppTheme, appTheme);
+    const effective = resolveTheme(theme);
+    return {
+    theme: effective,
+    selectedTheme: theme,
+    followAppTheme,
+    setFollowAppTheme,
+    resolveTheme,
     font,
     fontSize,
     margin,
@@ -132,10 +154,11 @@ export function ReaderSettingsProvider({ children }: PropsWithChildren) {
     brightness,
     useSystemBrightness,
     hideReadingCounts,
-    palette: readerThemes[theme],
+    palette: readerThemes[effective],
     fontFamily: fontFamilies[font],
     marginSize: marginSizes[margin],
-    setTheme,
+    // Escolher um tema é uma decisão explícita: desliga o "Automático" para o tema escolhido valer.
+    setTheme: (value) => { setFollowAppTheme(false); setTheme(value); },
     setFont,
     setFontSize: (value) => setFontSize(clamp(value, 12, 30)),
     setMargin,
@@ -146,7 +169,8 @@ export function ReaderSettingsProvider({ children }: PropsWithChildren) {
     setUseSystemBrightness,
     setHideReadingCounts,
     saveError,
-  }), [brightness, font, fontSize, hideReadingCounts, lineHeight, margin, maxWidth, paragraphSpacing, saveError, theme, useSystemBrightness]);
+  };
+  }, [appTheme, brightness, followAppTheme, font, fontSize, hideReadingCounts, lineHeight, margin, maxWidth, paragraphSpacing, saveError, theme, useSystemBrightness]);
 
   return <ReaderSettingsContext.Provider value={value}>{children}</ReaderSettingsContext.Provider>;
 }

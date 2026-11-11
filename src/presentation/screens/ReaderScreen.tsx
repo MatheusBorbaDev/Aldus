@@ -52,6 +52,7 @@ import {
   defaultPdfReaderSettings,
   PDF_REFLOW_PROCESSOR_VERSION,
   PdfReaderSettings,
+  PdfReaderTheme,
   PdfReadingMode,
   PdfReflowDocument,
 } from "@/src/domain/types/pdfReader";
@@ -593,8 +594,10 @@ export function ReaderScreen({ bookId }: Props) {
   });
 
   const totalPages = estimateTotalPages(totalCharacters, charactersPerPage);
+  // "Automático" também vale para o PDF; o tema salvo do PDF não muda.
+  const pdfTheme = (selected: PdfReaderTheme) => (settings.resolveTheme ? settings.resolveTheme(selected) : selected) as PdfReaderTheme;
   const activePalette = isPdf && pdfReaderSettings
-    ? pdfReaderThemes[pdfReaderSettings.theme]
+    ? pdfReaderThemes[pdfTheme(pdfReaderSettings.theme)]
     : settings.palette;
   const documentBrightnessFactor = Platform.OS === "web" ? Math.max(0.35, Math.min(1, settings.brightness / 100)) : 1;
   const activeReaderSettings = isReflowPdf && pdfReaderSettings
@@ -608,7 +611,7 @@ export function ReaderScreen({ bookId }: Props) {
         alignment: pdfReaderSettings.alignment,
         allowTextSelection: true,
         palette: activePalette,
-        theme: pdfReaderSettings.theme,
+        theme: pdfTheme(pdfReaderSettings.theme),
       }
     : {
         fontSize: settings.fontSize,
@@ -1051,7 +1054,7 @@ export function ReaderScreen({ bookId }: Props) {
       ]}
     >
       <StatusBar
-        barStyle={["dark", "black"].includes(pdfReaderSettings?.theme ?? settings.theme) ? "light-content" : "dark-content"}
+        barStyle={["dark", "black"].includes(pdfReaderSettings ? pdfTheme(pdfReaderSettings.theme) : settings.theme) ? "light-content" : "dark-content"}
       />
 
       <View style={styles.reader}>

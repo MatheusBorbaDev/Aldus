@@ -93,7 +93,8 @@ export function ReaderSettingsPanel({
   const settings = useReaderSettings();
   const insets = useSafeAreaInsets();
   const [pageInput, setPageInput] = useState(String(pageNumber ?? 1));
-  const palette = pdfSettings ? pdfReaderThemes[pdfSettings.theme] : settings.palette;
+  const resolve = (selected: PdfReaderTheme) => (settings.resolveTheme ? settings.resolveTheme(selected) : selected) as PdfReaderTheme;
+  const palette = pdfSettings ? pdfReaderThemes[resolve(pdfSettings.theme)] : settings.palette;
   const updatePdfSettings = (patch: Partial<PdfReaderSettings>) => {
     if (pdfSettings) onPdfSettingsChange?.({ ...pdfSettings, ...patch });
   };
@@ -103,7 +104,8 @@ export function ReaderSettingsPanel({
   const saveError = pdfSettings ? pdfSettingsSaveError : settings.saveError;
   const availableSections = isOriginalPdf ? sections.filter(item => item.id !== "text") : sections;
   const activeSection: SectionId = isOriginalPdf && section === "text" ? "page" : section;
-  const currentTheme = pdfSettings ? pdfSettings.theme : settings.theme;
+  const followApp = !!settings.followAppTheme;
+  const currentTheme = pdfSettings ? resolve(pdfSettings.theme) : settings.theme;
   const currentFont = pdfSettings ? pdfSettings.font : settings.font;
   const fontSize = pdfSettings ? pdfSettings.fontSize : settings.fontSize;
   const setFontSize = (value: number) => {
@@ -228,14 +230,14 @@ export function ReaderSettingsPanel({
                       <Text accessibilityLabel="Valor do tamanho da fonte" style={[styles.sizeValue, { color: palette.secondaryText }]}>{fontSize}</Text>
                     </View>
                   </Field>
-                  <Field label="Tema" palette={palette}>
+                  <Field label={followApp ? "Tema · Automático (segue o app)" : "Tema"} palette={palette}>
                     <View accessibilityRole="radiogroup" style={styles.swatches}>
                       {themes.map(theme => {
                         const selected = currentTheme === theme.value;
                         const colors = (pdfSettings ? pdfReaderThemes[theme.value as PdfReaderTheme] : readerThemes[theme.value]) ?? palette;
                         return (
                           <Pressable key={theme.value} accessibilityRole="button" accessibilityLabel={`Tema ${theme.label}`} accessibilityState={{ selected }} aria-pressed={selected}
-                            onPress={() => pdfSettings ? updatePdfSettings({ theme: theme.value as PdfReaderTheme }) : settings.setTheme(theme.value)} style={styles.swatch}>
+                            onPress={() => { if (pdfSettings) { settings.setFollowAppTheme?.(false); updatePdfSettings({ theme: theme.value as PdfReaderTheme }); } else settings.setTheme(theme.value); }} style={styles.swatch}>
                             <View style={[styles.swatchSample, { backgroundColor: colors.background, borderColor: selected ? palette.accent : palette.separator, borderWidth: selected ? 2 : 1 }]}>
                               {selected ? <Ionicons name="checkmark" size={18} color={colors.text} /> : <Text style={[styles.swatchLetters, { color: colors.text }]}>Aa</Text>}
                             </View>
@@ -244,6 +246,12 @@ export function ReaderSettingsPanel({
                         );
                       })}
                     </View>
+                    <Pressable accessibilityRole="switch" accessibilityLabel="Tema automático: seguir claro e escuro do app" accessibilityState={{ checked: followApp }} aria-checked={followApp}
+                      onPress={() => settings.setFollowAppTheme?.(!followApp)} android_ripple={{ color: palette.separator }}
+                      style={[styles.autoChip, styles.autoTheme, { borderColor: followApp ? palette.accent : palette.separator, borderWidth: followApp ? 2 : 1 }]}>
+                      <Ionicons name={followApp ? "checkmark" : "contrast-outline"} size={15} color={palette.text} />
+                      <Text style={{ color: palette.text, fontSize: 13, fontWeight: followApp ? "600" : "400" }}>Automático: escuro quando o app estiver escuro</Text>
+                    </Pressable>
                   </Field>
                 </>
               )}
@@ -443,6 +451,7 @@ const styles = StyleSheet.create({
   swatchLetters: { fontSize: 15, fontWeight: "600" },
   swatchLabel: { fontSize: 12, textAlign: "center" },
   autoChip: { minHeight: 44, flexDirection: "row", alignItems: "center", gap: 5, paddingHorizontal: 12, borderRadius: 22 },
+  autoTheme: { alignSelf: "flex-start", marginTop: 4 },
   tabs: { flexDirection: "row", borderTopWidth: StyleSheet.hairlineWidth, marginTop: 2 },
   tab: { flex: 1, minHeight: 46, alignItems: "center", justifyContent: "flex-end", gap: 8 },
   tabText: { fontSize: 14 },

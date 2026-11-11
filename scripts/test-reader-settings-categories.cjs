@@ -41,10 +41,13 @@ new Function('require', 'exports', ts.transpileModule(source, { compilerOptions:
   await act(async () => slider.props.onValueChange(24)); assert.deepEqual(changes, [['FontSize', 24]]);
   await act(async () => byLabel('Aumentar letra').props.onPress()); assert.deepEqual(changes.at(-1), ['FontSize', 21]);
   await act(async () => byLabel('Diminuir letra').props.onPress()); assert.deepEqual(changes.at(-1), ['FontSize', 19]);
-  const swatches = tree.root.findAllByType('Pressable').filter(x => String(x.props.accessibilityLabel).startsWith('Tema '));
+  const swatches = tree.root.findAllByType('Pressable').filter(x => /^Tema [A-ZÉ]/.test(String(x.props.accessibilityLabel)));
   assert.deepEqual(swatches.map(x => x.props.accessibilityLabel), ['Tema Claro', 'Tema Papel', 'Tema Sépia', 'Tema Escuro', 'Tema Preto']);
   assert.deepEqual(swatches.map(x => x.props.accessibilityState.selected), [false, true, false, false, false]);
   await act(async () => swatches[3].props.onPress()); assert.deepEqual(changes.at(-1), ['Theme', 'dark']);
+  // Wave A3: 'Automático' follows the app light/dark; choosing a swatch is explicit and the context turns auto off.
+  const autoTheme = byLabel('Tema automático: seguir claro e escuro do app'); assert.equal(autoTheme.props.accessibilityState.checked, false);
+  settings.setFollowAppTheme = value => changes.push(['FollowAppTheme', value]); await act(async () => autoTheme.props.onPress()); assert.deepEqual(changes.at(-1), ['FollowAppTheme', true]);
   assert.ok(!source.includes('Modo e-reader'), 'the redundant e-reader switch is gone; Papel stays a theme, saved values untouched');
   // Brightness: moving the slider leaves automatic mode first; the chip toggles it.
   const brightness = tree.root.findAllByType('Slider').find(x => x.props.accessibilityLabel === 'Brilho do leitor'); const before = changes.length;

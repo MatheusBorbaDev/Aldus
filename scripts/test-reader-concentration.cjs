@@ -24,6 +24,8 @@ function load(file, overrides = {}) {
     if (name === 'react-native-safe-area-context') return { useSafeAreaInsets: () => ({ bottom: 24 }) };
     if (name.endsWith('/readerNavigationDiagnostics')) return { readerNavigationDiagnostic() {} };
     if (name === '@/src/core/utils/latestWrite') return load('src/core/utils/latestWrite.ts'); // pure module, real code
+    if (name === '@/src/domain/reader/readerThemeAuto') return load('src/domain/reader/readerThemeAuto.ts'); // pure module, real code
+    if (name === '@/src/presentation/contexts/AppThemeContext') return { useResolvedAppTheme: () => null };
     throw Error('Uncontrolled dependency: ' + name);
   }, result);
   return result;

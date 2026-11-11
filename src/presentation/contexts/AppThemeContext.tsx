@@ -71,3 +71,8 @@ export function useAppTheme() {
   if (!value) throw new Error("useAppTheme must be used within AppThemeProvider");
   return value;
 }
+
+/** Tema resolvido do app ou null fora do provedor (o Reader usa para o tema "Automático" sem exigir o provedor). */
+export function useResolvedAppTheme(): "light" | "dark" | null {
+  return useContext(AppThemeContext)?.resolvedTheme ?? null;
+}
