@@ -115,6 +115,9 @@ Persistência (legado mantido, não renomear `kindle-*`/`@kindle/*`): Native SQL
   `test-flashcards`, `test-flashcard-sessions`, `test-flashcard-battles`, `test-battle-account`, `test-ui-primitives` PASS; `export:web` PASS; Chromium PASS:
   `test:source-library:browser`, `test:saas:web`. Sessão de estudo vista em fixture de rascunho (pergunta/resposta/resumo, `.expo/redesign-step5/study/`).
   Batalha SEM cobertura de navegador (exige partida remota); só typecheck e testes de lógica. Android NÃO TESTADO.
+- **Melhorias, Onda B (11/11, `8272a3f`…`a183048`)**: typecheck PASS; `test:critical` **104/104** (novas `native-brightness`, `reader-last-page`,
+  `epub-language`, `reading-pace`); `export:web` PASS; Chromium: **as 8 suítes do Reader PASS neste PC pela primeira vez** (`reflow:web` incluída,
+  BUG 20 corrigido). Fora do APK `9d03182`; Android NÃO TESTADO (hifenização no WebView, brilho nativo, tempo restante).
 - **Melhorias, Onda A (11/11, `26a582f`…A5)**: typecheck PASS; `test:critical` **100/100** (novas `highlight-flashcard`, `reading-shelves`,
   `reader-theme-auto`, `review-history`, `first-steps`); `export:web` PASS; Chromium PASS: `test:reader:{settings,browser,epub,pdf,concentration,
   markings,study}:web` (A3), `test:library:{web,bulk:web}` (bulk 4/4 após corrigir o teste), `test:source-library:browser`, `test:saas:web`.
@@ -274,6 +277,8 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
    e etapa 3 (remover os 33 arquivos do APK/`dist`) pendentes.
    **Revisão de qualidade (09/11)**: Ondas 0–5 aprovadas concluídas (commits locais, sem push); 6 e 7 fora. R5: patches do SDK 57 aplicados
    (BUG 13); APK de ensaio `6883532` compilado e conferido (§3), **não instalado**; remover `js-polyfills` 0.76/`metro-cache` 0.81 segue pendente. Levantamento do
+   **Melhorias (11/11)**: Ondas A e B concluídas; C (voz alta, Compartilhar, lembrete — dependências nativas + APK) e D (pdf.js, dependências antigas,
+   Maestro) pendentes; rolagem contínua avaliada e adiada (segundo sistema de posição; ver log). Dependem do usuário: acervo, Play/Firebase, Redmi, Literata.
    acervo entregue ao usuário (34 arquivos, 92,7 MB; 8 usados como fixture de teste), aguardando decisão do que sai; nada removido.
    Candidatos de bundle (sem decisão): pdfjs-dist duplicado no entry, reanimated só para motion cues, `react-native-render-html` em `ChapterRenderer`.
    Abertos da revisão: BUG 17 (EPUB sem `lang`/justificar; onda 6, fora), **BUG 20** (Reflow com página final em branco; motor do Reader,
@@ -304,6 +309,16 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
 - **IA externa:** não enviar livros/trechos a serviço de IA sem pedido e consentimento explícito do usuário final.
 
 ## 10. Log (mais recente primeiro; máx. 5 entradas, resto → docs/context/historico/)
+
+### 11/11/2026 — Melhorias, Onda B: motor do Reader (Claude)
+- B1 (sem mudança de comportamento): brilho nativo → `useNativeReaderBrightness` (com teste próprio) e aviso flutuante → `ReaderFeedbackBanner`;
+  `ReaderScreen` 1229→1113 linhas. B2 **BUG 20 corrigido**: total de páginas pelo último conteúdo real (`lastContentPage`), não pela margem da
+  seção; Reflow 24→23 páginas, EPUB inalterado (121). Um `\S` na template do iframe virou `/S/` e o teste passou por acaso: trocado por `trim()`.
+  B3 **BUG 17 corrigido**: `lang` do capítulo (`<html>`/`<body>`, validado, nunca presumido) no documento e em cada seção; "Justificado" para EPUB
+  (salvo). B4 tempo restante no capítulo no rodapé (`readingPace.ts`/`useChapterTimeLeft`): mediana de ≥5 viradas medidas (3 s–10 min), EPUB e
+  Reflow, oculto com as contagens; sem ritmo medido não há estimativa.
+- B5 rolagem contínua **adiada**: o motor é paginado (colunas, âncoras por página, progresso/restauração por página); rolar exige outro sistema
+  de posição com as mesmas garantias de âncora e validação em aparelho. Fica como projeto próprio.
 
 ### 11/11/2026 — Melhorias, Onda A: estudo, estante, tema automático, histórico e primeiros passos (Claude)
 - Pedido do usuário: executar todas as melhorias propostas (ondas A–D). Dependem dele: livros do acervo que saem, conta Play Console/Firebase,
@@ -339,16 +354,6 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
   testes de layout), componentes de flashcard (`FlashcardCardView` 369 linhas, `FlashcardCreateModal` 842 linhas com cores fixas) e sessão de estudo.
 - VALIDADO: ver §3. NÃO TESTADO: deck e Community no navegador; Android.
 
-### 10/11/2026 — Redesenho, Etapa 4: Descobrir e Estudo (Claude)
-- IMPLEMENTADO Descobrir (`search.tsx`): botão de busca neutro (`tonal`, ícone de lupa) sem texto e principal com texto (antes um primário
-  desbotado que parecia quebrado); "Adicionar fonte" discreto (`ghost`). `ChipRow` (`src/ui/Chip.tsx`, vale para Biblioteca/Fontes também):
-  esmaecido à direita só quando há chips além da borda e some ao rolar até o fim.
-- IMPLEMENTADO Estudo (`study.tsx`): bloco **Para revisar hoje** com a contagem medida (`reviewSummary` em `flashcardSrs.ts`: aprovados,
-  completos, vencidos, de decks existentes), "Tudo em dia" quando zero medido, nada antes do snapshot; "Revisar" (primário) abre o deck com
-  mais pendências; "Novo deck" só é primário quando não há revisão; cada deck mostra "N para revisar". Rótulos existentes preservados.
-- Não feito: menu "+" único no Estudo (mantive "Novo deck"/"Criar flashcard"/"Mais ferramentas" visíveis; o ganho era pequeno e mudava
-  rótulos usados por testes). VALIDADO: ver §3. NÃO TESTADO: Android; bloco de revisão com dados reais no navegador.
-
 ### 06/11/2026 — Entradas anteriores
 - Fechamento UX/UI e Onboarding 1: ver `docs/context/historico/2026-11-06-ux-fechamento-e-onboarding-1.md`.
 - Onboarding 2 (auditoria e reescrita do contexto): ver `docs/context/historico/2026-11-06-onboarding-2.md`.
@@ -367,3 +372,4 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
 - Redesenho, Etapa 1, painel de leitura e plano das 5 etapas (10/11): ver `docs/context/historico/2026-11-10-redesenho-etapa-1.md`.
 - Redesenho, Etapa 2, título e avisos do Reader (10/11): ver `docs/context/historico/2026-11-10-redesenho-etapa-2.md`.
 - Redesenho, Etapa 3, menu do livro (10/11): ver `docs/context/historico/2026-11-10-redesenho-etapa-3.md`.
+- Redesenho, Etapa 4, Descobrir e Estudo (10/11): ver `docs/context/historico/2026-11-10-redesenho-etapa-4.md`.
