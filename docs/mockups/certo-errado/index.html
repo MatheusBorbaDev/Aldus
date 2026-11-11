@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Certo ou Errado — protótipo</title>
+<!--
+  FASE 4 do plano de mercado (11/11/2026). Mockup estático e isolado: não usa nem altera o motor de flashcards nem o app.
+  Dados fictícios. O texto legal citado é da Constituição Federal de 1988 (art. 5º); textos de lei não são protegidos por
+  direito autoral no Brasil (Lei 9.610/98, art. 8º, IV). Abrir direto no navegador, sem servidor nem rede.
+-->
+<style>
+  :root {
+    --bg: #F7F4EE; --panel: #FFFDF9; --text: #2A2420; --muted: #6B5F57; --line: #E4DCD2;
+    --accent: #A64E32; --accent-soft: #F6E9E1; --ok: #2F6B4F; --ok-soft: #E3F0E8; --bad: #9A3324; --bad-soft: #F7E3DF;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #111916; --panel: #18211D; --text: #ECE6DD; --muted: #B3A99E; --line: #2C3833;
+      --accent: #E5A17D; --accent-soft: #3A2A22; --ok: #8FD1AE; --ok-soft: #1F3329; --bad: #F0A493; --bad-soft: #3B2420; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  header { max-width: 1180px; margin: 0 auto; padding: 24px 16px 8px; }
+  h1 { font: 400 30px/1.15 Georgia, "Times New Roman", serif; margin: 0 0 6px; }
+  .notice { display: inline-block; border: 1px solid var(--line); border-radius: 999px; padding: 4px 12px; font-size: 13px; color: var(--muted); }
+  .screens { max-width: 1180px; margin: 0 auto; padding: 16px; display: grid; gap: 20px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+  figure { margin: 0; }
+  figcaption { font-size: 13px; color: var(--muted); margin: 0 0 8px; }
+  .phone { background: var(--panel); border: 1px solid var(--line); border-radius: 24px; padding: 18px 16px; min-height: 560px; display: flex; flex-direction: column; gap: 12px; }
+  .top { display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: var(--muted); }
+  h2 { font: 400 22px/1.2 Georgia, serif; margin: 4px 0; }
+  .card { border: 1px solid var(--line); border-radius: 14px; padding: 14px; background: var(--bg); }
+  .law { font-family: Georgia, serif; font-size: 15px; }
+  .law mark { background: var(--accent-soft); color: inherit; padding: 0 2px; border-radius: 3px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip { border: 1px solid var(--line); border-radius: 999px; padding: 8px 14px; min-height: 44px; display: inline-flex; align-items: center; background: transparent; color: inherit; font: inherit; }
+  .chip.on { border: 2px solid var(--accent); font-weight: 600; }
+  .actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: auto; }
+  button.big { min-height: 56px; border-radius: 14px; font: 600 17px system-ui, sans-serif; border: 2px solid var(--line); background: var(--panel); color: var(--text); }
+  button.primary { background: var(--accent); border-color: var(--accent); color: var(--panel); width: 100%; min-height: 52px; border-radius: 14px; font: 600 16px system-ui, sans-serif; margin-top: auto; }
+  .verdict { border-radius: 14px; padding: 12px 14px; font-weight: 600; }
+  .verdict.bad { background: var(--bad-soft); color: var(--bad); }
+  .verdict.ok { background: var(--ok-soft); color: var(--ok); }
+  .muted { color: var(--muted); font-size: 13px; }
+  .row { display: flex; justify-content: space-between; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--line); }
+  .row:last-child { border-bottom: 0; }
+  .toggle { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+  .switch { width: 44px; height: 26px; border-radius: 13px; background: var(--accent); position: relative; flex: none; }
+  .switch::after { content: ""; position: absolute; top: 3px; right: 3px; width: 20px; height: 20px; border-radius: 50%; background: var(--panel); }
+  footer { max-width: 1180px; margin: 0 auto; padding: 8px 16px 32px; color: var(--muted); font-size: 13px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Certo ou Errado — lei seca</h1>
+  <span class="notice">Protótipo para entrevistas · dados fictícios · não é o app</span>
+</header>
+
+<main class="screens">
+  <figure>
+    <figcaption>1 · Escolher o que estudar</figcaption>
+    <div class="phone">
+      <div class="top"><span>Estudo</span><span>Aldus</span></div>
+      <h2>Lei seca em Certo ou Errado</h2>
+      <p class="muted">Afirmações curtas sobre o texto da lei. Você julga, e o artigo aparece logo depois, com a palavra que mudou marcada.</p>
+      <div class="card">
+        <strong>Constituição Federal</strong>
+        <div class="muted">Art. 5º · Direitos e deveres individuais e coletivos</div>
+      </div>
+      <div>
+        <div class="muted" style="margin-bottom:6px">Itens por sessão</div>
+        <div class="chips"><button class="chip">5</button><button class="chip on">10</button><button class="chip">20</button></div>
+      </div>
+      <div class="toggle"><span>Mostrar o artigo depois de cada resposta</span><span class="switch" aria-hidden="true"></span></div>
+      <button class="primary">Começar</button>
+    </div>
+  </figure>
+
+  <figure>
+    <figcaption>2 · Julgar a afirmação</figcaption>
+    <div class="phone">
+      <div class="top"><span>CF · Art. 5º</span><span>3 de 10</span></div>
+      <div class="card law">É livre a manifestação do pensamento, sendo permitido o anonimato.</div>
+      <p class="muted">Julgue a afirmação de acordo com o texto da Constituição.</p>
+      <div class="actions">
+        <button class="big" aria-label="Certo">Certo</button>
+        <button class="big" aria-label="Errado">Errado</button>
+      </div>
+    </div>
+  </figure>
+
+  <figure>
+    <figcaption>3 · Conferir no texto da lei</figcaption>
+    <div class="phone">
+      <div class="top"><span>CF · Art. 5º, IV</span><span>3 de 10</span></div>
+      <div class="verdict ok">Você marcou Errado: acertou.</div>
+      <div class="card law">IV – é livre a manifestação do pensamento, sendo <mark>vedado</mark> o anonimato;</div>
+      <p class="muted">A afirmação trocou “vedado” por “permitido”.</p>
+      <div class="card law" style="font-size:14px">
+        <div class="muted" style="font-family:system-ui">Para comparar · Art. 5º, II</div>
+        II – ninguém será obrigado a fazer ou deixar de fazer alguma coisa senão em virtude de lei;
+      </div>
+      <button class="primary">Próxima</button>
+    </div>
+  </figure>
+
+  <figure>
+    <figcaption>4 · Fim da sessão</figcaption>
+    <div class="phone">
+      <div class="top"><span>Sessão encerrada</span><span>dados fictícios</span></div>
+      <h2>Para revisar</h2>
+      <div class="card">
+        <div class="row"><span>Art. 5º, XI · casa como asilo inviolável</span><span class="muted">errou</span></div>
+        <div class="row"><span>Art. 5º, IV · anonimato</span><span class="muted">acertou</span></div>
+        <div class="row"><span>Art. 5º, caput · inviolabilidades</span><span class="muted">errou</span></div>
+      </div>
+      <div class="toggle"><span>Mostrar contagem de acertos</span><span class="switch" aria-hidden="true"></span></div>
+      <p class="muted">7 de 10 nesta sessão. Sem ranking e sem comparação com outras pessoas.</p>
+      <button class="primary">Revisar os que errei</button>
+    </div>
+  </figure>
+</main>
+
+<footer>
+  Texto legal: Constituição da República Federativa do Brasil de 1988, art. 5º, caput e incisos II, IV e XI. Afirmações e resultados
+  são fictícios e servem só para as entrevistas. Nada aqui foi integrado ao aplicativo.
+</footer>
+</body>
+</html>
