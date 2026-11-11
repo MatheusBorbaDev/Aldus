@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
-import { getDocument, GlobalWorkerOptions, type PDFDocumentProxy } from "pdfjs-dist";
+import type { PDFDocumentProxy, PDFDocumentLoadingTask } from "pdfjs-dist";
+import { loadPdfJs } from "./pdfjsRuntime.web";
 import { PdfPageViewerProps } from "@/src/presentation/components/PdfPageViewerProps";
 
 type PdfPage = Awaited<ReturnType<PDFDocumentProxy["getPage"]>>;
@@ -23,20 +24,25 @@ export function PdfPageViewer({ uri, pageNumber, pageMode, fitMode, zoom, rotati
     setFailed(false);
     setDocument(null);
 
-    try {
-      GlobalWorkerOptions.workerPort = new Worker(new URL("./pdfjs.worker.ts", import.meta.url));
-    } catch {
-      /* Fall back to PDF.js worker configuration. */
-    }
-    const task = getDocument({
-      url: uri,
-      cMapUrl: "https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/cmaps/",
-      cMapPacked: true,
-    });
-
-    void task.promise
+    // pdf.js sob demanda (onda D1); mesma configuração de worker e documento de antes.
+    let task: PDFDocumentLoadingTask | null = null;
+    void loadPdfJs()
+      .then(({ getDocument, GlobalWorkerOptions }) => {
+        if (!active) return null;
+        try {
+          GlobalWorkerOptions.workerPort = new Worker(new URL("./pdfjs.worker.ts", import.meta.url));
+        } catch {
+          /* Fall back to PDF.js worker configuration. */
+        }
+        task = getDocument({
+          url: uri,
+          cMapUrl: "https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/cmaps/",
+          cMapPacked: true,
+        });
+        return task.promise;
+      })
       .then((pdf) => {
-        if (!active) return;
+        if (!active || !pdf) return;
         setDocument(pdf);
         totalPagesCallback.current(pdf.numPages * (pageMode === "double" ? 2 : 1));
       })
@@ -49,7 +55,7 @@ export function PdfPageViewer({ uri, pageNumber, pageMode, fitMode, zoom, rotati
 
     return () => {
       active = false;
-      void task.destroy();
+      if (task) void task.destroy();
     };
   }, [uri, pageMode]);
 

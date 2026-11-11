@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
-import { getDocument, GlobalWorkerOptions, ImageKind, OPS, type PDFPageProxy } from "pdfjs-dist";
+import type { PDFDocumentLoadingTask, PDFDocumentProxy, PDFPageProxy } from "pdfjs-dist";
+import { loadedPdfJs, loadPdfJs, PdfJsModule } from "./pdfjsRuntime.web";
 import { PdfReflowImage, PdfReflowPageData } from "@/src/domain/types/pdfReader";
 import { buildPdfReflowDocumentAsync } from "@/src/data/local/PdfReflowDocumentBuilder";
 import { assessTextExtractionQuality, isClearlyCorruptedTextExtraction, CORRUPT_PDF_TEXT, isValidatedReflowDocumentAsync } from "@/src/data/local/pdfReflowQuality";
@@ -27,32 +28,40 @@ export function PdfReflowProcessor({ uri, onProgress, onComplete, onError, onCan
 
   useEffect(() => {
     const operation = createReflowOperation();
+    // pdf.js sob demanda (onda D1); worker, documento e liberação iguais aos de antes, só depois da carga do módulo.
     let worker: Worker | undefined;
-    try {
-      worker = new Worker(new URL("./pdfjs.worker.ts", import.meta.url));
-      GlobalWorkerOptions.workerPort = worker;
-    } catch {
-      /* Fall back to PDF.js worker configuration. */
-    }
-    const task = getDocument({
-      url: uri,
-      cMapUrl: "https://cdn.jsdelivr.net/npm/pdfjs-dist@6.3.289/cmaps/",
-      cMapPacked: true,
-    });
+    let task: PDFDocumentLoadingTask | null = null;
+    let pdfjs: PdfJsModule | null = null;
     let released = false;
     const release = () => {
       if (released) return;
       released = true;
-      void task.destroy().catch(() => undefined);
-      if (GlobalWorkerOptions.workerPort === worker) GlobalWorkerOptions.workerPort = null;
+      if (task) void task.destroy().catch(() => undefined);
+      if (pdfjs && pdfjs.GlobalWorkerOptions.workerPort === worker) pdfjs.GlobalWorkerOptions.workerPort = null;
       worker?.terminate();
     };
     const fail = (message: string) => { if (operation.finish()) { release(); callbacks.current.onError(message); } };
     const update = (next: PdfReflowProgress) => { if (operation.active) { setProgress(next); callbacks.current.onProgress(next); } };
     cancel.current = () => { if (operation.finish()) { release(); callbacks.current.onCancel(); } };
-    if (worker) worker.onerror = () => fail("O motor PDF falhou. O PDF Original continua disponível.");
+    const opened: Promise<PDFDocumentProxy> = loadPdfJs().then(module => {
+      if (released) throw new DOMException("cancelled", "AbortError");
+      pdfjs = module;
+      try {
+        worker = new Worker(new URL("./pdfjs.worker.ts", import.meta.url));
+        module.GlobalWorkerOptions.workerPort = worker;
+      } catch {
+        /* Fall back to PDF.js worker configuration. */
+      }
+      if (worker) worker.onerror = () => fail("O motor PDF falhou. O PDF Original continua disponível.");
+      task = module.getDocument({
+        url: uri,
+        cMapUrl: "https://cdn.jsdelivr.net/npm/pdfjs-dist@6.3.289/cmaps/",
+        cMapPacked: true,
+      });
+      return task.promise;
+    });
 
-    void task.promise
+    void opened
       .then(async (pdf) => {
         const pages: PdfReflowPageData[] = [];
         for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber += 1) {
@@ -167,6 +176,7 @@ async function extractPageImages(
   pageWidth: number,
   pageHeight: number
 ): Promise<PdfReflowImage[]> {
+  const { OPS } = loadedPdfJs();
   const imageOperators = new Set([OPS.paintImageXObject, OPS.paintInlineImageXObject, OPS.paintImageMaskXObject, OPS.paintXObject]);
   const candidates: Array<{ source: unknown; bounds: ReturnType<typeof getImageBounds> }> = [];
   let transform = [1, 0, 0, 1, 0, 0];
@@ -269,6 +279,7 @@ function imageObjectToDataUri(image: ImageSource): string | undefined {
   if (!context) return undefined;
 
   if (data) {
+    const { ImageKind } = loadedPdfJs();
     const rgba = context.createImageData(width, height);
     if (kind === ImageKind.RGBA_32BPP || data.length >= width * height * 4) {
       rgba.data.set(data.subarray(0, width * height * 4));

@@ -1,19 +1,28 @@
-import { getDocument, GlobalWorkerOptions } from "pdfjs-dist";
+import type { PDFDocumentLoadingTask } from "pdfjs-dist";
+import { loadPdfJs, PdfJsModule } from "../components/pdfjsRuntime.web";
 
-if (typeof window !== "undefined") {
-  try {
-    GlobalWorkerOptions.workerPort = new Worker(
-      new URL("../components/pdfjs.worker.ts", import.meta.url)
-    );
-  } catch {
-    /* Fallback */
+// pdf.js sob demanda (onda D1): o worker é configurado uma vez, no primeiro uso (antes, ao importar este arquivo).
+let workerReady = false;
+async function pdfjsForThumbnails(): Promise<PdfJsModule> {
+  const pdfjs = await loadPdfJs();
+  if (!workerReady && typeof window !== "undefined") {
+    workerReady = true;
+    try {
+      pdfjs.GlobalWorkerOptions.workerPort = new Worker(
+        new URL("../components/pdfjs.worker.ts", import.meta.url)
+      );
+    } catch {
+      /* Fallback */
+    }
   }
+  return pdfjs;
 }
 
 export class WebPdfThumbnailGenerator {
   async generate(uri: string, _bookId: string, pickedFile?: Blob): Promise<string | null> {
-    let loadingTask: ReturnType<typeof getDocument> | undefined;
+    let loadingTask: PDFDocumentLoadingTask | undefined;
     try {
+      const { getDocument } = await pdfjsForThumbnails();
       if (pickedFile) {
         const buffer = await pickedFile.arrayBuffer();
         loadingTask = getDocument({
