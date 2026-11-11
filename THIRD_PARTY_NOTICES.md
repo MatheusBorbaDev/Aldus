@@ -29,7 +29,7 @@
 | expo-sensors | 57.0.3 | MIT | Copyright (c) 2015-present 650 Industries, Inc. (aka Expo); The above copyright notice and this permission notice shall be included in all; AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER | [origem](https://github.com/expo/expo) |
 | expo-speech | 57.0.3 | MIT | Copyright (c) 2015-present 650 Industries, Inc. (aka Expo); The above copyright notice and this permission notice shall be included in all; AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER | [origem](https://github.com/expo/expo) |
 | expo-sqlite | 57.0.4 | MIT | Copyright (c) 2015-present 650 Industries, Inc. (aka Expo); The above copyright notice and this permission notice shall be included in all; AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER | [origem](https://github.com/expo/expo) |
-| fast-xml-parser | 5.11.0 | MIT | Copyright (c) 2017 Amit Kumar Gupta; The above copyright notice and this permission notice shall be included in all; AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER | [origem](https://github.com/NaturalIntelligence/fast-xml-parser) |
+| fast-xml-parser | 5.12.0 | MIT | Copyright (c) 2017 Amit Kumar Gupta; The above copyright notice and this permission notice shall be included in all; AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER | [origem](https://github.com/NaturalIntelligence/fast-xml-parser) |
 | jszip | 3.10.1 | (MIT OR GPL-3.0-or-later) | Copyright (c) 2009-2016 Stuart Knightley, David Duponchel, Franz Buchinger, António Afonso; The above copyright notice and this permission notice shall be included in; AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER; Copyright (C) 2007 Free Software Foundation, Inc. <http://fsf.org/> | [origem](https://github.com/Stuk/jszip) |
 | nativewind | 4.1.23 | MIT | Copyright (c) 2023 Mark Lawlor; The above copyright notice and this permission notice shall be included in all; AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER | [origem](https://github.com/marklawlor/nativewind) |
 | pdf-lib | 1.17.1 | MIT | Copyright (c) 2019 Andrew Dillon; The above copyright notice and this permission notice shall be included in all; AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER | [origem](https://github.com/Hopding/pdf-lib) |
@@ -895,7 +895,7 @@ Apache License
 O pacote não forneceu um arquivo LICENSE/NOTICE na instalação auditada; consulte os metadados e o repositório do pacote antes da distribuição.
 ```
 
-### MIT — fast-xml-parser@5.11.0
+### MIT — fast-xml-parser@5.12.0
 
 ```text
 --- LICENSE ---
