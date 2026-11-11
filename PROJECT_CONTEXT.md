@@ -115,6 +115,12 @@ Persistência (legado mantido, não renomear `kindle-*`/`@kindle/*`): Native SQL
   `test-flashcards`, `test-flashcard-sessions`, `test-flashcard-battles`, `test-battle-account`, `test-ui-primitives` PASS; `export:web` PASS; Chromium PASS:
   `test:source-library:browser`, `test:saas:web`. Sessão de estudo vista em fixture de rascunho (pergunta/resposta/resumo, `.expo/redesign-step5/study/`).
   Batalha SEM cobertura de navegador (exige partida remota); só typecheck e testes de lógica. Android NÃO TESTADO.
+- **APK de ensaio do HEAD `cde4ce8` (11/11, redesenho + melhorias A–D)**: `device-rehearsal`, árvore limpa, Gradle 3 min 33 s (log
+  `.expo/apk-cde4ce8-build.log`). `artifacts/apk/Aldus-cde4ce8-device-rehearsal.apk` (ignorado), 254.201.812 bytes, SHA-256 `7eff409f…ef1c252d`.
+  `aapt`: `com.aldus.reader` 1.0.0-beta.2/code 3, 4 ABIs, sem debuggable; manifesto com POST_NOTIFICATIONS e RECEIVE_BOOT_COMPLETED (do
+  `expo-notifications`) e filtro VIEW `content://` PDF/EPUB; o `*/*` é a consulta OPEN_DOCUMENT já existente. `apksigner`: v2, certificado
+  `fac61745…033b9c` (o do Redmi) — não é o Beta privado. dex com `expo/modules/speech`, `expo/modules/notifications`; bundle Hermes com textos
+  das ondas A–D; 34 livros. **NÃO instalado**: o Redmi segue com `ae98991`.
 - **Melhorias, Onda D (11/11, `fca5591`…D3)**: typecheck PASS; `test:critical` **108/108** (nova `pdfjs-lazy`); `export:web` PASS; Chromium PASS:
   `test:reader:{pdf,reflow,browser,markings,epub}:web`, `test:library:{web,bulk:web}`, `test:source-library:browser`. Bundle Web principal
   5656→5121 KiB (1,48→1,38 MB gzip). `npm audit --omit=dev`: 0 crít./3 altos/6 moderados/0 baixo. `redmi-qa.cjs` NÃO executado (sem aparelho).
