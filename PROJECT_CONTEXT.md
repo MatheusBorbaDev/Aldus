@@ -115,6 +115,11 @@ Persistência (legado mantido, não renomear `kindle-*`/`@kindle/*`): Native SQL
   `test-flashcards`, `test-flashcard-sessions`, `test-flashcard-battles`, `test-battle-account`, `test-ui-primitives` PASS; `export:web` PASS; Chromium PASS:
   `test:source-library:browser`, `test:saas:web`. Sessão de estudo vista em fixture de rascunho (pergunta/resposta/resumo, `.expo/redesign-step5/study/`).
   Batalha SEM cobertura de navegador (exige partida remota); só typecheck e testes de lógica. Android NÃO TESTADO.
+- **Melhorias, Onda C (11/11, `d356f61`…C3)**: typecheck PASS; `test:critical` **107/107** (novas `read-aloud`, `review-reminder`, `open-with`);
+  `export:web` PASS; Chromium PASS: 4 suítes do Reader (C1), `test:source-library:browser`, `test:saas:web`, `test:auth:web`, `test:library:{web,bulk:web}`,
+  `test:marketing:web` (d3d11). `test:library:web` falhou 1 vez por corrida do teste (sync em segundo plano grava o estado lido antes/depois) e
+  passou 2/2 em seguida. **Novos módulos nativos `expo-speech` e `expo-notifications` e filtro de intent: exigem APK novo; nada disso compilado
+  nem testado no Android.**
 - **Melhorias, Onda B (11/11, `8272a3f`…`a183048`)**: typecheck PASS; `test:critical` **104/104** (novas `native-brightness`, `reader-last-page`,
   `epub-language`, `reading-pace`); `export:web` PASS; Chromium: **as 8 suítes do Reader PASS neste PC pela primeira vez** (`reflow:web` incluída,
   BUG 20 corrigido). Fora do APK `9d03182`; Android NÃO TESTADO (hifenização no WebView, brilho nativo, tempo restante).
@@ -277,8 +282,8 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
    e etapa 3 (remover os 33 arquivos do APK/`dist`) pendentes.
    **Revisão de qualidade (09/11)**: Ondas 0–5 aprovadas concluídas (commits locais, sem push); 6 e 7 fora. R5: patches do SDK 57 aplicados
    (BUG 13); APK de ensaio `6883532` compilado e conferido (§3), **não instalado**; remover `js-polyfills` 0.76/`metro-cache` 0.81 segue pendente. Levantamento do
-   **Melhorias (11/11)**: Ondas A e B concluídas; C (voz alta, Compartilhar, lembrete — dependências nativas + APK) e D (pdf.js, dependências antigas,
-   Maestro) pendentes; rolagem contínua avaliada e adiada (segundo sistema de posição; ver log). Dependem do usuário: acervo, Play/Firebase, Redmi, Literata.
+   **Melhorias (11/11)**: Ondas A, B e C concluídas (C precisa de APK novo para valer no aparelho); D (pdf.js, dependências antigas,
+   Maestro) pendente; rolagem contínua avaliada e adiada (segundo sistema de posição; ver log). Dependem do usuário: acervo, Play/Firebase, Redmi, Literata.
    acervo entregue ao usuário (34 arquivos, 92,7 MB; 8 usados como fixture de teste), aguardando decisão do que sai; nada removido.
    Candidatos de bundle (sem decisão): pdfjs-dist duplicado no entry, reanimated só para motion cues, `react-native-render-html` em `ChapterRenderer`.
    Abertos da revisão: BUG 17 (EPUB sem `lang`/justificar; onda 6, fora), **BUG 20** (Reflow com página final em branco; motor do Reader,
@@ -310,6 +315,18 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
 
 ## 10. Log (mais recente primeiro; máx. 5 entradas, resto → docs/context/historico/)
 
+### 11/11/2026 — Melhorias, Onda C: voz alta, lembrete de revisão e "Abrir com Aldus" (Claude)
+- Dependências nativas novas (justificadas, via `expo install`, compatíveis com SDK 57): `expo-speech` ~57.0.3 (voz do sistema, offline) e
+  `expo-notifications` ~57.0.25 (notificação local; manifesto do pacote já declara POST_NOTIFICATIONS e BOOT_COMPLETED). Avisos de licença regenerados.
+- C1 `speechText.ts`/`useReadAloud`: "Ouvir a partir desta página" (Conforto) lê o capítulo atual desde a frase da posição proporcional da página,
+  no idioma declarado do capítulo, em trechos ≤3000; aviso com "Parar"; não vira páginas. O teste pegou um defeito real (pulava a frase
+  seguinte quando a posição caía entre frases); corrigido para recuar ao início da frase.
+- C2 `reviewReminder.ts`: lembrete diário 8h/12h/19h/21h no Estudo (desligado por padrão, um agendamento por vez, grava só após agendar, explica
+  bloqueio; texto sem números; oculto na Web); tocar abre `/study` (`useReviewReminderNavigation`, só rotas permitidas).
+- C3 "Abrir com Aldus" no lugar do "Compartilhar" (SEND exigiria módulo nativo de terceiros): filtro VIEW `content://` para PDF/EPUB no
+  `AndroidManifest.xml` versionado e espelhado em `app.json`; `app/+native-intent.tsx` leva a `/open-file`, que valida o endereço, exige conta e
+  usa o importador existente (formato pelos bytes). VALIDADO: ver §3. NÃO TESTADO: tudo no Android.
+
 ### 11/11/2026 — Melhorias, Onda B: motor do Reader (Claude)
 - B1 (sem mudança de comportamento): brilho nativo → `useNativeReaderBrightness` (com teste próprio) e aviso flutuante → `ReaderFeedbackBanner`;
   `ReaderScreen` 1229→1113 linhas. B2 **BUG 20 corrigido**: total de páginas pelo último conteúdo real (`lastContentPage`), não pela margem da
@@ -333,27 +350,6 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
 - `test-library-bulk-web`: falhava 3/4 também no código anterior (foco devolvido pelo menu ao fechar); agora espera o menu fechar e confere o
   foco antes da tecla espaço. VALIDADO: ver §3. NÃO TESTADO: Android.
 
-### 10/11/2026 — Redesenho, Etapa 5 (conclusão): sessão de estudo, flashcards e Batalha (Claude)
-- IMPLEMENTADO (lógica de sessão, pontuação, SRS e partidas intocada): `FlashcardStudyScreen` sobre `src/ui` (cabeçalho com voltar, cartão de
-  início com ação principal única, resumo com pontos em destaque e acerto/erro em cor de sucesso/perigo); durante as perguntas a tela não rola.
-  `FlashcardSessionView` com barra de progresso da sessão e texto do botão em `onAccent` (antes `#171A1D` fixo). Controles de confiança sem caixa
-  alta. `FlashcardCardView`/`FlashcardCreateModal`: cores fixas de texto, erro e seleção trocadas por `success`/`danger`/`onAccent`/`onDanger` do tema.
-  `app/battle.tsx`: `ScreenHeader`, `Button` do sistema com uma ação principal por estado (buscar, confirmar, consultar, nova batalha), cancelar em
-  `ghost`, títulos serifados, cartões de resultado com borda; erro em cor de perigo.
-- Teste `test-flashcard-ui` passou a carregar `src/ui` real (mocks de RN ganharam `useWindowDimensions`, `select`, `hairlineWidth`).
-- Fora: Admin (ferramenta do dono, layout Web e testes próprios); visual interno do cartão de flashcard (`FlashcardCardView`, 369 linhas) só teve as cores.
-- VALIDADO: ver §3. NÃO TESTADO: Batalha no navegador; Android.
-
-### 10/11/2026 — Redesenho, Etapa 5 (parcial): deck, Plano e Community (Claude)
-- IMPLEMENTADO: `app/decks/[deckId].tsx` reescrito sobre `src/ui` (mesma lógica de dados): cabeçalho com voltar e contagem (flashcards · prontos
-  · para revisar), **Estudar** primário (desabilitado sem flashcard pronto, com dica), criar/batalha/editar como ações comuns, renomear em
-  cartão, lista com "✓ Pronto"/"Completar" por flashcard e estados vazios. `PlanScreens.tsx`: seções viram cartões (superfície + raio),
-  títulos serifados, texto 14/21, "← Voltar aos Ajustes" discreto (rótulo acessível igual). Community `components.tsx`: `Card` como cartão,
-  título serifado, seta de voltar; todas as telas da Community herdam.
-- **PENDENTE da Etapa 5** (não feito, por tamanho/risco): `app/battle.tsx` (436 linhas), Admin (ferramenta do dono, com layout Web próprio e
-  testes de layout), componentes de flashcard (`FlashcardCardView` 369 linhas, `FlashcardCreateModal` 842 linhas com cores fixas) e sessão de estudo.
-- VALIDADO: ver §3. NÃO TESTADO: deck e Community no navegador; Android.
-
 ### 06/11/2026 — Entradas anteriores
 - Fechamento UX/UI e Onboarding 1: ver `docs/context/historico/2026-11-06-ux-fechamento-e-onboarding-1.md`.
 - Onboarding 2 (auditoria e reescrita do contexto): ver `docs/context/historico/2026-11-06-onboarding-2.md`.
@@ -373,3 +369,4 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
 - Redesenho, Etapa 2, título e avisos do Reader (10/11): ver `docs/context/historico/2026-11-10-redesenho-etapa-2.md`.
 - Redesenho, Etapa 3, menu do livro (10/11): ver `docs/context/historico/2026-11-10-redesenho-etapa-3.md`.
 - Redesenho, Etapa 4, Descobrir e Estudo (10/11): ver `docs/context/historico/2026-11-10-redesenho-etapa-4.md`.
+- Redesenho, Etapa 5, deck/Plano/Community/estudo/Batalha (10/11): ver `docs/context/historico/2026-11-10-redesenho-etapa-5.md`.

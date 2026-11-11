@@ -1,0 +1,21 @@
+// Onda C3: "Abrir com Aldus". Regras puras do caminho recebido + contrato do manifesto e das rotas. Não prova o Android real.
+const assert = require('node:assert/strict'), fs = require('node:fs');
+const load = require('./community-test-loader.cjs')({});
+const f = load('src/domain/library/incomingFile.ts');
+const pdf = 'content://com.android.providers.downloads.documents/document/raw%3A%2Fstorage%2Femulated%2F0%2FDownload%2FSobre%20a%20Ira.pdf';
+assert.equal(f.incomingFileUri(pdf), pdf);
+for (const bad of ['https://example.com/a.pdf', 'file:///sdcard/a.pdf', 'javascript:alert(1)', 'aldus://library', 'content://', 'content://x y', null, undefined, 'content://' + 'a'.repeat(5000)]) assert.equal(f.incomingFileUri(bad), null, `rejects ${String(bad).slice(0, 30)}`);
+assert.equal(f.incomingFileName(pdf), 'Sobre a Ira.pdf', 'decoded file name');
+assert.equal(f.incomingFileName('content://com.whatsapp.provider.media/item/123456'), 'Livro recebido', 'numeric ids get a neutral label');
+assert.equal(f.incomingFileName('content://x/document/primary%3ADownload%2FLivro%3Cscript%3E.epub'), 'Livroscript.epub', 'unsafe characters stripped');
+assert.equal(f.routeForSystemPath(pdf), '/open-file?uri=' + encodeURIComponent(pdf)); assert.equal(f.routeForSystemPath('aldus://library'), 'aldus://library', 'other links unchanged');
+const manifest = fs.readFileSync('android/app/src/main/AndroidManifest.xml', 'utf8');
+const filter = manifest.match(/<intent-filter>\s*<action android:name="android\.intent\.action\.VIEW"\/>\s*<category android:name="android\.intent\.category\.DEFAULT"\/>\s*<data android:scheme="content"\/>[\s\S]*?<\/intent-filter>/);
+assert.ok(filter, 'VIEW content:// filter in the manifest'); assert.match(filter[0], /application\/pdf/); assert.match(filter[0], /application\/epub\+zip/);
+assert.doesNotMatch(filter[0], /octet-stream|\*\/\*|BROWSABLE/, 'only PDF/EPUB documents, not a catch-all and not from the browser');
+const app = JSON.parse(fs.readFileSync('app.json', 'utf8')); assert.deepEqual(app.expo.android.intentFilters[0].data.map(d => d.mimeType), ['application/pdf', 'application/epub+zip'], 'app.json mirrors the manifest');
+assert.match(fs.readFileSync('app/+native-intent.tsx', 'utf8'), /export function redirectSystemPath/);
+const screen = fs.readFileSync('app/open-file.tsx', 'utf8');
+assert.match(screen, /<AuthGuard>/, 'imports only inside the signed-in account'); assert.match(screen, /incomingFileUri\(/, 'validates the parameter again on the route');
+assert.match(screen, /localBookImporter\.import\(/, 'reuses the existing importer (format detected by bytes)');
+console.log('PASS open with Aldus: content:// only, safe display name, route mapping, manifest PDF/EPUB filter mirrored in app.json, guarded route reusing the importer. Android delivery NOT TESTED.');

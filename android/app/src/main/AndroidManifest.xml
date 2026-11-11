@@ -28,6 +28,14 @@
         <data android:scheme="aldus"/>
         <data android:scheme="exp+aldus-reader"/>
       </intent-filter>
+      <!-- "Abrir com Aldus": PDF/EPUB entregues por outros apps como content:// (onda C3; espelhado em app.json). -->
+      <intent-filter>
+        <action android:name="android.intent.action.VIEW"/>
+        <category android:name="android.intent.category.DEFAULT"/>
+        <data android:scheme="content"/>
+        <data android:mimeType="application/pdf"/>
+        <data android:mimeType="application/epub+zip"/>
+      </intent-filter>
     </activity>
   </application>
 </manifest>
