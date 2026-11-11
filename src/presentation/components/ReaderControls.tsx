@@ -14,6 +14,7 @@ interface Props {
   chapterTitle: string;
   progress: number;
   hideReadingCounts?: boolean;
+  timeLeftLabel?: string | null;
   pageNumber: number;
   totalPages: number;
   accent: string;
@@ -95,6 +96,7 @@ export function ReaderControls(readerProps: Props) {
             operationId={props.operationId}
             controlsVisible={props.visible}
             hideReadingCounts={props.hideReadingCounts}
+            timeLeftLabel={props.timeLeftLabel}
             layoutMode={props.layoutMode}
             progress={props.progress}
             pageNumber={props.pageNumber}
@@ -136,6 +138,7 @@ export function ReaderControls(readerProps: Props) {
         operationId={props.operationId}
         controlsVisible={props.visible}
         hideReadingCounts={props.hideReadingCounts}
+        timeLeftLabel={props.timeLeftLabel}
         layoutMode={props.layoutMode}
         progress={props.progress}
         pageNumber={props.pageNumber}

@@ -20,6 +20,8 @@ interface Props {
   operationId?: number;
   controlsVisible?: boolean;
   hideReadingCounts?: boolean;
+  /** Tempo restante no capítulo, só quando há ritmo medido (ver useChapterTimeLeft). */
+  timeLeftLabel?: string | null;
 }
 
 /** Hex #RRGGBB + alfa; outras notações (nome, rgb) seguem sem transparência em vez de virarem cor inválida. */
@@ -40,6 +42,7 @@ export function BottomFooter({
   operationId = 0,
   controlsVisible = true,
   hideReadingCounts = false,
+  timeLeftLabel = null,
 }: Props) {
   const insets = useSafeAreaInsets();
   const paddingBottom = Platform.OS === "web" ? 20 : Math.max(insets.bottom, 20);
@@ -107,7 +110,7 @@ export function BottomFooter({
         style={[styles.meta, hideReadingCounts && { opacity: 0 }]}
       >
         <Text style={[styles.label, { color: secondaryText }]}>
-          {Math.round(shownProgress * 100)}% lido
+          {Math.round(shownProgress * 100)}% lido{timeLeftLabel && preview === null && requestedPage == null ? ` · ${timeLeftLabel}` : ""}
         </Text>
         <Text style={[styles.label, { color: secondaryText }]}>
           {totalPages > 0 ? `${preview !== null ? "Prévia" : requestedPage != null ? "Destino" : "Página"} ${previewPage} de ${totalPages}` : "Calculando páginas..."}

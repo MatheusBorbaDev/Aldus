@@ -1,0 +1,23 @@
+// Onda B4: tempo restante no capítulo a partir do ritmo medido (sem ritmo, sem estimativa).
+const assert = require('node:assert/strict'), fs = require('node:fs');
+const load = require('./community-test-loader.cjs')({});
+const p = load('src/domain/reader/readingPace.ts');
+const t = (page, s) => ({ page, at: s * 1000 });
+assert.equal(p.paceSample(null, t(2, 10)), null);
+assert.equal(p.paceSample(t(1, 0), t(2, 40)), 40, 'next page after 40 s');
+assert.equal(p.paceSample(t(1, 0), t(3, 40)), null, 'jumps do not count'); assert.equal(p.paceSample(t(2, 0), t(1, 40)), null, 'going back does not count');
+assert.equal(p.paceSample(t(1, 0), t(2, 1)), null, 'skimming (<3 s) ignored'); assert.equal(p.paceSample(t(1, 0), t(2, 700)), null, 'pause (>10 min) ignored');
+assert.equal(p.secondsPerPage([30, 40, 50, 60]), null, 'needs 5 samples'); assert.equal(p.secondsPerPage([30, 40, 50, 60, 600]), 50, 'median resists one long read');
+assert.equal(p.addPaceSample(Array.from({ length: 30 }, (_, i) => i + 3), 99).length, 30);
+const locations = [{ chapterIndex: 0, pageNumber: 1 }, { chapterIndex: 1, pageNumber: 10 }, { chapterIndex: 2, pageNumber: 25 }];
+assert.equal(p.pagesLeftInChapter(locations, 1, 12, 40), 13, 'pages until chapter 2 starts at 25 (including current)');
+assert.equal(p.pagesLeftInChapter(locations, 2, 30, 40), 11, 'last chapter ends with the book'); assert.equal(p.pagesLeftInChapter(locations, 7, 3, 40), null, 'unknown chapter');
+assert.equal(p.formatTimeLeft(20), 'menos de 1 min'); assert.equal(p.formatTimeLeft(6 * 60), '≈ 6 min'); assert.equal(p.formatTimeLeft(65 * 60), '≈ 1 h 5 min'); assert.equal(p.formatTimeLeft(120 * 60), '≈ 2 h');
+assert.equal(p.chapterTimeLeftLabel([30, 30, 30], locations, 1, 12, 40), null, 'not enough pace → no label');
+assert.equal(p.chapterTimeLeftLabel([30, 30, 30, 30, 30], locations, 1, 12, 40), '≈ 7 min neste capítulo', '13 pages × 30 s = 6.5 min');
+const footer = fs.readFileSync('src/presentation/components/BottomFooter.tsx', 'utf8'), screen = fs.readFileSync('src/presentation/screens/ReaderScreen.tsx', 'utf8'), hook = fs.readFileSync('src/presentation/hooks/useChapterTimeLeft.ts', 'utf8');
+assert.match(footer, /timeLeftLabel && preview === null && requestedPage == null/, 'hidden while previewing a slider target');
+assert.match(footer, /style=\{\[styles\.meta, hideReadingCounts && \{ opacity: 0 \}\]\}/, 'hidden together with the counts');
+assert.match(screen, /enabled: bookStatus === "ready" && \(isEpub \|\| isReflowPdf\) && !studySelecting/, 'EPUB and Reflow only (chapters measured)');
+assert.match(hook, /"@kindle\/reading-pace\.v1"/);
+console.log('PASS reading pace: forward-page samples 3 s–10 min, median of ≥5, pages to next chapter, pt-BR label, null without measured pace; footer/visibility wiring.');

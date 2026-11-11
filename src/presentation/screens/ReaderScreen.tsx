@@ -7,6 +7,7 @@ import { Highlight } from "@/src/domain/repositories/HighlightRepository";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { latestWriteTracker } from "@/src/core/utils/latestWrite";
 import { useNativeReaderBrightness } from "@/src/presentation/hooks/useNativeReaderBrightness";
+import { useChapterTimeLeft } from "@/src/presentation/hooks/useChapterTimeLeft";
 import { ReaderFeedbackBanner } from "@/src/presentation/components/reader/ReaderFeedbackBanner";
 
 import { readableBookTitle } from "@/src/presentation/services/bookDisplay";
@@ -628,6 +629,8 @@ export function ReaderScreen({ bookId }: Props) {
     ? epubPage
     : estimatePageNumber(progress * totalCharacters, totalCharacters, totalPages);
 
+  // Tempo restante no capítulo (EPUB e Leitura Livre, que têm capítulos medidos). Só exibição; não toca posição nem documento.
+  const timeLeftLabel = useChapterTimeLeft({ enabled: bookStatus === "ready" && (isEpub || isReflowPdf) && !studySelecting, page: epubPage, totalPages: epubTotalPages, chapterIndex: epubChapterIndex, chapterLocations });
   const displayedTotalPages = isPdf && !isReflowPdf
     ? pdfTotalPages
     : isEpub || isReflowPdf
@@ -955,6 +958,7 @@ export function ReaderScreen({ bookId }: Props) {
   );
   const readerControlProps = {
     hideReadingCounts: settings.hideReadingCounts,
+    timeLeftLabel,
     requestedPage,
     operationId: requestedNavigationId.current,
     diagnosticContext: { mode: isPdf ? (isReflowPdf ? "reflow" : "original") : "epub", controlsVisible, reflowPreparing, feedback: Boolean(reflowFeedback) } as ReaderUiContext,
