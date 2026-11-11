@@ -25,8 +25,10 @@
 | expo-linear-gradient | 57.0.2 | MIT | Copyright (c) 2015-present 650 Industries, Inc. (aka Expo); The above copyright notice and this permission notice shall be included in all; AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER | [origem](https://github.com/expo/expo) |
 | expo-linking | 57.0.13 | MIT | Copyright (c) 2015-present 650 Industries, Inc. (aka Expo); The above copyright notice and this permission notice shall be included in all; AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER | [origem](https://github.com/expo/expo) |
 | expo-network | 57.0.3 | MIT | Copyright (c) 2015-present 650 Industries, Inc. (aka Expo); The above copyright notice and this permission notice shall be included in all; AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER | [origem](https://github.com/expo/expo) |
+| expo-notifications | 57.0.25 | MIT | Copyright (c) 2015-present 650 Industries, Inc. (aka Expo); The above copyright notice and this permission notice shall be included in all; AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER | [origem](https://github.com/expo/expo) |
 | expo-router | 57.0.30 | MIT | não destacado no arquivo | [origem](https://github.com/expo/expo) |
 | expo-sensors | 57.0.3 | MIT | Copyright (c) 2015-present 650 Industries, Inc. (aka Expo); The above copyright notice and this permission notice shall be included in all; AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER | [origem](https://github.com/expo/expo) |
+| expo-speech | 57.0.3 | MIT | Copyright (c) 2015-present 650 Industries, Inc. (aka Expo); The above copyright notice and this permission notice shall be included in all; AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER | [origem](https://github.com/expo/expo) |
 | expo-sqlite | 57.0.4 | MIT | Copyright (c) 2015-present 650 Industries, Inc. (aka Expo); The above copyright notice and this permission notice shall be included in all; AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER | [origem](https://github.com/expo/expo) |
 | fast-xml-parser | 5.11.0 | MIT | Copyright (c) 2017 Amit Kumar Gupta; The above copyright notice and this permission notice shall be included in all; AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER | [origem](https://github.com/NaturalIntelligence/fast-xml-parser) |
 | jszip | 3.10.1 | (MIT OR GPL-3.0-or-later) | Copyright (c) 2009-2016 Stuart Knightley, David Duponchel, Franz Buchinger, António Afonso; The above copyright notice and this permission notice shall be included in; AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER; Copyright (C) 2007 Free Software Foundation, Inc. <http://fsf.org/> | [origem](https://github.com/Stuk/jszip) |
@@ -974,7 +976,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### MIT — expo@57.0.32, expo-asset@57.0.21, expo-brightness@57.0.2, expo-constants@57.0.23, expo-dev-client@57.0.21, expo-document-picker@57.0.3, expo-file-system@57.0.7, expo-font@57.0.4, expo-linear-gradient@57.0.2, expo-linking@57.0.13, expo-network@57.0.3, expo-sensors@57.0.3, expo-sqlite@57.0.4
+### MIT — expo@57.0.32, expo-asset@57.0.21, expo-brightness@57.0.2, expo-constants@57.0.23, expo-dev-client@57.0.21, expo-document-picker@57.0.3, expo-file-system@57.0.7, expo-font@57.0.4, expo-linear-gradient@57.0.2, expo-linking@57.0.13, expo-network@57.0.3, expo-notifications@57.0.25, expo-sensors@57.0.3, expo-speech@57.0.3, expo-sqlite@57.0.4
 
 ```text
 --- LICENSE ---

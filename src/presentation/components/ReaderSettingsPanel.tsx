@@ -22,6 +22,10 @@ interface Props {
   panelMode: "appearance" | "contents" | "search";
   onClose: () => void;
   onReadInFocus?: () => void;
+  /** Leitura em voz alta (onda C1): começa na página atual; `listening` alterna o botão para "Parar". */
+  onListen?: () => void;
+  onStopListening?: () => void;
+  listening?: boolean;
   pdfMode?: PdfReadingMode;
   pdfSettings?: PdfReaderSettings | null;
   onPdfModeChange?: (mode: PdfReadingMode) => void;
@@ -69,6 +73,9 @@ export function ReaderSettingsPanel({
   panelMode,
   onClose,
   onReadInFocus,
+  onListen,
+  onStopListening,
+  listening = false,
   pdfMode,
   pdfSettings,
   onPdfModeChange,
@@ -410,6 +417,9 @@ export function ReaderSettingsPanel({
                 <Switch accessibilityLabel="Ocultar porcentagem e contagem de páginas" value={settings.hideReadingCounts} onValueChange={settings.setHideReadingCounts} thumbColor={settings.hideReadingCounts ? palette.accent : palette.panel} trackColor={{ false: palette.separator, true: palette.accent }} />
               </View>
               {onReadInFocus ? <ActionButton label="Ler em foco" onPress={onReadInFocus} palette={palette} /> : null}
+              {listening && onStopListening ? <ActionButton label="Parar leitura em voz alta" onPress={onStopListening} palette={palette} />
+                : onListen ? <ActionButton label="Ouvir a partir desta página" onPress={onListen} palette={palette} /> : null}
+              {onListen ? <Text style={[styles.hint, { color: palette.secondaryText }]}>Usa a voz do aparelho, sem internet. As páginas não viram sozinhas durante a leitura.</Text> : null}
               <MotionCuesControl color={palette.text} />
             </View>
           ) : null}

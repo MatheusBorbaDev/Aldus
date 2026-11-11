@@ -1,7 +1,7 @@
 // Deterministic suites only. Browser/physical/remote QA are separate, never silently claimed.
 const { spawnSync } = require('node:child_process');
 const tests = [
-  'app-design', 'ui-primitives', 'discover-ui', 'error-boundary', 'source-presentation', 'preference-persistence', 'book-display', 'study-review', 'highlight-flashcard', 'reading-shelves', 'reader-theme-auto', 'review-history', 'first-steps', 'native-brightness', 'reader-last-page', 'epub-language', 'reading-pace',
+  'app-design', 'ui-primitives', 'discover-ui', 'error-boundary', 'source-presentation', 'preference-persistence', 'book-display', 'study-review', 'highlight-flashcard', 'reading-shelves', 'reader-theme-auto', 'review-history', 'first-steps', 'native-brightness', 'reader-last-page', 'epub-language', 'reading-pace', 'read-aloud',
   'library-bulk',
   'beta-preparation', 'metro-test-isolation', 'pt-br', 'marketing', 'cinematic-book', 'book-scroll-controller', 'admin-security', 'admin-client', 'admin-presentation', 'admin-layout',
   'saas-quotas', 'saas-quota-client', 'saas-quota-driver',

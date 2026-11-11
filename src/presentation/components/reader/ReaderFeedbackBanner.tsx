@@ -5,8 +5,9 @@ import { ReaderPalette } from "@/src/theme/tokens";
  * Aviso flutuante do Reader (extraído do ReaderScreen, onda B1). `transient`: confirmação curta, estreita e sem botão (some sozinha
  * no ReaderScreen); senão é um alerta que fica até o leitor fechar. Não intercepta toques fora da própria faixa.
  */
-export function ReaderFeedbackBanner({ message, transient, palette, top, onDismiss, onLayout }: {
+export function ReaderFeedbackBanner({ message, transient, palette, top, onDismiss, onLayout, actionLabel = "Fechar", actionAccessibilityLabel = "Fechar aviso" }: {
   message: string; transient: boolean; palette: ReaderPalette; top: number; onDismiss: () => void; onLayout?: (event: LayoutChangeEvent) => void;
+  /** Texto do botão (ex.: "Parar" na leitura em voz alta). */ actionLabel?: string; actionAccessibilityLabel?: string;
 }) {
   return (
     <View
@@ -17,8 +18,8 @@ export function ReaderFeedbackBanner({ message, transient, palette, top, onDismi
     >
       <Text accessibilityLiveRegion="polite" style={[styles.reflowFeedbackText, { color: palette.text }]}>{message}</Text>
       {transient ? null : (
-        <Pressable accessibilityRole="button" accessibilityLabel="Fechar aviso" onPress={onDismiss} style={styles.reflowFeedbackClose}>
-          <Text style={{ color: palette.accent, fontWeight: "600" }}>Fechar</Text>
+        <Pressable accessibilityRole="button" accessibilityLabel={actionAccessibilityLabel} onPress={onDismiss} style={styles.reflowFeedbackClose}>
+          <Text style={{ color: palette.accent, fontWeight: "600" }}>{actionLabel}</Text>
         </Pressable>
       )}
     </View>

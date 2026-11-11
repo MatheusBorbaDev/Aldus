@@ -212,6 +212,18 @@ export const thirdPartyPackages: ThirdPartyPackageNotice[] = [
     "groupId": "mit-223b647ce074"
   },
   {
+    "name": "expo-notifications",
+    "version": "57.0.25",
+    "license": "MIT",
+    "repository": "https://github.com/expo/expo",
+    "copyright": [
+      "Copyright (c) 2015-present 650 Industries, Inc. (aka Expo)",
+      "The above copyright notice and this permission notice shall be included in all",
+      "AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER"
+    ],
+    "groupId": "mit-223b647ce074"
+  },
+  {
     "name": "expo-router",
     "version": "57.0.30",
     "license": "MIT",
@@ -221,6 +233,18 @@ export const thirdPartyPackages: ThirdPartyPackageNotice[] = [
   },
   {
     "name": "expo-sensors",
+    "version": "57.0.3",
+    "license": "MIT",
+    "repository": "https://github.com/expo/expo",
+    "copyright": [
+      "Copyright (c) 2015-present 650 Industries, Inc. (aka Expo)",
+      "The above copyright notice and this permission notice shall be included in all",
+      "AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER"
+    ],
+    "groupId": "mit-223b647ce074"
+  },
+  {
+    "name": "expo-speech",
     "version": "57.0.3",
     "license": "MIT",
     "repository": "https://github.com/expo/expo",
@@ -523,7 +547,9 @@ export const thirdPartyNoticeGroups: ThirdPartyNoticeGroup[] = [
       "expo-linear-gradient@57.0.2",
       "expo-linking@57.0.13",
       "expo-network@57.0.3",
+      "expo-notifications@57.0.25",
       "expo-sensors@57.0.3",
+      "expo-speech@57.0.3",
       "expo-sqlite@57.0.4"
     ],
     "text": "--- LICENSE ---\nThe MIT License (MIT)\n\nCopyright (c) 2015-present 650 Industries, Inc. (aka Expo)\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software\"), to deal\nin the Software without restriction, including without limitation the rights\nto use, copy, modify, merge, publish, distribute, sublicense, and/or sell\ncopies of the Software, and to permit persons to whom the Software is\nfurnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all\ncopies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\nFITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\nAUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\nLIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\nOUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\nSOFTWARE."

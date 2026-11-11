@@ -8,6 +8,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { latestWriteTracker } from "@/src/core/utils/latestWrite";
 import { useNativeReaderBrightness } from "@/src/presentation/hooks/useNativeReaderBrightness";
 import { useChapterTimeLeft } from "@/src/presentation/hooks/useChapterTimeLeft";
+import { useReadAloud } from "@/src/presentation/hooks/useReadAloud";
+import { htmlToSpeechText, speechStartOffset } from "@/src/domain/reader/speechText";
+import { chapterLanguage } from "@/src/presentation/components/EpubReaderDocument";
 import { ReaderFeedbackBanner } from "@/src/presentation/components/reader/ReaderFeedbackBanner";
 
 import { readableBookTitle } from "@/src/presentation/services/bookDisplay";
@@ -631,6 +634,20 @@ export function ReaderScreen({ bookId }: Props) {
 
   // Tempo restante no capítulo (EPUB e Leitura Livre, que têm capítulos medidos). Só exibição; não toca posição nem documento.
   const timeLeftLabel = useChapterTimeLeft({ enabled: bookStatus === "ready" && (isEpub || isReflowPdf) && !studySelecting, page: epubPage, totalPages: epubTotalPages, chapterIndex: epubChapterIndex, chapterLocations });
+  // Leitura em voz alta (onda C1): texto do capítulo atual a partir da posição proporcional da página; não navega nem grava posição.
+  const readAloud = useReadAloud();
+  const listen = useCallback(() => {
+    const source = isEpub ? chapters : isReflowPdf ? pdfReflowChapters : [];
+    const chapter = source[epubChapterIndex];
+    if (!chapter) return;
+    const sorted = [...chapterLocations].sort((a, b) => a.pageNumber - b.pageNumber);
+    const here = sorted.findIndex(item => item.chapterIndex === epubChapterIndex);
+    const chapterStart = here >= 0 ? sorted[here].pageNumber : epubPage;
+    const nextStart = here >= 0 ? sorted.slice(here + 1).find(item => item.pageNumber > chapterStart)?.pageNumber ?? epubTotalPages + 1 : epubPage + 1;
+    const text = htmlToSpeechText(chapter.html);
+    readAloud.start(text.slice(speechStartOffset(text, epubPage, chapterStart, nextStart)), chapterLanguage(chapter.html));
+    setReaderPanel(null);
+  }, [chapterLocations, chapters, epubChapterIndex, epubPage, epubTotalPages, isEpub, isReflowPdf, pdfReflowChapters, readAloud]);
   const displayedTotalPages = isPdf && !isReflowPdf
     ? pdfTotalPages
     : isEpub || isReflowPdf
@@ -1038,7 +1055,17 @@ export function ReaderScreen({ bookId }: Props) {
           />
         ) : null}
 
-        {reflowFeedback ? (
+        {readAloud.speaking || readAloud.error ? (
+          <ReaderFeedbackBanner
+            message={readAloud.error ?? "Lendo em voz alta…"}
+            transient={false}
+            palette={activePalette}
+            top={readerFeedbackTop(insets.top, controlsVisible && !studySelecting, headerHeight)}
+            actionLabel={readAloud.error ? "Fechar" : "Parar"}
+            actionAccessibilityLabel={readAloud.error ? "Fechar aviso" : "Parar leitura em voz alta"}
+            onDismiss={readAloud.stop}
+          />
+        ) : reflowFeedback ? (
           <ReaderFeedbackBanner
             message={reflowFeedback}
             transient={transientFeedback}
@@ -1055,6 +1082,9 @@ export function ReaderScreen({ bookId }: Props) {
           panelMode={readerPanel ?? "appearance"}
           onClose={() => setReaderPanel(null)}
           onReadInFocus={() => { setReaderPanel(null); setControlsVisible(false); }}
+          onListen={isEpub || isReflowPdf ? listen : undefined}
+          onStopListening={readAloud.stop}
+          listening={readAloud.speaking}
           pdfMode={isPdf ? pdfReadingMode : undefined}
           pdfSettings={isPdf ? pdfReaderSettings : null}
           onPdfModeChange={isPdf ? handlePdfModeChange : undefined}
