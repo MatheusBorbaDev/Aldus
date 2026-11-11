@@ -9,6 +9,7 @@ import { defaultPdfReaderSettings, PdfReaderSettings, PdfReadingMode } from "@/s
 import { fontFamilies, pdfReaderThemes, readerThemes } from "@/src/theme/tokens";
 import { PdfReaderTheme } from "@/src/domain/types/pdfReader";
 import { readerUiDiagnostic } from "@/src/utils/readerUiDiagnostics";
+import { FOCUS_GOAL_MINUTES } from "@/src/domain/reader/readingSession";
 
 /**
  * Ajustes de leitura (redesenho, etapa 1). Folha baixa: o texto continua visível atrás para o leitor ver o efeito.
@@ -21,7 +22,15 @@ interface Props {
   visible: boolean;
   panelMode: "appearance" | "contents" | "search";
   onClose: () => void;
-  onReadInFocus?: () => void;
+  /** "Ler em foco": sem argumento só esconde os controles; com minutos começa uma sessão de foco medida (Fase 2). */
+  onReadInFocus?: (minutes?: number | null) => void;
+  /** Minutos de foco que faltam (tempo ativo medido) ou null sem foco em andamento. */
+  focusMinutesLeft?: number | null;
+  onEndFocus?: () => void;
+  focusSummaryEnabled?: boolean;
+  onFocusSummaryChange?: (value: boolean) => void;
+  /** Só Android: abre a tela "Não perturbe" do sistema, sem permissão especial. */
+  onOpenDoNotDisturb?: () => void;
   /** Leitura em voz alta (onda C1): começa na página atual; `listening` alterna o botão para "Parar". */
   onListen?: () => void;
   onStopListening?: () => void;
@@ -74,6 +83,11 @@ export function ReaderSettingsPanel({
   panelMode,
   onClose,
   onReadInFocus,
+  focusMinutesLeft = null,
+  onEndFocus,
+  focusSummaryEnabled = true,
+  onFocusSummaryChange,
+  onOpenDoNotDisturb,
   onListen,
   onStopListening,
   listening = false,
@@ -417,7 +431,28 @@ export function ReaderSettingsPanel({
                 </View>
                 <Switch accessibilityLabel="Ocultar porcentagem e contagem de páginas" value={settings.hideReadingCounts} onValueChange={settings.setHideReadingCounts} thumbColor={settings.hideReadingCounts ? palette.accent : palette.panel} trackColor={{ false: palette.separator, true: palette.accent }} />
               </View>
-              {onReadInFocus ? <ActionButton label="Ler em foco" onPress={onReadInFocus} palette={palette} /> : null}
+              {onReadInFocus ? <ActionButton label="Ler em foco" onPress={() => onReadInFocus()} palette={palette} /> : null}
+              {onReadInFocus && focusMinutesLeft === null ? (
+                <Field label="Ler em foco por" palette={palette}>
+                  <View style={styles.segmented}>
+                    {FOCUS_GOAL_MINUTES.map(minutes => (
+                      <Segment key={minutes} label={`${minutes} min`} selected={false} palette={palette} onPress={() => onReadInFocus(minutes)} />
+                    ))}
+                  </View>
+                </Field>
+              ) : null}
+              {onReadInFocus && focusMinutesLeft !== null && onEndFocus ? (
+                <ActionButton label={settings.hideReadingCounts ? "Encerrar foco" : `Encerrar foco (faltam ${focusMinutesLeft} min)`} accessibilityLabel="Encerrar foco" onPress={onEndFocus} palette={palette} />
+              ) : null}
+              {onReadInFocus ? <Text style={[styles.hint, { color: palette.secondaryText }]}>Conta só tempo de leitura ativa: parado por mais de 3 minutos ou fora do app não conta. Fica guardado só neste aparelho.</Text> : null}
+              {onFocusSummaryChange ? (
+                <View style={styles.toggleRow}>
+                  <View style={styles.toggleCopy}><Text style={{ color: palette.text }}>Mostrar resumo ao terminar o foco</Text></View>
+                  <Switch accessibilityLabel="Mostrar resumo ao terminar o foco" value={focusSummaryEnabled} onValueChange={onFocusSummaryChange} thumbColor={focusSummaryEnabled ? palette.accent : palette.panel} trackColor={{ false: palette.separator, true: palette.accent }} />
+                </View>
+              ) : null}
+              {onOpenDoNotDisturb ? <ActionButton label="Abrir Não perturbe do Android" onPress={onOpenDoNotDisturb} palette={palette} /> : null}
+              {onOpenDoNotDisturb ? <Text style={[styles.hint, { color: palette.secondaryText }]}>Abre a tela do sistema; o Aldus não muda essa configuração.</Text> : null}
               {listening && onStopListening ? <ActionButton label="Parar leitura em voz alta" onPress={onStopListening} palette={palette} />
                 : onListen ? <ActionButton label="Ouvir a partir desta página" onPress={onListen} palette={palette} /> : null}
               {onListen ? <Text style={[styles.hint, { color: palette.secondaryText }]}>Usa a voz do aparelho, sem internet. As páginas não viram sozinhas durante a leitura.</Text> : null}

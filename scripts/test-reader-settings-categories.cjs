@@ -20,6 +20,7 @@ new Function('require', 'exports', ts.transpileModule(source, { compilerOptions:
   if (name.includes('ReaderSettingsSlider')) return { ReaderSettingsSlider: 'Slider' };
   if (name.includes('MotionCuesControl')) return { MotionCuesControl: 'Motion' };
   if (name.includes('readerUiDiagnostics')) return { readerUiDiagnostic() {} };
+  if (name.includes('reader/readingSession')) return { FOCUS_GOAL_MINUTES: [10, 15, 25, 45] };
   if (name.includes('/tokens')) return { pdfReaderThemes: themesMap, readerThemes: themesMap, fontFamilies: { serif: 'Georgia', sans: 'System', dyslexic: 'Verdana' } };
   return {};
 }, output);
@@ -55,6 +56,22 @@ new Function('require', 'exports', ts.transpileModule(source, { compilerOptions:
   const auto = byLabel('Usar brilho do aparelho'); assert.equal(auto.props.accessibilityState.checked, true); await act(async () => auto.props.onPress()); assert.deepEqual(changes.at(-1), ['UseSystemBrightness', false]);
   const hide = tree.root.findAllByType('Switch').find(x => x.props.accessibilityLabel === 'Ocultar porcentagem e contagem de páginas'); await act(async () => hide.props.onValueChange(true)); assert.deepEqual(changes.at(-1), ['HideReadingCounts', true]);
   await act(async () => byLabel('Ler em foco').props.onPress()); assert.equal(focused, 1);
+  // Fase 2: "Ler em foco por X min", encerrar com minutos ocultáveis, resumo desligável e Não perturbe só quando oferecido (Android).
+  { const goals = [], summary = [], dnd = []; let ended = 0, focusTree;
+    const focusProps = extra => ({ visible: true, panelMode: 'appearance', onClose() {}, onReadInFocus: minutes => goals.push(minutes), onEndFocus: () => ended++, focusSummaryEnabled: true, onFocusSummaryChange: value => summary.push(value), ...extra });
+    await act(async () => { focusTree = create(React.createElement(output.ReaderSettingsPanel, focusProps({ focusMinutesLeft: null }))); });
+    const fLabel = label => focusTree.root.findAllByType('Pressable').find(x => x.props.accessibilityLabel === label);
+    for (const minutes of [10, 15, 25, 45]) { await act(async () => fLabel(`${minutes} min`).props.onPress()); }
+    assert.deepEqual(goals, [10, 15, 25, 45]); assert.equal(fLabel('Abrir Não perturbe do Android'), undefined, 'sem atalho quando não oferecido (Web/iOS)');
+    await act(async () => focusTree.root.findAllByType('Switch').find(x => x.props.accessibilityLabel === 'Mostrar resumo ao terminar o foco').props.onValueChange(false)); assert.deepEqual(summary, [false]);
+    await act(async () => focusTree.update(React.createElement(output.ReaderSettingsPanel, focusProps({ focusMinutesLeft: 7, onOpenDoNotDisturb: () => dnd.push(1) }))));
+    assert.equal(fLabel('10 min'), undefined, 'com foco em andamento não oferece outra meta');
+    assert.ok(focusTree.root.findAllByType('Text').some(t => t.children.join('') === 'Encerrar foco (faltam 7 min)'));
+    await act(async () => fLabel('Encerrar foco').props.onPress()); assert.equal(ended, 1);
+    await act(async () => fLabel('Abrir Não perturbe do Android').props.onPress()); assert.deepEqual(dnd, [1]);
+    settings.hideReadingCounts = true; await act(async () => focusTree.update(React.createElement(output.ReaderSettingsPanel, focusProps({ focusMinutesLeft: 7 }))));
+    assert.ok(!focusTree.root.findAllByType('Text').some(t => /faltam/.test(t.children.join(''))), 'minutos de foco somem com "Ocultar porcentagem e páginas"');
+    settings.hideReadingCounts = false; await act(async () => focusTree.unmount()); }
   const close = byLabel('Fechar ajustes de leitura'); assert(!close.parent.findAllByType('ScrollView').length, 'Close remains outside scroll content');
   // BUG 15: the saved legacy 1.5/0.8 are not options, so nothing is marked and nothing is rewritten.
   const segmentsFor = label => { const heading = tree.root.findAllByType('Text').find(t => t.children.join('') === label); return heading.parent.findAllByType('Pressable'); };

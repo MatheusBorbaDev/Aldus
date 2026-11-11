@@ -8,6 +8,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { latestWriteTracker } from "@/src/core/utils/latestWrite";
 import { useNativeReaderBrightness } from "@/src/presentation/hooks/useNativeReaderBrightness";
 import { useChapterTimeLeft } from "@/src/presentation/hooks/useChapterTimeLeft";
+import { openSystemDoNotDisturb, useReadingSession } from "@/src/presentation/hooks/useReadingSession";
 import { useReadAloud } from "@/src/presentation/hooks/useReadAloud";
 import { htmlToSpeechText, speechStartOffset } from "@/src/domain/reader/speechText";
 import { chapterLanguage } from "@/src/presentation/components/EpubReaderDocument";
@@ -634,6 +635,9 @@ export function ReaderScreen({ bookId }: Props) {
 
   // Tempo restante no capítulo (EPUB e Leitura Livre, que têm capítulos medidos). Só exibição; não toca posição nem documento.
   const timeLeftLabel = useChapterTimeLeft({ enabled: bookStatus === "ready" && (isEpub || isReflowPdf) && !studySelecting, page: epubPage, totalPages: epubTotalPages, chapterIndex: epubChapterIndex, chapterLocations });
+  // Sessão de leitura medida e "Ler em foco por X min" (Fase 2). Só mede; não toca posição, documento nem progresso.
+  const readingSession = useReadingSession({ bookId, format: isReflowPdf ? "reflow" : isPdf ? "pdf" : "epub", ready: bookStatus === "ready", page: pageNumber });
+  const focusLabel = readingSession.focusLeft !== null ? `foco: ${readingSession.focusLeft} min` : null;
   // Leitura em voz alta (onda C1): texto do capítulo atual a partir da posição proporcional da página; não navega nem grava posição.
   const readAloud = useReadAloud();
   const listen = useCallback(() => {
@@ -975,7 +979,7 @@ export function ReaderScreen({ bookId }: Props) {
   );
   const readerControlProps = {
     hideReadingCounts: settings.hideReadingCounts,
-    timeLeftLabel,
+    timeLeftLabel: [timeLeftLabel, focusLabel].filter(Boolean).join(" · ") || null,
     requestedPage,
     operationId: requestedNavigationId.current,
     diagnosticContext: { mode: isPdf ? (isReflowPdf ? "reflow" : "original") : "epub", controlsVisible, reflowPreparing, feedback: Boolean(reflowFeedback) } as ReaderUiContext,
@@ -1065,6 +1069,15 @@ export function ReaderScreen({ bookId }: Props) {
             actionAccessibilityLabel={readAloud.error ? "Fechar aviso" : "Parar leitura em voz alta"}
             onDismiss={readAloud.stop}
           />
+        ) : readingSession.summary ? (
+          <ReaderFeedbackBanner
+            message={readingSession.summary}
+            transient={false}
+            palette={activePalette}
+            top={readerFeedbackTop(insets.top, controlsVisible && !studySelecting, headerHeight)}
+            actionAccessibilityLabel="Fechar resumo do foco"
+            onDismiss={readingSession.dismissSummary}
+          />
         ) : reflowFeedback ? (
           <ReaderFeedbackBanner
             message={reflowFeedback}
@@ -1081,7 +1094,12 @@ export function ReaderScreen({ bookId }: Props) {
           visible={readerPanel !== null}
           panelMode={readerPanel ?? "appearance"}
           onClose={() => setReaderPanel(null)}
-          onReadInFocus={() => { setReaderPanel(null); setControlsVisible(false); }}
+          onReadInFocus={(minutes?: number | null) => { setReaderPanel(null); setControlsVisible(false); readingSession.startFocus(minutes ?? null); }}
+          focusMinutesLeft={readingSession.focusLeft}
+          onEndFocus={readingSession.endFocus}
+          focusSummaryEnabled={readingSession.summaryEnabled}
+          onFocusSummaryChange={readingSession.setFocusSummaryEnabled}
+          onOpenDoNotDisturb={Platform.OS === "android" ? () => { void openSystemDoNotDisturb(); } : undefined}
           onListen={isEpub || isReflowPdf ? listen : undefined}
           onStopListening={readAloud.stop}
           listening={readAloud.speaking}
