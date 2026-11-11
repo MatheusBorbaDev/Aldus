@@ -57,3 +57,40 @@ Motion cues é experimental/manual, desligado por padrão. DeviceMotion Android,
 reader.motionCues.enabled, processamento em memória e overlay pointerEvents=none acima do
 Reflow. Hidratação/foco/foreground/permissão controlam sessão e cleanup; não simular sensor
 indisponível. Amostras não mudam documento/progresso. Eficácia anti-enjoo não foi demonstrada.
+
+## Plano de mercado — FASE 3 (planejamento, 11/11/2026; nada implementado nesta seção)
+
+Tamanho: **P** ≤ 1 dia, um commit; **M** 2–4 dias, 2–4 commits com teste; **G** > 1 semana ou exige aparelho/servidor/dependência nova.
+Regras herdadas: números só medidos e ocultáveis; sem streak punitivo, ranking ou comparação; dizer o que é só Android; nada que
+envie arquivos de livros a outras pessoas.
+
+**A. Pacote de anotações** (base existente: grifos EPUB em 5 cores, notas, busca, filtro por cor, export/import por livro; PDF não equivale).
+- A1 Fixar trechos (**P/M**): campo `pinned` no grifo, fixados no topo do painel e no início do livro. Exige campo novo no payload de Sync
+  dos grifos (compatível: ausente = não fixado) e teste de âncora/escopo de conta.
+- A2 "Todas as anotações" entre livros (**M**): lista e busca sobre `highlightRepository`/`bookmarkRepository` de todos os livros da conta;
+  abrir leva à âncora (missing/ambiguous com aviso, nunca navegação silenciosa).
+- A3 Grifos na Leitura Livre do PDF (**M/G**): reaproveitar a seleção do documento EPUB (Reflow usa o mesmo iframe); âncora por capítulo
+  derivado + assinatura SHA-256 do cache. PDF Original continua só com marcador por página (grifo no PDF Original = **G**).
+- A4 Anotar/desenhar sobre o texto (**G**, só Android no MVP): camada de traço por página paginada; quebra com repaginação (fonte, margem),
+  por isso precisa de âncora própria. Recomendo adiar para depois de A1–A3.
+
+**B. Diário de leitura** (base: sessões medidas da FASE 2, só no aparelho e por conta; `readingStatus`; `addedDate`).
+- B1 Tela Diário (**M**): sessões por dia e por livro com minutos ativos medidos; tudo ocultável; sem "dias seguidos", metas diárias
+  ou comparação. Livros sem sessão aparecem sem número (nunca zero inventado).
+- B2 Exportar CSV no padrão Goodreads (**P/M**): colunas `Title, Author, ISBN, ISBN13, My Rating, Number of Pages, Date Read, Date Added,
+  Bookshelves, Exclusive Shelf, My Review, Private Notes`. Preenchidas só com dado real: Title, Author, Date Added (`addedDate`),
+  Exclusive Shelf (`unread`→to-read, `reading`→currently-reading, `completed`→read; `interrupted` fica em Bookshelves). Date Read
+  só se houver data de conclusão medida (hoje não há: fica vazio); ISBN só se o EPUB declarar; avaliação/resenha vazias. Arquivo gerado
+  no aparelho pelo compartilhamento do sistema; não inclui arquivos de livros.
+- B3 Sessões no Sync (**M**, servidor): hoje são só locais. Exige tabela/payload novos e autorização de schema remoto.
+
+**C. Cartão compartilhável de foco** (**M**; dependência nova de captura de imagem, p.ex. `react-native-view-shot`, exige aprovação).
+- Conteúdo: minutos ativos da sessão de foco (medidos). Título do livro só se a pessoa ligar. Sem ranking, sem comparação.
+- Equivalências ("≈ N páginas"): **estimativa** rotulada, só com ritmo medido (`@kindle/reading-pace.v1`, mediana de ≥5 viradas);
+  sem ritmo medido não aparece; interruptor para ocultar. Compartilha uma imagem, nunca o arquivo do livro.
+
+**D. Catálogo "Onde ler"** (conversa de 11/11/2026, modelo Stremio): metadados de fontes abertas (Open Library/Google Books, conferir
+termos), links para lojas e bibliotecas com direitos, e fontes adicionadas pela própria pessoa (**G**). Não serão integradas nem
+pré-configuradas fontes de pirataria; preço e disponibilidade só quando a fonte informar.
+
+Ordem sugerida: B1 → B2 → A1 → A2 → C → A3 → D → A4.
