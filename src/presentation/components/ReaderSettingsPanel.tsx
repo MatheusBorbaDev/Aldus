@@ -31,6 +31,8 @@ interface Props {
   onFocusSummaryChange?: (value: boolean) => void;
   /** Só Android: abre a tela "Não perturbe" do sistema, sem permissão especial. */
   onOpenDoNotDisturb?: () => void;
+  /** Marcos de leitura locais do livro (FASE 5b). */
+  onOpenMilestones?: () => void;
   /** Leitura em voz alta (onda C1): começa na página atual; `listening` alterna o botão para "Parar". */
   onListen?: () => void;
   onStopListening?: () => void;
@@ -88,6 +90,7 @@ export function ReaderSettingsPanel({
   focusSummaryEnabled = true,
   onFocusSummaryChange,
   onOpenDoNotDisturb,
+  onOpenMilestones,
   onListen,
   onStopListening,
   listening = false,
@@ -453,6 +456,7 @@ export function ReaderSettingsPanel({
               ) : null}
               {onOpenDoNotDisturb ? <ActionButton label="Abrir Não perturbe do Android" onPress={onOpenDoNotDisturb} palette={palette} /> : null}
               {onOpenDoNotDisturb ? <Text style={[styles.hint, { color: palette.secondaryText }]}>Abre a tela do sistema; o Aldus não muda essa configuração.</Text> : null}
+              {onOpenMilestones ? <ActionButton label="Marcos de leitura" onPress={onOpenMilestones} palette={palette} /> : null}
               {listening && onStopListening ? <ActionButton label="Parar leitura em voz alta" onPress={onStopListening} palette={palette} />
                 : onListen ? <ActionButton label="Ouvir a partir desta página" onPress={onListen} palette={palette} /> : null}
               {onListen ? <Text style={[styles.hint, { color: palette.secondaryText }]}>Usa a voz do aparelho, sem internet. As páginas não viram sozinhas durante a leitura.</Text> : null}

@@ -9,6 +9,9 @@ import { latestWriteTracker } from "@/src/core/utils/latestWrite";
 import { useNativeReaderBrightness } from "@/src/presentation/hooks/useNativeReaderBrightness";
 import { useChapterTimeLeft } from "@/src/presentation/hooks/useChapterTimeLeft";
 import { openSystemDoNotDisturb, useReadingSession } from "@/src/presentation/hooks/useReadingSession";
+import { ReadingMilestonesModal } from "@/src/presentation/components/reader/ReadingMilestonesModal";
+import { MilestonePlan, milestoneLabel, milestoneScheduleText } from "@/src/domain/reader/readingMilestones";
+import { libraryAccountScope } from "@/src/data/library/LibraryAccountScope";
 import { useReadAloud } from "@/src/presentation/hooks/useReadAloud";
 import { htmlToSpeechText, speechStartOffset } from "@/src/domain/reader/speechText";
 import { chapterLanguage } from "@/src/presentation/components/EpubReaderDocument";
@@ -25,6 +28,7 @@ import {
   BackHandler,
   Platform,
   Pressable,
+  Share,
   StatusBar,
   StyleSheet,
   Text,
@@ -638,6 +642,23 @@ export function ReaderScreen({ bookId }: Props) {
   // Sessão de leitura medida e "Ler em foco por X min" (Fase 2). Só mede; não toca posição, documento nem progresso.
   const readingSession = useReadingSession({ bookId, format: isReflowPdf ? "reflow" : isPdf ? "pdf" : "epub", ready: bookStatus === "ready", page: pageNumber });
   const focusLabel = readingSession.focusLeft !== null ? `foco: ${readingSession.focusLeft} min` : null;
+  // Marcos de leitura locais (FASE 5b): por conta e por livro, só neste aparelho; o rótulo some com as contagens.
+  const [milestonePlan, setMilestonePlan] = useState<MilestonePlan | null>(null);
+  const [milestonesVisible, setMilestonesVisible] = useState(false);
+  useEffect(() => {
+    let active = true; setMilestonePlan(null);
+    const userId = libraryAccountScope.userId;
+    if (userId) void appDependencies.readingMilestones.get(userId, bookId).then(plan => { if (active) setMilestonePlan(plan); }).catch(() => undefined);
+    return () => { active = false; };
+  }, [bookId]);
+  const saveMilestones = useCallback((plan: MilestonePlan | null) => {
+    const userId = libraryAccountScope.userId;
+    setMilestonesVisible(false);
+    if (!userId) { setReflowFeedback("Entre na sua conta para salvar marcos."); return; }
+    void appDependencies.readingMilestones.set(userId, bookId, plan).then(() => setMilestonePlan(plan))
+      .catch(() => setReflowFeedback("Não foi possível salvar os marcos deste livro."));
+  }, [bookId]);
+  const milestoneText = milestonePlan ? milestoneLabel(milestonePlan, progress) : null;
   // Leitura em voz alta (onda C1): texto do capítulo atual a partir da posição proporcional da página; não navega nem grava posição.
   const readAloud = useReadAloud();
   const listen = useCallback(() => {
@@ -979,7 +1000,7 @@ export function ReaderScreen({ bookId }: Props) {
   );
   const readerControlProps = {
     hideReadingCounts: settings.hideReadingCounts,
-    timeLeftLabel: [timeLeftLabel, focusLabel].filter(Boolean).join(" · ") || null,
+    timeLeftLabel: [timeLeftLabel, focusLabel, milestoneText].filter(Boolean).join(" · ") || null,
     requestedPage,
     operationId: requestedNavigationId.current,
     diagnosticContext: { mode: isPdf ? (isReflowPdf ? "reflow" : "original") : "epub", controlsVisible, reflowPreparing, feedback: Boolean(reflowFeedback) } as ReaderUiContext,
@@ -1089,6 +1110,18 @@ export function ReaderScreen({ bookId }: Props) {
           />
         ) : null}
 
+        {milestonesVisible ? <ReadingMilestonesModal
+          visible
+          title={bookTitle}
+          plan={milestonePlan}
+          progress={progress}
+          hideCounts={settings.hideReadingCounts}
+          palette={activePalette}
+          onSave={saveMilestones}
+          onShare={plan => { void Share.share({ message: milestoneScheduleText(plan, bookTitle) }).catch(() => undefined); }}
+          onClose={() => setMilestonesVisible(false)}
+        /> : null}
+
         {/* Aa Typography & Theme Settings Modal */}
         <ReaderSettingsPanel
           visible={readerPanel !== null}
@@ -1100,6 +1133,7 @@ export function ReaderScreen({ bookId }: Props) {
           focusSummaryEnabled={readingSession.summaryEnabled}
           onFocusSummaryChange={readingSession.setFocusSummaryEnabled}
           onOpenDoNotDisturb={Platform.OS === "android" ? () => { void openSystemDoNotDisturb(); } : undefined}
+          onOpenMilestones={() => { setReaderPanel(null); setMilestonesVisible(true); }}
           onListen={isEpub || isReflowPdf ? listen : undefined}
           onStopListening={readAloud.stop}
           listening={readAloud.speaking}

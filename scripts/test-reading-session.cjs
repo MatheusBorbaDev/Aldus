@@ -149,6 +149,6 @@ const MIN = 60000;
   const screen = fs.readFileSync('src/presentation/screens/ReaderScreen.tsx', 'utf8');
   assert.match(screen, /useReadingSession\(\{ bookId, format: isReflowPdf \? "reflow" : isPdf \? "pdf" : "epub", ready: bookStatus === "ready", page: pageNumber \}\)/);
   assert.match(screen, /onOpenDoNotDisturb=\{Platform\.OS === "android" \?/);
-  assert.match(screen, /hideReadingCounts: settings\.hideReadingCounts,\s*timeLeftLabel: \[timeLeftLabel, focusLabel\]/);
+  assert.match(screen, /hideReadingCounts: settings\.hideReadingCounts,\s*timeLeftLabel: \[timeLeftLabel, focusLabel[,\]]/);
   console.log('PASS reading session: tempo ativo (3 min de inatividade, segundo plano), foco 10/15/25/45 por tempo ativo, resumo desligável, gravação por conta (A≠B, sem conta não grava, <10 s descartado, ilegível preservado), Não perturbe só Android sem permissão. Sem aparelho.');
 })().catch(error => { console.error(error); process.exit(1); });
