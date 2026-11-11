@@ -43,6 +43,7 @@ import { LibraryOrganizationStore } from "@/src/data/local/LibraryOrganizationSt
 import { LocalBookImportService } from "@/src/data/imports/LocalBookImportService";
 import { ImportDuplicateService } from "@/src/data/imports/ImportDuplicateService";
 import { ReadingSessionStore } from "@/src/data/local/ReadingSessionStore";
+import { LegacyBundledReattachService } from "@/src/data/imports/LegacyBundledReattachService";
 import { driveDownloadResolver } from "@/src/data/drive/DriveDownloadResolver";
 
 const useWebStorage = Platform.OS === "web";
@@ -78,9 +79,10 @@ const pdfImporter = new PdfFileImporter(bookRepository, chapterRepository, useWe
 const localBookImporter = new LocalBookImportService(epubImporter, pdfImporter);
 const importDuplicates = new ImportDuplicateService(bookRepository);
 const readingSessions = new ReadingSessionStore();
+const legacyReattach = new LegacyBundledReattachService(bookRepository, useWebStorage ? webBookFileStore : undefined);
 const bundledPdfCatalog = new BundledPdfCatalog(pdfImporter, bookRepository);
 const pdfReflowCache = scopeBookData(useWebStorage ? new IndexedDbPdfReflowCacheRepository() : new SqlitePdfReflowCacheRepository(), bookRepository);
 const pdfReaderSettings = scopeBookData(journalReadingData(rawPdfSettings,'pdf_position',librarySyncEngine), bookRepository);
 const downloadManager = new DownloadManager(epubImporter, undefined, pdfImporter, driveDownloadResolver);
 export const libraryOrganization = new AccountOrganizationRepository(journalOrganization(rawOrganization,librarySyncEngine), bookRepository);
-export const appDependencies = { importDuplicates, readingSessions, bookRepository, chapterRepository, readingProgressRepository, bookmarkRepository, highlightRepository, librarySync, librarySyncEngine, libraryReplica, privateBookFiles, getLibrary: new GetLibraryUseCase(bookRepository, libraryOrganization), seedMockBook: new SeedMockBookUseCase(bookRepository, chapterRepository, readingProgressRepository), openBook: new OpenBookUseCase(bookRepository, chapterRepository, readingProgressRepository, libraryOrganization, (id,signal)=>privateBookFiles.ensureLocal(id,signal)), updateReadingProgress: new UpdateReadingProgressUseCase(readingProgressRepository), epubImporter, localBookImporter, bundledEpubCatalog, pdfImporter, bundledPdfCatalog, webBookFileStore, pdfReflowCache, pdfReaderSettings, searchBooks, downloadManager };
+export const appDependencies = { importDuplicates, readingSessions, legacyReattach, bookRepository, chapterRepository, readingProgressRepository, bookmarkRepository, highlightRepository, librarySync, librarySyncEngine, libraryReplica, privateBookFiles, getLibrary: new GetLibraryUseCase(bookRepository, libraryOrganization), seedMockBook: new SeedMockBookUseCase(bookRepository, chapterRepository, readingProgressRepository), openBook: new OpenBookUseCase(bookRepository, chapterRepository, readingProgressRepository, libraryOrganization, (id,signal)=>privateBookFiles.ensureLocal(id,signal)), updateReadingProgress: new UpdateReadingProgressUseCase(readingProgressRepository), epubImporter, localBookImporter, bundledEpubCatalog, pdfImporter, bundledPdfCatalog, webBookFileStore, pdfReflowCache, pdfReaderSettings, searchBooks, downloadManager };

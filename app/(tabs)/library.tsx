@@ -353,6 +353,7 @@ function LibraryContent() {
         onClose={bookImport.dismiss}
         onImportAnother={() => { bookImport.dismiss(); void bookImport.start(); }}
         duplicate={bookImport.duplicate}
+        restoredTitle={bookImport.restored ? bookImport.importedBook?.title ?? null : null}
         onOpenDuplicate={bookImport.openDuplicate}
         onImportDuplicate={bookImport.importDuplicateAnyway}
         onOpenBook={() => {

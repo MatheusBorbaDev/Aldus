@@ -16,6 +16,7 @@ export function useBookImport(reloadLibrary: () => Promise<void>, openBook?: (bo
   const [selecting, setSelecting] = useState(false);
   const [importedBook, setImportedBook] = useState<LibraryBook | null>(null);
   const [duplicate, setDuplicate] = useState<LibraryBook | null>(null);
+  const [restored, setRestored] = useState(false);
   const duplicateAnswer = useRef<((choice: DuplicateImportChoice) => void) | null>(null);
   const answerDuplicate = (choice: DuplicateImportChoice) => {
     const answer = duplicateAnswer.current;
@@ -37,6 +38,7 @@ export function useBookImport(reloadLibrary: () => Promise<void>, openBook?: (bo
     if (selectionLocked.current || (state.phase !== "idle" && !isBookImportTerminal(state.phase))) return;
     selectionLocked.current = true;
     setImportedBook(null);
+    setRestored(false);
     setSelecting(true);
     try {
       const result = await DocumentPicker.getDocumentAsync({
@@ -52,6 +54,19 @@ export function useBookImport(reloadLibrary: () => Promise<void>, openBook?: (bo
         const picked = { uri: asset.uri, name: asset.name, mimeType: asset.mimeType, size: asset.size, file: asset.file };
         // Fase 1: o mesmo arquivo já importado (SHA-256 no índice local da conta) pede uma decisão antes de importar.
         const duplicateCheck = await appDependencies.importDuplicates.check(picked, operation.signal);
+        // Acervo, etapa 2: o mesmo arquivo de um título do acervo antigo volta para o livro que já existe na conta.
+        const legacy = await appDependencies.legacyReattach.find(duplicateCheck.hash);
+        if (legacy && duplicateCheck.hash) {
+          lifecycle.transition(operation.operationId, { phase: "persisting", cancellable: false });
+          const book = await appDependencies.legacyReattach.reattach(legacy, picked, duplicateCheck.hash, operation.signal);
+          if (!lifecycle.isCurrent(operation.operationId)) return;
+          setImportedBook(book);
+          setRestored(true);
+          lifecycle.succeed(operation.operationId, book.id);
+          void appDependencies.importDuplicates.remember(duplicateCheck, book.id).catch(() => undefined);
+          void reloadLibrary().catch(() => undefined);
+          return;
+        }
         if (duplicateCheck.existing) {
           const existing = duplicateCheck.existing;
           const choice = await new Promise<DuplicateImportChoice>(resolve => {
@@ -107,6 +122,7 @@ export function useBookImport(reloadLibrary: () => Promise<void>, openBook?: (bo
     if (isBookImportTerminal(lifecycle.current().phase)) {
       lifecycle.reset();
       setImportedBook(null);
+      setRestored(false);
     }
   };
 
@@ -114,6 +130,7 @@ export function useBookImport(reloadLibrary: () => Promise<void>, openBook?: (bo
     state,
     selecting,
     importedBook,
+    restored,
     duplicate,
     openDuplicate: () => answerDuplicate("open"),
     importDuplicateAnyway: () => answerDuplicate("import"),

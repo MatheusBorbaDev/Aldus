@@ -13,9 +13,11 @@ interface Props {
   duplicate?: LibraryBook | null;
   onOpenDuplicate?: () => void;
   onImportDuplicate?: () => void;
+  /** Arquivo do acervo antigo reanexado ao livro que já estava na conta. */
+  restoredTitle?: string | null;
 }
 
-export function BookImportModal({ state, onCancel, onClose, onOpenBook, onImportAnother, duplicate, onOpenDuplicate, onImportDuplicate }: Props) {
+export function BookImportModal({ state, onCancel, onClose, onOpenBook, onImportAnother, duplicate, onOpenDuplicate, onImportDuplicate, restoredTitle }: Props) {
   const { palette } = useAppTheme();
   const visible = state.phase !== "idle" && state.phase !== "selecting";
   const terminal = isBookImportTerminal(state.phase);
@@ -28,7 +30,7 @@ export function BookImportModal({ state, onCancel, onClose, onOpenBook, onImport
     <Modal visible={visible} transparent animationType="fade" onRequestClose={state.cancellable ? onCancel : terminal ? onClose : undefined}>
       <View style={[styles.backdrop, { backgroundColor: palette.overlay }]}>
         <View style={[styles.card, { backgroundColor: palette.panel, borderColor: palette.separator }]}>
-          <Text accessibilityRole="header" style={[styles.title, { color: palette.text }]}>{asking ? "Este livro já está na biblioteca" : "Importando livro"}</Text>
+          <Text accessibilityRole="header" style={[styles.title, { color: palette.text }]}>{asking ? "Este livro já está na biblioteca" : restoredTitle && state.phase === "success" ? "Livro restaurado" : "Importando livro"}</Text>
           {state.fileName ? <Text numberOfLines={2} style={[styles.fileName, { color: palette.text }]}>{state.fileName}</Text> : null}
           {state.format ? <Text style={[styles.meta, { color: palette.secondaryText }]}>{state.format.toUpperCase()}{state.fileSize ? ` · ${formatBytes(state.fileSize)}` : ""}</Text> : null}
 
@@ -44,7 +46,7 @@ export function BookImportModal({ state, onCancel, onClose, onOpenBook, onImport
             </View>
           ) : null}
           {!terminal && !asking ? <ActivityIndicator color={palette.accent} size="large" /> : null}
-          {!asking ? <Text accessibilityLiveRegion="polite" style={[styles.phase, { color: palette.secondaryText }]}>{bookImportPhaseLabel(state.phase)}</Text> : null}
+          {!asking ? <Text accessibilityLiveRegion="polite" style={[styles.phase, { color: palette.secondaryText }]}>{restoredTitle && state.phase === "success" ? `«${restoredTitle}» voltou para a sua conta com o progresso e as anotações. A cópia vai para a sua nuvem privada quando sincronizar.` : bookImportPhaseLabel(state.phase)}</Text> : null}
 
           {ratio !== null ? (
             <View accessibilityRole="progressbar" accessibilityValue={{ min: 0, max: 100, now: Math.round(ratio * 100) }} style={[styles.track, { backgroundColor: palette.surfaceSecondary }]}>

@@ -8,7 +8,7 @@ import { defaultPdfReaderSettings } from '@/src/domain/types/pdfReader';
 import { LibrarySyncEntry } from '@/src/domain/types/librarySync';
 import { LocalBookStorage } from './AccountBookRepository';
 import { LibraryAccountScope, libraryAccountScope } from './LibraryAccountScope';
-import { findBundledAsset } from './BundledBookIdentity';
+import { findBundledAsset, isLegacyBundledAsset } from './BundledBookIdentity';
 import { bookSyncPayload, organizationSyncPayload, pdfPositionPayload, progressSyncPayload } from './LibrarySyncPayload';
 import { LibrarySyncService } from './LibrarySyncService';
 import { privateBookPath } from './BookFileIntegrity';
@@ -40,6 +40,9 @@ export class LibraryLocalReplica {
       // for identical copies; mismatched bundled content stays unavailable for download.
       if (previous?.fileHash && p.fileHash && previous.fileHash !== p.fileHash) filePath = '';
       if (!filePath && bundled) filePath = `bundled-${p.format}://${entry.id}`;
+      // Acervo, etapa 2: um título do acervo antigo reanexado em outro aparelho deixa de ter vínculo com o pacote; aqui ele
+      // não pode continuar apontando para o arquivo embutido (que saiu do app) e passa a esperar a cópia privada (remotePath).
+      if (!bundled && filePath.startsWith('bundled-') && isLegacyBundledAsset(entry.id)) filePath = '';
       const now = Date.now();
       const book: LibraryBook = { ...previous, id: entry.id, ownerUserId: owner, importComplete: true,
         title, author: text('author', 'Autor desconhecido'), fileName: text('fileName', `${entry.id}.${p.format}`),
