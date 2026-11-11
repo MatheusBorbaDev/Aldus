@@ -29,6 +29,7 @@ import { AuthGuard } from "@/src/presentation/components/AuthGuard";
 import { generateLocalFlashcardCandidates } from "@/src/domain/study/flashcardGeneration";
 import { reviewSummary } from "@/src/domain/study/flashcardSrs";
 import { reviewHistory } from "@/src/domain/study/reviewHistory";
+import { DEFAULT_REVIEW_REMINDER, readReviewReminder, REVIEW_REMINDER_HOURS, ReviewReminder, reviewRemindersSupported, setReviewReminder } from "@/src/presentation/services/reviewReminder";
 import {
   Flashcard,
   FlashcardDeck,
@@ -39,7 +40,7 @@ import {
 import { FlashcardCreateModal } from "@/src/presentation/components/flashcards/FlashcardCreateModal";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { BookCover } from '@/src/presentation/components/BookCover';
-import { AppText, Button, EmptyState, ListGroup, ListRow, Screen, ScreenHeader } from '@/src/ui';
+import { ActionMenu, AppText, Button, EmptyState, ListGroup, ListRow, Screen, ScreenHeader } from '@/src/ui';
 import { getBookCover } from '@/src/utils/coverHelper';
 
 export default function Study() {
@@ -115,6 +116,22 @@ function StudyContent() {
 
   // Histórico medido nos eventos de revisão gravados; null sem nenhuma revisão (nada é exibido).
   const history = useMemo(() => snapshot ? reviewHistory(snapshot.reviews ?? [], snapshot.cards) : null, [snapshot]);
+
+  // Lembrete diário (onda C2). Só no aparelho; na Web a opção não aparece.
+  const [reminder, setReminder] = useState<ReviewReminder | null>(null);
+  const [reminderMenu, setReminderMenu] = useState(false);
+  const [reminderMessage, setReminderMessage] = useState<string | null>(null);
+  useEffect(() => {
+    if (!reviewRemindersSupported()) return;
+    let active = true;
+    void readReviewReminder().then(value => { if (active) setReminder(value); }).catch(() => { if (active) setReminder(DEFAULT_REVIEW_REMINDER); });
+    return () => { active = false; };
+  }, []);
+  const changeReminder = async (enabled: boolean, hour: number) => {
+    const result = await setReviewReminder(enabled, hour, reminder ?? DEFAULT_REVIEW_REMINDER);
+    if (result.ok) { setReminder(result.reminder); setReminderMessage(result.reminder.enabled ? `Lembrete diário às ${result.reminder.hour}h.` : "Lembrete desligado."); }
+    else setReminderMessage(result.reason === "denied" ? "As notificações estão bloqueadas para o Aldus. Libere nos ajustes do Android para receber o lembrete." : "Não foi possível agendar o lembrete. Tente novamente.");
+  };
 
   const createDeck = async () => {
     if (!canUse("flashcards")) {
@@ -330,6 +347,18 @@ function StudyContent() {
           ) : null}
         </View>
       ) : null}
+
+      {reminder ? (
+        <View style={styles.reminderRow}>
+          <Button label={reminder.enabled ? `Lembrete diário · ${reminder.hour}h` : "Lembrete diário · desligado"} icon={reminder.enabled ? "notifications-outline" : "notifications-off-outline"} variant="ghost"
+            accessibilityLabel={reminder.enabled ? `Lembrete diário de revisão às ${reminder.hour} horas. Alterar` : "Lembrete diário de revisão desligado. Ativar"} onPress={() => setReminderMenu(true)} />
+          {reminderMessage ? <AppText variant="caption" tone="secondary" accessibilityLiveRegion="polite">{reminderMessage}</AppText> : null}
+        </View>
+      ) : null}
+      <ActionMenu visible={reminderMenu} title="Lembrete diário de revisão" onClose={() => setReminderMenu(false)} items={[
+        ...REVIEW_REMINDER_HOURS.map(hour => ({ key: `h${hour}`, label: `Todos os dias às ${hour}h`, icon: (reminder?.enabled && reminder.hour === hour ? "checkmark-circle" : "time-outline") as "time-outline", onPress: () => void changeReminder(true, hour) })),
+        ...(reminder?.enabled ? [{ key: "off", label: "Desligar lembrete", icon: "notifications-off-outline" as const, onPress: () => void changeReminder(false, reminder.hour) }] : []),
+      ]} />
 
       {/* Prévia de candidatos gerados */}
       {candidates.length ? (
@@ -570,6 +599,7 @@ const styles = StyleSheet.create({
   preview: { borderWidth: 1, borderRadius: 14, padding: 16, gap: 10 },
   review: { borderWidth: 1, borderRadius: 14, padding: 16, gap: 6, alignItems: "flex-start" },
   weeks: { flexDirection: "row", alignSelf: "stretch", gap: 12, marginTop: 6 },
+  reminderRow: { gap: 2, alignItems: "flex-start" },
   week: { flex: 1, alignItems: "center", gap: 4 },
   weekTrack: { width: 22, height: 64, borderRadius: 4, justifyContent: "flex-end", overflow: "hidden" },
   candidate: { borderBottomWidth: 1, paddingVertical: 9, gap: 4 },

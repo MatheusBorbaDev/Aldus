@@ -12,6 +12,7 @@ import { ReaderSettingsProvider } from "@/src/presentation/contexts/ReaderSettin
 import { AppThemeProvider, useAppTheme } from "@/src/presentation/contexts/AppThemeContext";
 import { AuthProvider, useAuth } from "@/src/presentation/contexts/AuthContext";
 import { authDiagnostic, correlatedAuthDiagnostic } from "@/src/utils/authDiagnostics";
+import { useReviewReminderNavigation } from "@/src/presentation/hooks/useReviewReminderNavigation";
 import { nativeAuthCallbacks } from '@/src/data/remote/nativeAuthCallback';
 
 /**
@@ -56,6 +57,7 @@ export default function RootLayout() {
 }
 
 function AppShell() {
+  useReviewReminderNavigation();
   const segments = useSegments();
   const { width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
