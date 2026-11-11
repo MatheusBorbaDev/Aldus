@@ -4,6 +4,7 @@ import {
   FlatList,
   Platform,
   Pressable,
+  ScrollView,
   StyleSheet,
   useWindowDimensions,
   View,
@@ -20,6 +21,7 @@ import { BookOrganization, inferredReadingStatus, normalizeLibraryText, Organiza
 import { BookCard as SharedBookCard } from "@/src/presentation/components/BookCard";
 import { Book } from "@/src/constants/mockBooks";
 import { catalogBookFor } from "@/src/presentation/services/bookDisplay";
+import { isStalled, recentReads } from "@/src/domain/library/readingShelves";
 import { markEpubLibraryReady, startEpubOpenTrace } from "@/src/utils/epubOpenMetrics";
 import { useBookImport } from "@/src/presentation/hooks/useBookImport";
 import { BookImportModal } from "@/src/presentation/components/BookImportModal";
@@ -28,7 +30,7 @@ import { libraryAccountScope } from '@/src/data/library/LibraryAccountScope';
 import { LibraryBulkModal } from '@/src/presentation/components/LibraryBulkModal';
 import { ActionMenu, ActionMenuItem, AppText, Button, Chip, ChipRow, EmptyState, IconButton, layout as uiLayout, ListGroup, ListRow, radius, ScreenHeader, SearchField, space } from '@/src/ui';
 
-type BookFilter = "all" | "reading" | "completed" | "unread" | "interrupted" | "favorites";
+type BookFilter = "all" | "reading" | "completed" | "unread" | "interrupted" | "favorites" | "stalled";
 type BookSort = "recent" | "title" | "author" | "progress" | "series";
 type OpenMenu = "add" | "more" | "format" | "sort" | null;
 
@@ -40,6 +42,8 @@ const filters: { value: BookFilter; label: string }[] = [
   { value: "interrupted", label: "Interrompidos" },
   { value: "favorites", label: "Favoritos" },
 ];
+// Coleção automática: só aparece quando há pelo menos um livro nela.
+const stalledFilter: { value: BookFilter; label: string } = { value: "stalled", label: "Parados há 30 dias" };
 
 // `short` cabe numa linha no celular; `label` completo continua no menu e no nome acessível.
 const sortShortLabels: Record<BookSort, string> = { recent: "Recentes", title: "Título", author: "Autor", progress: "Progresso", series: "Série" };
@@ -134,7 +138,7 @@ function LibraryContent() {
         normalizeLibraryText(`${book.title} ${book.author} ${record?.series ?? ""} ${record?.collections.join(" ") ?? ""} ${record?.tags.join(" ") ?? ""}`).includes(normalizedQuery);
       const matchesFilter =
         filter === "all" ||
-        (filter === "favorites" ? record?.favorite : filter === readingStatus);
+        (filter === "favorites" ? record?.favorite : filter === "stalled" ? isStalled(book, record) : filter === readingStatus);
       const matchesFormat = format === 'all' || book.mimeType === (format === 'pdf' ? 'application/pdf' : 'application/epub+zip');
       return matchesQuery && matchesFilter && matchesFormat && (!collection || record?.collections.includes(collection));
     });
@@ -155,11 +159,10 @@ function LibraryContent() {
   }, [books, filter, query, sort, organization, collection, format]);
 
   // Última leitura real: data de abertura, se existir, ou da última gravação de progresso (BUGS_ATUAIS 09/11).
-  const continueBook = useMemo(() => {
-    const lastActivity = (book: LibraryBook) => Math.max(book.lastOpenedDate ?? 0, book.lastReadAt ?? 0);
-    return books.filter(book => lastActivity(book) > 0 && inferredReadingStatus(book, organization[book.id]) !== 'completed')
-      .reduce<LibraryBook | null>((latest, book) => !latest || lastActivity(book) > lastActivity(latest) ? book : latest, null);
-  }, [books, organization]);
+  // Até 3 leituras recentes não concluídas (a primeira é a mais recente). Regra em `readingShelves.ts`.
+  const continueBooks = useMemo(() => recentReads(books, organization, 3), [books, organization]);
+  const stalledCount = useMemo(() => books.filter(book => isStalled(book, organization[book.id])).length, [books, organization]);
+  const visibleFilters = stalledCount || filter === "stalled" ? [...filters, stalledFilter] : filters;
 
   const selectedSort =
     sorts.find((item) => item.value === sort)?.label ??
@@ -204,7 +207,7 @@ function LibraryContent() {
       />
       <SearchField value={query} onChangeText={setQuery} placeholder="Buscar por título, autor, série ou coleção" label="Buscar livros por metadados" />
       <ChipRow label="Filtrar por situação">
-        {filters.map(item => <Chip key={item.value} label={item.label} selected={filter === item.value} onPress={() => setFilter(item.value)} />)}
+        {visibleFilters.map(item => <Chip key={item.value} label={item.value === "stalled" ? `${item.label} (${stalledCount})` : item.label} icon={item.value === "stalled" ? "time-outline" : undefined} selected={filter === item.value} onPress={() => setFilter(item.value)} />)}
       </ChipRow>
       {collections.length ? (
         <ChipRow label="Filtrar por coleção">
@@ -254,23 +257,32 @@ function LibraryContent() {
         </View>
       ) : null}
 
-      {!selecting && !filtersActive && continueBook ? (
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={`Continuar lendo ${continueBook.title}`}
-          onPress={() => router.push({ pathname: "/reader/[bookId]", params: { bookId: continueBook.id } })}
-          android_ripple={{ color: palette.surfaceSecondary }}
-          style={[styles.continueReading, { backgroundColor: palette.surface, borderColor: palette.border }]}
-        >
-          <View style={{ flex: 1, gap: space.xs }}>
-            <AppText variant="overline" tone="accent">Continue lendo</AppText>
-            <AppText variant="heading" numberOfLines={2}>{continueBook.title}</AppText>
-            <AppText variant="caption" tone="secondary">{continueBook.author}{continueBook.progress > 0 ? ` · ${Math.round(continueBook.progress * 100)}%` : ""}</AppText>
-          </View>
-          <View style={[styles.continueIcon, { backgroundColor: palette.accent }]}>
-            <Ionicons name="arrow-forward" size={20} color={palette.onAccent} />
-          </View>
-        </Pressable>
+      {!selecting && !filtersActive && continueBooks.length ? (
+        <View style={styles.shelf}>
+          <AppText variant="overline" tone="accent">Continue lendo</AppText>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.shelfRow}>
+            {continueBooks.map((book, index) => {
+              const card = toCardBook(book, Boolean(organization[book.id]));
+              return (
+                <Pressable
+                  key={book.id}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Continuar lendo ${card.title}`}
+                  onPress={() => router.push({ pathname: "/reader/[bookId]", params: { bookId: book.id } })}
+                  android_ripple={{ color: palette.surfaceSecondary }}
+                  style={[styles.continueReading, { width: index === 0 ? Math.min(uiLayout.narrow, Math.max(260, layoutWidth - gutter * 2 - (continueBooks.length > 1 ? 56 : 0))) : 240, backgroundColor: palette.surface, borderColor: palette.border }]}
+                >
+                  <View style={{ flex: 1, minWidth: 0, gap: space.xs }}>
+                    <AppText variant={index === 0 ? "heading" : "label"} numberOfLines={2}>{card.title}</AppText>
+                    <AppText variant="caption" tone="secondary" numberOfLines={1}>{card.author}{book.progress > 0 ? ` · ${Math.round(book.progress * 100)}%` : ""}</AppText>
+                    {book.progress > 0 ? <View style={[styles.shelfTrack, { backgroundColor: palette.surfaceSecondary }]}><View style={{ height: 3, width: `${Math.round(book.progress * 100)}%`, backgroundColor: palette.accent }} /></View> : null}
+                  </View>
+                  {index === 0 ? <View style={[styles.continueIcon, { backgroundColor: palette.accent }]}><Ionicons name="arrow-forward" size={20} color={palette.onAccent} /></View> : null}
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+        </View>
       ) : null}
     </View>
   );
@@ -408,8 +420,11 @@ const styles = StyleSheet.create({
   panelActions: { flexDirection: "row", flexWrap: "wrap", gap: space.sm },
   selectionBar: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: space.sm, padding: space.sm, paddingLeft: space.lg, borderRadius: radius.lg },
   inlineError: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: space.sm },
-  continueReading: { flexDirection: "row", alignItems: "center", gap: space.lg, padding: space.lg, borderRadius: radius.lg, borderWidth: StyleSheet.hairlineWidth, marginTop: space.xs },
+  continueReading: { flexDirection: "row", alignItems: "center", gap: space.lg, padding: space.lg, borderRadius: radius.lg, borderWidth: StyleSheet.hairlineWidth, },
   continueIcon: { width: 44, height: 44, borderRadius: 22, alignItems: "center", justifyContent: "center" },
+  shelf: { gap: space.sm, marginTop: space.xs },
+  shelfRow: { gap: space.md, paddingRight: space.lg },
+  shelfTrack: { height: 3, borderRadius: 2, overflow: "hidden", marginTop: space.xs },
   cardMeta: { flexDirection: "row", alignItems: "center", gap: space.xs, minHeight: 36 },
   loading: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: space.sm, paddingVertical: space.section },
   list: { paddingBottom: space.xxxl },
