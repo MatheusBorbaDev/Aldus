@@ -17,6 +17,9 @@ Web mantém Blob persistente. Falha/cancel limpa temporário/destino próprio, i
 nativa tardia; falha de capítulos compensa livro anterior ou oculta o novo incompleto.
 Persistência/finalização são deliberadamente não canceláveis. importComplete só é publicado
 depois do conteúdo durável. Importar deliberadamente de novo gera outro UUID, sem merge por título.
+Desde 11/11/2026 a importação por arquivo calcula o SHA-256 antes e avisa se o mesmo arquivo já está na biblioteca
+(índice local por conta `@aldus/import-hashes.v1:<user>`, só importações a partir dessa versão; não usa `fileHash`, que é do Sync).
+"Importar outra cópia" segue gerando outro UUID, sem merge.
 
 EPUB valida ZIP/mimetype/container/OPF; preserva metadata, manifest, spine, CSS, fontes,
 imagens/SVG/srcset e links internos, com sanitização do HTML. Cache de CSS e resource→data URI

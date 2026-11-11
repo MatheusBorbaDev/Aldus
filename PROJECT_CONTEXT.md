@@ -121,6 +121,9 @@ Persistência (legado mantido, não renomear `kindle-*`/`@kindle/*`): Native SQL
   `expo-notifications`) e filtro VIEW `content://` PDF/EPUB; o `*/*` é a consulta OPEN_DOCUMENT já existente. `apksigner`: v2, certificado
   `fac61745…033b9c` (o do Redmi) — não é o Beta privado. dex com `expo/modules/speech`, `expo/modules/notifications`; bundle Hermes com textos
   das ondas A–D; 34 livros. **NÃO instalado**: o Redmi segue com `ae98991`.
+- **Plano de mercado, FASE 1 (11/11, `f752cf3`…`9b29311`)**: typecheck PASS; `test:critical` **109/109** (nova `import-duplicates`); `export:web`
+  PASS; Chromium PASS: `test:reader:settings:web`, `test:reader:epub:web`, `test:marketing:web`, `test:library:web`; `test:legal` PASS. NÃO TESTADO:
+  Android (fontes, prompt de duplicado, hash nativo em arquivo real).
 - **Melhorias, Onda D (11/11, `fca5591`…D3)**: typecheck PASS; `test:critical` **108/108** (nova `pdfjs-lazy`); `export:web` PASS; Chromium PASS:
   `test:reader:{pdf,reflow,browser,markings,epub}:web`, `test:library:{web,bulk:web}`, `test:source-library:browser`. Bundle Web principal
   5656→5121 KiB (1,48→1,38 MB gzip). `npm audit --omit=dev`: 0 crít./3 altos/6 moderados/0 baixo. `redmi-qa.cjs` NÃO executado (sem aparelho).
@@ -291,6 +294,8 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
    e etapa 3 (remover os 33 arquivos do APK/`dist`) pendentes.
    **Revisão de qualidade (09/11)**: Ondas 0–5 aprovadas concluídas (commits locais, sem push); 6 e 7 fora. R5: patches do SDK 57 aplicados
    (BUG 13); APK de ensaio `6883532` compilado e conferido (§3), **não instalado**; remover `js-polyfills` 0.76/`metro-cache` 0.81 segue pendente. Levantamento do
+   **Plano de mercado (11/11)**: FASE 0 e FASE 1 concluídas (ver log); FASE 2 (sessão de leitura medida e "Ler em foco", MVP só Android)
+   aguarda aprovação do usuário. Fases 3–5 conforme o plano dele, cada uma só após aprovação.
    **Melhorias (11/11)**: Ondas A–D concluídas (C precisa de APK novo para valer no aparelho); Maestro não adotado (ver log D); rolagem contínua avaliada e adiada (segundo sistema de posição; ver log). Dependem do usuário: acervo, Play/Firebase, Redmi, Literata.
    acervo entregue ao usuário (34 arquivos, 92,7 MB; 8 usados como fixture de teste), aguardando decisão do que sai; nada removido.
    Candidatos de bundle (sem decisão): pdfjs-dist duplicado no entry, reanimated só para motion cues, `react-native-render-html` em `ChapterRenderer`.
@@ -322,6 +327,21 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
 - **IA externa:** não enviar livros/trechos a serviço de IA sem pedido e consentimento explícito do usuário final.
 
 ## 10. Log (mais recente primeiro; máx. 5 entradas, resto → docs/context/historico/)
+
+### 11/11/2026 — Plano de mercado, FASE 0 e FASE 1: ganhos rápidos (Claude)
+- Plano de 6 fases do usuário (relatórios Ciclo 1/1.1 e pesquisa de 56 respostas). Regras: sem cobrança, sem estatística inventada, sem streak
+  punitivo/ranking/comparação, todo número novo ocultável, dizer o que é só Android, nada que facilite compartilhar arquivos de livros, um commit
+  por item, **parar após cada fase**. FASE 0 (somente leitura) entregue; o usuário aceitou avançar com a homologação física do Ciclo 1 pendente.
+- 1 `f752cf3`: "Disléxica" → "Alta legibilidade (Verdana)", sem promessa sobre dislexia; Verdana ganha `letter-spacing` 0,05em e `word-spacing`
+  0,16em no documento EPUB/Reflow (inicial e ao vivo; cópia embutida com paridade em `test-reader-bytecode`). Valor salvo `dyslexic` mantido.
+  Fontes viraram linhas inteiras (o rótulo cortava a 320 px e com texto ampliado; medido no fixture Chromium).
+- 2 `66f8648`: texto antipirataria aprovado nos Termos (§7) e na landing (pergunta "Posso compartilhar livros pelo Aldus?"). **Sem** "não
+  distribui livros": o acervo embutido (`assets/Livros`, 34 arquivos, inclui obras protegidas) ainda vai no APK/Web; os testes travam a frase até
+  o acervo ser resolvido. Documentos legais 0.7 → 0.8 (vigência 11/11/2026).
+- 3 `9b29311`: aviso de duplicado na importação local. SHA-256 do arquivo escolhido (`hashBookFile`) num índice local por conta
+  (`@aldus/import-hashes.v1:<user>`), **sem** tocar `fileHash` (é do Sync) e sem merge/novo UUID. Decisão do usuário: só livros importados a
+  partir desta versão (acervo antigo não recalculado). Sem conta, >512 MiB, falha de leitura ou Web sem Blob: importa sem aviso. Nova suíte
+  `import-duplicates`. Só a importação por arquivo avisa (catálogos, Drive e "Abrir com Aldus" não). Prompt sem suíte de navegador.
 
 ### 11/11/2026 — Melhorias, Onda D: base técnica (Claude)
 - D1 `pdfjsRuntime.web.ts`: pdf.js por `import()` no visualizador, no Reflow e nas capas (worker/documento iguais); bundle principal −535 KiB,
