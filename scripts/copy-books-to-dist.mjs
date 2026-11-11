@@ -5,8 +5,8 @@ import { createHash } from "node:crypto";
 // Pós-export Web. Os livros embutidos já entram no `dist` pelo Metro (require.context em BundledEpubCatalog/BundledPdfCatalog →
 // dist/assets/assets/Livros/<nome>.<hash>), que é o único caminho que o app requisita. A cópia antiga para dist/assets/Livros
 // (≈93 MB, nomes sem hash) não era referenciada por nenhum código e dobrava o tamanho do deploy (revisão de qualidade, onda 2).
-// Acervo (etapa 1): todo arquivo em assets/Livros precisa estar declarado em bundledBookManifest.json (domínio público) ou
-// legacyBundledAssets.json (legado de contas existentes) com o SHA-256 conferido; senão o export falha em vez de publicar.
+// Acervo (etapa 3): todo arquivo em assets/Livros precisa estar declarado em bundledBookManifest.json (domínio público) com o
+// SHA-256 conferido. Os 33 títulos de legacyBundledAssets.json saíram do pacote e não podem voltar; senão o export falha.
 const projectRoot = process.cwd();
 const srcDir = path.join(projectRoot, "assets", "Livros");
 const vercelSrc = path.join(projectRoot, "vercel.json");
@@ -23,21 +23,21 @@ if (fs.existsSync(srcDir)) {
   const active = readJson("src/data/library/bundledBookManifest.json");
   const legacy = readJson("src/data/library/legacyBundledAssets.json");
   const problems = [];
-  let activeCount = 0, legacyCount = 0;
+  let activeCount = 0;
   for (const name of fs.readdirSync(srcDir)) {
     if (!/\.(pdf|epub)$/i.test(name)) continue;
-    const activeEntry = active.find((item) => item.fileName === name);
-    const entry = activeEntry ?? legacy.find((item) => item.fileName === name);
+    const entry = active.find((item) => item.fileName === name);
     const hash = createHash("sha256").update(fs.readFileSync(path.join(srcDir, name))).digest("hex");
-    if (!entry) problems.push(`${name}: não declarado em bundledBookManifest.json nem em legacyBundledAssets.json`);
+    if (legacy.some((item) => item.fileName === name || item.hash === hash)) problems.push(`${name}: título do acervo antigo (protegido) não pode voltar ao pacote`);
+    else if (!entry) problems.push(`${name}: não declarado em bundledBookManifest.json`);
     else if (entry.hash !== hash) problems.push(`${name}: hash diferente do declarado`);
-    else if (activeEntry) activeCount++; else legacyCount++;
+    else activeCount++;
   }
   if (problems.length) {
     console.error(`Acervo embutido recusado para o site:\n- ${problems.join("\n- ")}`);
     process.exit(1);
   }
-  console.log(`assets/Livros: ${activeCount} em domínio público + ${legacyCount} legado(s) (hashes conferidos).`);
+  console.log(`assets/Livros: ${activeCount} em domínio público (hashes conferidos).`);
 }
 
 if (fs.existsSync(vercelSrc)) {

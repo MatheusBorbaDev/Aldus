@@ -50,6 +50,10 @@ function loader(mocks = {}) {
     copyAsync: async options => { fsCalls.push(['copy', options.from, options.to]); }, deleteAsync: async uri => { fsCalls.push(['delete', uri]); } };
   const signal = new AbortController().signal;
 
+  // Etapa 3: arquivos fora do pacote; identidade e hash do legado continuam conhecidos.
+  for (const item of identity.legacyBundledAssets) assert.equal(fs.existsSync('assets/Livros/' + item.fileName), false, item.fileName + ' saiu do pacote');
+  assert.match(identity.LEGACY_BUNDLED_UNAVAILABLE_MESSAGE, /mesmo arquivo.*progresso/);
+
   libraryAccountScope.set(A);
   const books = repo([legacyRecord(asset), legacyRecord(epubAsset, { isDeleted: true }), { ...legacyRecord(identity.legacyBundledAssets[2]), filePath: 'file:///own.pdf', bundledAssetId: undefined }]);
   const service = new LegacyBundledReattachService(books, undefined, files, 'android');
@@ -110,5 +114,5 @@ function loader(mocks = {}) {
   const hook = fs.readFileSync('src/presentation/hooks/useBookImport.ts', 'utf8');
   assert.ok(hook.indexOf('legacyReattach.find(') < hook.indexOf('if (duplicateCheck.existing)'));
   assert.ok(hook.indexOf('legacyReattach.reattach(') < hook.indexOf('localBookImporter.import('));
-  console.log('PASS legacy reattach: mesmo arquivo → mesmo livro (ID/progresso), sem vínculo com o pacote, Sync como cópia própria; excluído/já próprio/sem conta não reanexa; falhas sem lixo; Web; réplica de outro aparelho espera a nuvem. Sem aparelho.');
+  console.log('PASS legacy reattach: 33 arquivos fora do pacote; mesmo arquivo → mesmo livro (ID/progresso), sem vínculo com o pacote, Sync como cópia própria; excluído/já próprio/sem conta não reanexa; falhas sem lixo; Web; réplica de outro aparelho espera a nuvem. Sem aparelho.');
 })().catch(error => { console.error(error); process.exit(1); });

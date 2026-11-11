@@ -18,7 +18,7 @@ export const legacyBundledAssets = legacyEntries;
 
 /** Último recurso para quando o arquivo legado deixar de existir e não houver cópia local nem na nuvem. */
 export const LEGACY_BUNDLED_UNAVAILABLE_MESSAGE =
-  'Este título saiu do acervo incluído no Aldus e a cópia desta conta não foi encontrada neste dispositivo. Importe uma edição própria para continuar lendo.';
+  'Este título saiu do acervo incluído no Aldus. Importe o seu arquivo dele: se for o mesmo arquivo, o livro volta com o progresso e as anotações desta conta.';
 
 function baseId(id: string) {
   return id.split('--')[0];

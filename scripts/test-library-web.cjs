@@ -16,7 +16,7 @@ async function cdp(url){const socket=new WebSocket(url);await new Promise((r,j)=
    const json=(value,status=200)=>{res.writeHead(status,{'Content-Type':'application/json'});res.end(JSON.stringify(value));};
    if(p==='/fixture.json'){json({books:[{id:'remote-book',title:'Livro Privado Teste',author:'Autor Teste',url:'/fixture.epub',format:'epub'}]});return;}
    if(p==='/fixture.epub'){res.setHeader('Content-Type','application/epub+zip');res.end(epub);return;}
-   if(p==='/fixture.pdf'){res.setHeader('Content-Type','application/pdf');fs.createReadStream('assets/Livros/sobre-o-ocio.pdf').pipe(res);return;}
+   if(p==='/fixture.pdf'){res.setHeader('Content-Type','application/pdf');fs.createReadStream('assets/Livros/memórias postumas.pdf').pipe(res);return;}
    if(p.startsWith('/fixture-remote/')){
      let user;try{user=JSON.parse(Buffer.from((req.headers.authorization??'').split('.')[1],'base64url')).sub;}catch{}if(!user){json({},401);return;}
      const chunks=[];for await(const chunk of req)chunks.push(chunk);const body=Buffer.concat(chunks);
@@ -82,7 +82,7 @@ async function cdp(url){const socket=new WebSocket(url);await new Promise((r,j)=
      await until(a,'Leitura livre pronta.');
      await eventually(()=>a.evaluate(`(()=>{const m=document.body.innerText.match(/Página (\\d+) de (\\d+)/);return !!m&&Number(m[2])>1})()`),'Reflow first layout/pagination acknowledgement');
      const committed=await a.evaluate(`window.fixturePersistence.webGetPersistent('pdf_reflow_cache','fixture-pdf')`);assert.equal(committed.document.pageCount,49);assert.ok(committed.document.characterCount>20000);
-     assert.equal(committed.sourceSignature,require('node:crypto').createHash('sha256').update(fs.readFileSync('assets/Livros/sobre-o-ocio.pdf')).digest('hex'),'Derivative must use the content hash before metadata synchronization');
+     assert.equal(committed.sourceSignature,require('node:crypto').createHash('sha256').update(fs.readFileSync('assets/Livros/memórias postumas.pdf')).digest('hex'),'Derivative must use the content hash before metadata synchronization');
      await eventually(()=>a.evaluate(`(()=>{const frame=[...document.querySelectorAll('iframe')].find(f=>f.srcdoc?.includes('pdf-reflow'));return !!frame&&!!frame.srcdoc.includes('article')&&!document.body.innerText.includes('Preparando leitura livre')})()`),'published PDF derivative iframe');
      await a.evaluate('window.fixtureBeforeCacheReload=true');
      await a.command('Page.reload');

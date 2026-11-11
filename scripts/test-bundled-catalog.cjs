@@ -60,11 +60,11 @@ for (const record of active) {
 }
 for (const book of BUNDLED_BOOKS) if (book.coverUri) assert.ok(fs.existsSync(book.coverUri), `missing cover ${book.coverUri}`);
 
-// 2. Legacy list: exactly the 33 previously shipped titles, still present with the same bytes (stage 1 keeps them).
+// 2. Legacy list: exactly the 33 previously shipped titles; identities kept, files gone from the package (stage 3).
 assert.equal(legacy.length, 33, 'legacy list keeps every previously shipped identity');
 for (const record of legacy) {
-  assert.ok(files.includes(record.fileName), `${record.fileName}: legacy files stay in the package until stage 3`);
-  assert.equal(record.hash, sha(record.fileName), `${record.fileName} legacy hash changed`);
+  assert.ok(!files.includes(record.fileName), `${record.fileName}: legacy files left the package in stage 3`);
+  assert.match(record.hash, /^[a-f0-9]{64}$/, `${record.fileName} keeps its hash so the owner's own copy can be reattached`);
   assert.ok(record.size > 0 && record.legacyId, `${record.fileName} keeps size/legacyId for Sync replicas`);
   assert.ok(LEGACY_BUNDLED_BOOKS.some(book => book.fileUri.split('/').pop() === record.fileName), `${record.fileName} keeps its display metadata`);
 }
@@ -118,7 +118,7 @@ assert.match(identity.LEGACY_BUNDLED_UNAVAILABLE_MESSAGE, /saiu do acervo inclu�
     fs.mkdirSync(path.join(sandbox, 'src/data/library'), { recursive: true });
     for (const name of ['bundledBookManifest.json', 'legacyBundledAssets.json']) fs.copyFileSync(`src/data/library/${name}`, path.join(sandbox, 'src/data/library', name));
     fs.mkdirSync(path.join(sandbox, 'assets/Livros'), { recursive: true });
-    const sample = [...active.map(r => r.fileName), legacy[0].fileName];
+    const sample = active.map(r => r.fileName);
     for (const file of sample) fs.copyFileSync('assets/Livros/' + file, path.join(sandbox, 'assets/Livros', file));
     fs.mkdirSync(path.join(sandbox, 'dist/assets/Livros'), { recursive: true });
     fs.writeFileSync(path.join(sandbox, 'dist/assets/Livros', 'stale.pdf'), 'stale copy');
@@ -128,11 +128,15 @@ assert.match(identity.LEGACY_BUNDLED_UNAVAILABLE_MESSAGE, /saiu do acervo inclu�
     let result = run({});
     assert.equal(result.status, 0, result.stderr);
     assert.equal(fs.existsSync(path.join(sandbox, 'dist/assets/Livros')), false, 'stale dist copy removed; no second copy of the books');
-    assert.ok(result.stdout.includes(active.length + ' em domínio público + 1 legado'), result.stdout);
-    fs.writeFileSync(path.join(sandbox, 'assets/Livros', legacy[0].fileName), 'conteúdo trocado');
+    assert.ok(result.stdout.includes(active.length + ' em domínio público'), result.stdout);
+    fs.writeFileSync(path.join(sandbox, 'assets/Livros', active[0].fileName), 'conteúdo trocado');
     result = run({});
     assert.notEqual(result.status, 0, 'hash divergente falha o export'); assert.match(result.stderr, /hash diferente/);
-    fs.copyFileSync('assets/Livros/' + legacy[0].fileName, path.join(sandbox, 'assets/Livros', legacy[0].fileName));
+    fs.copyFileSync('assets/Livros/' + active[0].fileName, path.join(sandbox, 'assets/Livros', active[0].fileName));
+    fs.writeFileSync(path.join(sandbox, 'assets/Livros', legacy[0].fileName), 'qualquer conteúdo');
+    result = run({});
+    assert.notEqual(result.status, 0, 'a legacy title cannot come back to the package'); assert.match(result.stderr, /acervo antigo/);
+    fs.rmSync(path.join(sandbox, 'assets/Livros', legacy[0].fileName));
     fs.writeFileSync(path.join(sandbox, 'assets/Livros', 'nao-declarado.pdf'), '%PDF-1.4 undeclared');
     result = run({});
     assert.notEqual(result.status, 0, 'undeclared files fail the export'); assert.match(result.stderr, /não declarado/);
