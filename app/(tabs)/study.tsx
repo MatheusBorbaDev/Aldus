@@ -28,6 +28,7 @@ import { FeatureDenied } from "@/src/presentation/components/FeatureDenied";
 import { AuthGuard } from "@/src/presentation/components/AuthGuard";
 import { generateLocalFlashcardCandidates } from "@/src/domain/study/flashcardGeneration";
 import { reviewSummary } from "@/src/domain/study/flashcardSrs";
+import { reviewHistory } from "@/src/domain/study/reviewHistory";
 import {
   Flashcard,
   FlashcardDeck,
@@ -111,6 +112,9 @@ function StudyContent() {
     const summary = reviewSummary(snapshot.decks, snapshot.cards, isPlayableFlashcard);
     return { total: summary.total, byDeck: summary.byDeck, next: snapshot.decks.find(deck => deck.id === summary.nextDeckId) ?? null };
   }, [snapshot]);
+
+  // Histórico medido nos eventos de revisão gravados; null sem nenhuma revisão (nada é exibido).
+  const history = useMemo(() => snapshot ? reviewHistory(snapshot.reviews ?? [], snapshot.cards) : null, [snapshot]);
 
   const createDeck = async () => {
     if (!canUse("flashcards")) {
@@ -295,6 +299,37 @@ function StudyContent() {
       ) : null}
 
       {error ? <AppText variant="bodySmall" tone="danger" accessibilityRole="alert">{error}</AppText> : null}
+
+      {history ? (
+        <View accessibilityLabel="Seu histórico de revisão" style={[styles.review, { backgroundColor: palette.surface, borderColor: palette.border }]}>
+          <AppText variant="overline" tone="secondary">Últimas 4 semanas</AppText>
+          <View style={styles.weeks}>
+            {history.weeks.map((week, index) => {
+              const max = Math.max(1, ...history.weeks.map(w => w.reviewed));
+              const label = index === history.weeks.length - 1 ? "Esta semana" : `Há ${history.weeks.length - 1 - index} sem.`;
+              return (
+                <View key={week.start} accessibilityLabel={`${label}: ${week.reviewed} revisões${week.reviewed ? `, ${Math.round((week.correct / week.reviewed) * 100)}% de acertos` : ""}`} style={styles.week}>
+                  <AppText variant="caption" tone="secondary">{week.reviewed ? `${Math.round((week.correct / week.reviewed) * 100)}%` : "—"}</AppText>
+                  <View style={[styles.weekTrack, { backgroundColor: palette.surfaceSecondary }]}>
+                    <View style={{ height: `${Math.round((week.reviewed / max) * 100)}%`, backgroundColor: palette.accent, borderRadius: 4 }} />
+                  </View>
+                  <AppText variant="label">{week.reviewed}</AppText>
+                  <AppText variant="caption" tone="secondary" align="center">{label}</AppText>
+                </View>
+              );
+            })}
+          </View>
+          <AppText variant="caption" tone="secondary">Número de revisões por semana e porcentagem de acertos.</AppText>
+          {history.missed.length ? (
+            <View style={{ gap: 6, marginTop: 6, alignSelf: "stretch" }}>
+              <AppText variant="label">Os que você mais erra</AppText>
+              {history.missed.map(({ card, wrong, total }) => (
+                <ListRow key={card.id} title={card.title || "Flashcard sem título"} description={`${wrong} erros em ${total} revisões`} icon="alert-circle-outline" onPress={() => router.push(`/decks/${card.deckId}` as never)} />
+              ))}
+            </View>
+          ) : null}
+        </View>
+      ) : null}
 
       {/* Prévia de candidatos gerados */}
       {candidates.length ? (
@@ -534,6 +569,9 @@ const styles = StyleSheet.create({
   sectionTitle: { fontSize: 17, fontWeight: "700", marginBottom: 5 },
   preview: { borderWidth: 1, borderRadius: 14, padding: 16, gap: 10 },
   review: { borderWidth: 1, borderRadius: 14, padding: 16, gap: 6, alignItems: "flex-start" },
+  weeks: { flexDirection: "row", alignSelf: "stretch", gap: 12, marginTop: 6 },
+  week: { flex: 1, alignItems: "center", gap: 4 },
+  weekTrack: { width: 22, height: 64, borderRadius: 4, justifyContent: "flex-end", overflow: "hidden" },
   candidate: { borderBottomWidth: 1, paddingVertical: 9, gap: 4 },
   modalBackdrop: {
     flex: 1,
