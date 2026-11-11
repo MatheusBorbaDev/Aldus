@@ -36,6 +36,9 @@ for (const expected of ["Supabase", "Google", "Gutendex", "Project Gutenberg", "
 }
 assert.doesNotMatch(publicLegalText, /flashcard|batalha|deck/i, "dados de Flashcards preparados, mas fora desta implantação funcional, não devem ser anunciados publicamente");
 assert.match(read("PROJECT_CONTEXT.md"), /Batalha[\s\S]*Supabase/i, "o contexto único deve manter o tratamento técnico de batalha");
+// Fase 1 (antipirataria): o texto não afirma "não distribui" enquanto o acervo embutido existir.
+assert.match(content, /não vende nem empresta livros e não oferece meio de enviar seus arquivos a outras pessoas/);
+assert.doesNotMatch(publicLegalText, /não distribui livros/);
 for (const forbidden of [/\bTODO\b/, /100% segur[oa]/i, /totalmente (em )?conformidade/i, /garantimos? conformidade/i, /inventou o livro de bolso/i]) {
   assert.doesNotMatch(publicLegalText, forbidden, `afirmação pública proibida: ${forbidden}`);
 }

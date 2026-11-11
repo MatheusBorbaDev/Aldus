@@ -24,6 +24,7 @@ assert.match(story,/renderer\?\.dispose\(\)/,'GPU is disposable');
 for(const id of ['conteudo','experiencia','recursos','como-funciona','planos','perguntas'])assert.ok(initial.includes(`id="${id}"`));
 assert.equal((initial.match(/<h1[ >]/g)||[]).length,1);assert.match(initial,/href="\/auth\/signup"/);assert.match(initial,/href="\/auth\/login"/);
 assert.match(visible,/Referência inicial/);assert.match(visible,/500 MiB/);assert.match(visible,/10 GiB/);assert.match(visible,/Preço ainda não disponível/);assert.match(initial,/<button[^>]*disabled=""[^>]*>Contratação ainda indisponível/);
+assert.match(visible,/não vende livros e não tem função para compartilhar arquivos/,'Antipiracy FAQ');assert.doesNotMatch(visible,/não distribui/);
 assert.doesNotMatch(visible,/\b(Free|OWNER|ADMIN|Dashboard|Storage|Sync|Churn)\b/);
 assert.ok(!initial.includes('/admin'));assert.ok(!initial.includes('PRIVATE_CONTENT_CANARY'));
 const updated=plans.map(p=>({...p,limits:{...p.limits,syncedBooks:137},priceBrlCentavos:p.id==='pro'?3990:p.priceBrlCentavos}));
