@@ -121,6 +121,9 @@ Persistência (legado mantido, não renomear `kindle-*`/`@kindle/*`): Native SQL
   `expo-notifications`) e filtro VIEW `content://` PDF/EPUB; o `*/*` é a consulta OPEN_DOCUMENT já existente. `apksigner`: v2, certificado
   `fac61745…033b9c` (o do Redmi) — não é o Beta privado. dex com `expo/modules/speech`, `expo/modules/notifications`; bundle Hermes com textos
   das ondas A–D; 34 livros. **NÃO instalado**: o Redmi segue com `ae98991`.
+- **Plano de mercado, FASE 2 (11/11, `6da731d`, `21a001b`)**: typecheck PASS; `test:critical` **110/110** (nova `reading-session`); `export:web`
+  PASS; Chromium PASS: `test:reader:{settings,epub,pdf,reflow}:web`. NÃO TESTADO: Android (AppState real, tela Não perturbe, sessão gravada no
+  aparelho).
 - **Plano de mercado, FASE 1 (11/11, `f752cf3`…`9b29311`)**: typecheck PASS; `test:critical` **109/109** (nova `import-duplicates`); `export:web`
   PASS; Chromium PASS: `test:reader:settings:web`, `test:reader:epub:web`, `test:marketing:web`, `test:library:web`; `test:legal` PASS. NÃO TESTADO:
   Android (fontes, prompt de duplicado, hash nativo em arquivo real).
@@ -294,8 +297,8 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
    e etapa 3 (remover os 33 arquivos do APK/`dist`) pendentes.
    **Revisão de qualidade (09/11)**: Ondas 0–5 aprovadas concluídas (commits locais, sem push); 6 e 7 fora. R5: patches do SDK 57 aplicados
    (BUG 13); APK de ensaio `6883532` compilado e conferido (§3), **não instalado**; remover `js-polyfills` 0.76/`metro-cache` 0.81 segue pendente. Levantamento do
-   **Plano de mercado (11/11)**: FASE 0 e FASE 1 concluídas (ver log); FASE 2 (sessão de leitura medida e "Ler em foco", MVP só Android)
-   aguarda aprovação do usuário. Fases 3–5 conforme o plano dele, cada uma só após aprovação.
+   **Plano de mercado (11/11)**: FASES 0–2 concluídas (ver log); FASE 3 (planejamento P/M/G de anotações, diário/CSV e cartão de foco)
+   aguarda aprovação do usuário. Texto da política de dados sobre as sessões a aprovar. Fases 3–5 conforme o plano dele, cada uma só após aprovação.
    **Melhorias (11/11)**: Ondas A–D concluídas (C precisa de APK novo para valer no aparelho); Maestro não adotado (ver log D); rolagem contínua avaliada e adiada (segundo sistema de posição; ver log). Dependem do usuário: acervo, Play/Firebase, Redmi, Literata.
    acervo entregue ao usuário (34 arquivos, 92,7 MB; 8 usados como fixture de teste), aguardando decisão do que sai; nada removido.
    Candidatos de bundle (sem decisão): pdfjs-dist duplicado no entry, reanimated só para motion cues, `react-native-render-html` em `ChapterRenderer`.
@@ -327,6 +330,21 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
 - **IA externa:** não enviar livros/trechos a serviço de IA sem pedido e consentimento explícito do usuário final.
 
 ## 10. Log (mais recente primeiro; máx. 5 entradas, resto → docs/context/historico/)
+
+### 11/11/2026 — Plano de mercado, FASE 2: sessão de leitura medida e "Ler em foco" (Claude)
+- `6da731d` `readingSession.ts`: só tempo ativo, ou seja, primeiro plano e no máximo **3 min** (escolha do usuário) após o último sinal (abrir,
+  virar página, voltar ao app); parado além disso ou em segundo plano não conta; nada estimado nem retroativo. `ReadingSessionStore`: só neste
+  aparelho, por conta (`@aldus/reading-sessions.v1:<user>`), atualiza por id, descarta <10 s ativos, limite 2000, histórico ilegível preservado.
+  Não sincroniza. Sem streak/ranking/comparação.
+- `21a001b` `useReadingSession` no Reader (página exibida em EPUB/PDF Original/Leitura Livre + `AppState`; grava ao ir para segundo plano e ao
+  fechar o livro; sem conta mede mas não grava; troca de conta no meio não grava). Conforto: "Ler em foco por" 10/15/25/45 min (meta em tempo
+  ativo), "Encerrar foco", resumo só com minutos medidos e desligável ("Mostrar resumo ao terminar o foco"); minutos restantes seguem "Ocultar
+  porcentagem e páginas". **Só Android**: "Abrir Não perturbe do Android" (`ZEN_MODE_PRIORITY_SETTINGS` → `ZEN_MODE_SETTINGS` → `SOUND_SETTINGS`,
+  sem permissão nova; o app não muda a configuração). Web: mede pela visibilidade, sem o atalho. iOS não avaliado.
+- Teste do slider em `test:reader:settings:web`: o toque a 25% caía no limite de arredondamento (16,5) e virou 16 com a barra de rolagem do
+  painel mais longo; passou a mirar o valor 17 pela fórmula do slider. Limites: PDF Original rolando dentro da mesma página por >3 min conta
+  como inatividade; política de dados (`dataDocument`) ainda não cita as sessões (texto a aprovar). Sessões não aparecem em lugar nenhum
+  além do resumo do foco (diário é FASE 3).
 
 ### 11/11/2026 — Plano de mercado, FASE 0 e FASE 1: ganhos rápidos (Claude)
 - Plano de 6 fases do usuário (relatórios Ciclo 1/1.1 e pesquisa de 56 respostas). Regras: sem cobrança, sem estatística inventada, sem streak
@@ -366,16 +384,6 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
   `AndroidManifest.xml` versionado e espelhado em `app.json`; `app/+native-intent.tsx` leva a `/open-file`, que valida o endereço, exige conta e
   usa o importador existente (formato pelos bytes). VALIDADO: ver §3. NÃO TESTADO: tudo no Android.
 
-### 11/11/2026 — Melhorias, Onda B: motor do Reader (Claude)
-- B1 (sem mudança de comportamento): brilho nativo → `useNativeReaderBrightness` (com teste próprio) e aviso flutuante → `ReaderFeedbackBanner`;
-  `ReaderScreen` 1229→1113 linhas. B2 **BUG 20 corrigido**: total de páginas pelo último conteúdo real (`lastContentPage`), não pela margem da
-  seção; Reflow 24→23 páginas, EPUB inalterado (121). Um `\S` na template do iframe virou `/S/` e o teste passou por acaso: trocado por `trim()`.
-  B3 **BUG 17 corrigido**: `lang` do capítulo (`<html>`/`<body>`, validado, nunca presumido) no documento e em cada seção; "Justificado" para EPUB
-  (salvo). B4 tempo restante no capítulo no rodapé (`readingPace.ts`/`useChapterTimeLeft`): mediana de ≥5 viradas medidas (3 s–10 min), EPUB e
-  Reflow, oculto com as contagens; sem ritmo medido não há estimativa.
-- B5 rolagem contínua **adiada**: o motor é paginado (colunas, âncoras por página, progresso/restauração por página); rolar exige outro sistema
-  de posição com as mesmas garantias de âncora e validação em aparelho. Fica como projeto próprio.
-
 ### 06/11/2026 — Entradas anteriores
 - Fechamento UX/UI e Onboarding 1: ver `docs/context/historico/2026-11-06-ux-fechamento-e-onboarding-1.md`.
 - Onboarding 2 (auditoria e reescrita do contexto): ver `docs/context/historico/2026-11-06-onboarding-2.md`.
@@ -397,3 +405,4 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
 - Redesenho, Etapa 4, Descobrir e Estudo (10/11): ver `docs/context/historico/2026-11-10-redesenho-etapa-4.md`.
 - Redesenho, Etapa 5, deck/Plano/Community/estudo/Batalha (10/11): ver `docs/context/historico/2026-11-10-redesenho-etapa-5.md`.
 - Melhorias, Onda A (11/11): ver `docs/context/historico/2026-11-11-melhorias-onda-a.md`.
+- Melhorias, Onda B (11/11): ver `docs/context/historico/2026-11-11-melhorias-onda-b.md`.
