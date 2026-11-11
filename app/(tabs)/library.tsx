@@ -66,7 +66,7 @@ function LibraryContent() {
   const insets = useSafeAreaInsets();
   const { books, status, error, reload } = useLibrary();
   const { palette, resolvedTheme, setMode } = useAppTheme();
-  const bookImport = useBookImport(reload);
+  const bookImport = useBookImport(reload, bookId => router.push({ pathname: "/reader/[bookId]", params: { bookId } }));
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<BookFilter>("all");
   const [sort, setSort] = useState<BookSort>("recent");
@@ -352,6 +352,9 @@ function LibraryContent() {
         onCancel={bookImport.cancel}
         onClose={bookImport.dismiss}
         onImportAnother={() => { bookImport.dismiss(); void bookImport.start(); }}
+        duplicate={bookImport.duplicate}
+        onOpenDuplicate={bookImport.openDuplicate}
+        onImportDuplicate={bookImport.importDuplicateAnyway}
         onOpenBook={() => {
           const bookId = bookImport.importedBook?.id;
           bookImport.dismiss();

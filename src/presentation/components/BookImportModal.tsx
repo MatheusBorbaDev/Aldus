@@ -1,5 +1,6 @@
 import { ActivityIndicator, Modal, Pressable, StyleSheet, Text, View } from "react-native";
 import { BookImportState, bookImportPhaseLabel, isBookImportTerminal } from "@/src/domain/types/bookImport";
+import { LibraryBook } from "@/src/domain/entities/LibraryBook";
 import { useAppTheme } from "@/src/presentation/contexts/AppThemeContext";
 
 interface Props {
@@ -8,12 +9,17 @@ interface Props {
   onClose: () => void;
   onOpenBook: () => void;
   onImportAnother: () => void;
+  /** Mesmo arquivo já importado (SHA-256): a importação espera "Abrir o existente", "Importar outra cópia" ou "Cancelar". */
+  duplicate?: LibraryBook | null;
+  onOpenDuplicate?: () => void;
+  onImportDuplicate?: () => void;
 }
 
-export function BookImportModal({ state, onCancel, onClose, onOpenBook, onImportAnother }: Props) {
+export function BookImportModal({ state, onCancel, onClose, onOpenBook, onImportAnother, duplicate, onOpenDuplicate, onImportDuplicate }: Props) {
   const { palette } = useAppTheme();
   const visible = state.phase !== "idle" && state.phase !== "selecting";
   const terminal = isBookImportTerminal(state.phase);
+  const asking = !!duplicate && !terminal;
   const ratio = state.progress && state.progress.total > 0
     ? Math.min(1, Math.max(0, state.progress.completed / state.progress.total))
     : null;
@@ -22,12 +28,23 @@ export function BookImportModal({ state, onCancel, onClose, onOpenBook, onImport
     <Modal visible={visible} transparent animationType="fade" onRequestClose={state.cancellable ? onCancel : terminal ? onClose : undefined}>
       <View style={[styles.backdrop, { backgroundColor: palette.overlay }]}>
         <View style={[styles.card, { backgroundColor: palette.panel, borderColor: palette.separator }]}>
-          <Text style={[styles.title, { color: palette.text }]}>Importando livro</Text>
+          <Text accessibilityRole="header" style={[styles.title, { color: palette.text }]}>{asking ? "Este livro já está na biblioteca" : "Importando livro"}</Text>
           {state.fileName ? <Text numberOfLines={2} style={[styles.fileName, { color: palette.text }]}>{state.fileName}</Text> : null}
           {state.format ? <Text style={[styles.meta, { color: palette.secondaryText }]}>{state.format.toUpperCase()}{state.fileSize ? ` · ${formatBytes(state.fileSize)}` : ""}</Text> : null}
 
-          {!terminal ? <ActivityIndicator color={palette.accent} size="large" /> : null}
-          <Text accessibilityLiveRegion="polite" style={[styles.phase, { color: palette.secondaryText }]}>{bookImportPhaseLabel(state.phase)}</Text>
+          {asking ? (
+            <Text accessibilityLiveRegion="polite" style={[styles.phase, { color: palette.text }]}>
+              {`O mesmo arquivo já foi importado como «${duplicate.title}». Outra cópia fica separada, com progresso e notas próprios.`}
+            </Text>
+          ) : null}
+          {asking ? (
+            <View style={styles.actions}>
+              <Action label="Abrir o existente" onPress={() => onOpenDuplicate?.()} color={palette.accent} border={palette.separator} />
+              <Action label="Importar outra cópia" onPress={() => onImportDuplicate?.()} color={palette.text} border={palette.separator} />
+            </View>
+          ) : null}
+          {!terminal && !asking ? <ActivityIndicator color={palette.accent} size="large" /> : null}
+          {!asking ? <Text accessibilityLiveRegion="polite" style={[styles.phase, { color: palette.secondaryText }]}>{bookImportPhaseLabel(state.phase)}</Text> : null}
 
           {ratio !== null ? (
             <View accessibilityRole="progressbar" accessibilityValue={{ min: 0, max: 100, now: Math.round(ratio * 100) }} style={[styles.track, { backgroundColor: palette.surfaceSecondary }]}>

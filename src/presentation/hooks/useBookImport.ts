@@ -6,18 +6,30 @@ import { LibraryBook } from "@/src/domain/entities/LibraryBook";
 import { appDependencies } from "@/src/presentation/services/dependencies";
 import { importDiagnostic } from "@/src/utils/importDiagnostics";
 
-export function useBookImport(reloadLibrary: () => Promise<void>) {
+/** Resposta ao aviso de duplicado: abrir o livro que já existe ou importar outra cópia (cancelar usa `cancel`). */
+export type DuplicateImportChoice = "open" | "import" | "cancel";
+
+export function useBookImport(reloadLibrary: () => Promise<void>, openBook?: (bookId: string) => void) {
   const mounted = useRef(true);
   const selectionLocked = useRef(false);
   const [state, setState] = useState<BookImportState>(idleBookImportState);
   const [selecting, setSelecting] = useState(false);
   const [importedBook, setImportedBook] = useState<LibraryBook | null>(null);
+  const [duplicate, setDuplicate] = useState<LibraryBook | null>(null);
+  const duplicateAnswer = useRef<((choice: DuplicateImportChoice) => void) | null>(null);
+  const answerDuplicate = (choice: DuplicateImportChoice) => {
+    const answer = duplicateAnswer.current;
+    duplicateAnswer.current = null;
+    if (mounted.current) setDuplicate(null);
+    answer?.(choice);
+  };
   const lifecycle = useMemo(() => new BookImportLifecycle(next => {
     if (mounted.current) setState(next);
   }), []);
 
   useEffect(() => () => {
     mounted.current = false;
+    answerDuplicate("cancel");
     lifecycle.reset();
   }, [lifecycle]);
 
@@ -37,13 +49,23 @@ export function useBookImport(reloadLibrary: () => Promise<void>) {
       const startedAt = lifecycle.current().startedAt ?? Date.now();
       importDiagnostic({ operationId: operation.operationId, source: "local", phase: "preparing", event: "start", startedAt, fileSize: asset.size, uri: asset.uri });
       try {
-        const book = await appDependencies.localBookImporter.import({
-          uri: asset.uri,
-          name: asset.name,
-          mimeType: asset.mimeType,
-          size: asset.size,
-          file: asset.file,
-        }, {
+        const picked = { uri: asset.uri, name: asset.name, mimeType: asset.mimeType, size: asset.size, file: asset.file };
+        // Fase 1: o mesmo arquivo já importado (SHA-256 no índice local da conta) pede uma decisão antes de importar.
+        const duplicateCheck = await appDependencies.importDuplicates.check(picked, operation.signal);
+        if (duplicateCheck.existing) {
+          const existing = duplicateCheck.existing;
+          const choice = await new Promise<DuplicateImportChoice>(resolve => {
+            duplicateAnswer.current = resolve;
+            if (mounted.current) setDuplicate(existing);
+          });
+          if (choice === "cancel" || operation.signal.aborted || !lifecycle.isCurrent(operation.operationId)) return;
+          if (choice === "open") {
+            lifecycle.reset();
+            openBook?.(existing.id);
+            return;
+          }
+        }
+        const book = await appDependencies.localBookImporter.import(picked, {
           operationId: operation.operationId,
           signal: operation.signal,
           onPhase: update => {
@@ -55,6 +77,7 @@ export function useBookImport(reloadLibrary: () => Promise<void>) {
         if (!lifecycle.transition(operation.operationId, { phase: "finalizing", cancellable: false })) return;
         setImportedBook(book);
         lifecycle.succeed(operation.operationId, book.id);
+        void appDependencies.importDuplicates.remember(duplicateCheck, book.id).catch(() => undefined);
         importDiagnostic({ operationId: operation.operationId, source: "local", format: lifecycle.current().format, phase: "success", event: "success", startedAt, fileSize: lifecycle.current().fileSize, uri: asset.uri });
         void reloadLibrary().catch(() => undefined);
       } catch (error) {
@@ -77,6 +100,7 @@ export function useBookImport(reloadLibrary: () => Promise<void>) {
     if (lifecycle.cancel() && current.operationId && current.startedAt) {
       importDiagnostic({ operationId: current.operationId, source: current.source ?? "local", format: current.format, phase: "cancelled", event: "cancel", startedAt: current.startedAt, fileSize: current.fileSize });
     }
+    answerDuplicate("cancel");
   };
 
   const dismiss = () => {
@@ -90,6 +114,9 @@ export function useBookImport(reloadLibrary: () => Promise<void>) {
     state,
     selecting,
     importedBook,
+    duplicate,
+    openDuplicate: () => answerDuplicate("open"),
+    importDuplicateAnyway: () => answerDuplicate("import"),
     start,
     cancel,
     dismiss,
