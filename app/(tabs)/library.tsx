@@ -22,6 +22,7 @@ import { BookCard as SharedBookCard } from "@/src/presentation/components/BookCa
 import { Book } from "@/src/constants/mockBooks";
 import { catalogBookFor } from "@/src/presentation/services/bookDisplay";
 import { isStalled, recentReads } from "@/src/domain/library/readingShelves";
+import { FirstStepsCard } from "@/src/presentation/components/FirstStepsCard";
 import { markEpubLibraryReady, startEpubOpenTrace } from "@/src/utils/epubOpenMetrics";
 import { useBookImport } from "@/src/presentation/hooks/useBookImport";
 import { BookImportModal } from "@/src/presentation/components/BookImportModal";
@@ -205,6 +206,7 @@ function LibraryContent() {
           <IconButton icon="add" label="Adicionar livros" appearance="filled" onPress={() => setOpenMenu("add")} />
         </>}
       />
+      {!selecting ? <FirstStepsCard /> : null}
       <SearchField value={query} onChangeText={setQuery} placeholder="Buscar por título, autor, série ou coleção" label="Buscar livros por metadados" />
       <ChipRow label="Filtrar por situação">
         {visibleFilters.map(item => <Chip key={item.value} label={item.value === "stalled" ? `${item.label} (${stalledCount})` : item.label} icon={item.value === "stalled" ? "time-outline" : undefined} selected={filter === item.value} onPress={() => setFilter(item.value)} />)}

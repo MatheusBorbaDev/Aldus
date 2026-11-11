@@ -115,6 +115,10 @@ Persistência (legado mantido, não renomear `kindle-*`/`@kindle/*`): Native SQL
   `test-flashcards`, `test-flashcard-sessions`, `test-flashcard-battles`, `test-battle-account`, `test-ui-primitives` PASS; `export:web` PASS; Chromium PASS:
   `test:source-library:browser`, `test:saas:web`. Sessão de estudo vista em fixture de rascunho (pergunta/resposta/resumo, `.expo/redesign-step5/study/`).
   Batalha SEM cobertura de navegador (exige partida remota); só typecheck e testes de lógica. Android NÃO TESTADO.
+- **Melhorias, Onda A (11/11, `26a582f`…A5)**: typecheck PASS; `test:critical` **100/100** (novas `highlight-flashcard`, `reading-shelves`,
+  `reader-theme-auto`, `review-history`, `first-steps`); `export:web` PASS; Chromium PASS: `test:reader:{settings,browser,epub,pdf,concentration,
+  markings,study}:web` (A3), `test:library:{web,bulk:web}` (bulk 4/4 após corrigir o teste), `test:source-library:browser`, `test:saas:web`.
+  Fora do APK `9d03182`; Android NÃO TESTADO; histórico de revisão e cartão de primeiros passos sem captura de navegador.
 - **APK de ensaio do HEAD `9d03182` (10/11, redesenho etapas 1–5)**: `ALDUS_ALLOW_DEVELOPMENT_SIGNING=device-rehearsal npm run build:apk:local`, árvore
   limpa, Gradle 2 min 1 s (reuso incremental; log `.expo/apk-9d03182-build.log`). `artifacts/apk/Aldus-9d03182-device-rehearsal.apk` (ignorado),
   253.266.978 bytes, SHA-256 `e2c0fad9…a93cc410`. `aapt`: `com.aldus.reader` 1.0.0-beta.2/code 3, min 24/target 36, sem debuggable, 4 ABIs.
@@ -301,6 +305,19 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
 
 ## 10. Log (mais recente primeiro; máx. 5 entradas, resto → docs/context/historico/)
 
+### 11/11/2026 — Melhorias, Onda A: estudo, estante, tema automático, histórico e primeiros passos (Claude)
+- Pedido do usuário: executar todas as melhorias propostas (ondas A–D). Dependem dele: livros do acervo que saem, conta Play Console/Firebase,
+  validação no Redmi e download da Literata. Onda A concluída (sem dependência nova, sem mexer no motor):
+- A1 `StudyHighlightsPanel`: "Criar flashcard deste grifo" logo após salvar; confirmação; duplicado explicado (antes `return` silencioso);
+  deck com título legível. A2 `readingShelves.ts`: "Continue lendo" com até 3 leituras (barra de progresso) e chip "Parados há 30 dias" só com
+  atividade medida; sem "Concluídos este ano" (não há data de conclusão gravada). A3 `readerThemeAuto.ts` + `ReaderSettingsContext`:
+  "Automático" (desligado por padrão; salvo como `followAppTheme`) mostra tema escuro com o app escuro, preservando o tema escolhido; vale
+  para EPUB e PDF; escolher um tema desliga. A4 `reviewHistory.ts`: revisões e acertos por semana (4 janelas de 7 dias) e mais errados, só de
+  `reviews` gravados (sessões antigas são substituídas por deck; eventos ficam). A5 `FirstStepsCard`: 3 passos no topo da Biblioteca, não
+  bloqueante, uma vez por aparelho (`@kindle/first-steps-seen.v1`).
+- `test-library-bulk-web`: falhava 3/4 também no código anterior (foco devolvido pelo menu ao fechar); agora espera o menu fechar e confere o
+  foco antes da tecla espaço. VALIDADO: ver §3. NÃO TESTADO: Android.
+
 ### 10/11/2026 — Redesenho, Etapa 5 (conclusão): sessão de estudo, flashcards e Batalha (Claude)
 - IMPLEMENTADO (lógica de sessão, pontuação, SRS e partidas intocada): `FlashcardStudyScreen` sobre `src/ui` (cabeçalho com voltar, cartão de
   início com ação principal única, resumo com pontos em destaque e acerto/erro em cor de sucesso/perigo); durante as perguntas a tela não rola.
@@ -332,16 +349,6 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
 - Não feito: menu "+" único no Estudo (mantive "Novo deck"/"Criar flashcard"/"Mais ferramentas" visíveis; o ganho era pequeno e mudava
   rótulos usados por testes). VALIDADO: ver §3. NÃO TESTADO: Android; bloco de revisão com dados reais no navegador.
 
-### 10/11/2026 — Redesenho, Etapa 3: menu do livro na Biblioteca (Claude)
-- IMPLEMENTADO (`BookCloudControls` em `LibrarySyncControls.tsx`; lógica de remoção/Sync inalterada): o cartão passa a ter **uma** linha
-  "situação · disponibilidade" + "⋯" (antes duas linhas e um botão de etiqueta separado). O menu é uma folha compacta (máx. 480 px) com título de
-  exibição e autor · formato · tamanho · disponibilidade; ações **Abrir** e **Organizar**; depois, em cor de perigo, **Remover deste
-  dispositivo** e **Remover da minha biblioteca**, cada uma com a consequência escrita (e o motivo quando indisponível: acervo do app, ainda
-  não enviado, arquivo ausente); confirmação com "Confirmar remoção" (perigo) e "Cancelar". Rótulos acessíveis antigos preservados.
-- Não feito: "Marcar como lido" direto no menu (fica em Organizar, que já grava a situação pelo `LibraryOrganizationStore`); OCR no menu.
-- Testes: `test-library-ui` cobre linha única, título de exibição, abrir/organizar, textos das remoções, cancelar sem remover e motivo do
-  bloqueio. VALIDADO: ver §3. NÃO TESTADO: Android.
-
 ### 06/11/2026 — Entradas anteriores
 - Fechamento UX/UI e Onboarding 1: ver `docs/context/historico/2026-11-06-ux-fechamento-e-onboarding-1.md`.
 - Onboarding 2 (auditoria e reescrita do contexto): ver `docs/context/historico/2026-11-06-onboarding-2.md`.
@@ -359,3 +366,4 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
 - Dependências, patches do SDK 57 e APK de ensaio `6883532` (09/11): ver `docs/context/historico/2026-11-09-dependencias-sdk-57.md`.
 - Redesenho, Etapa 1, painel de leitura e plano das 5 etapas (10/11): ver `docs/context/historico/2026-11-10-redesenho-etapa-1.md`.
 - Redesenho, Etapa 2, título e avisos do Reader (10/11): ver `docs/context/historico/2026-11-10-redesenho-etapa-2.md`.
+- Redesenho, Etapa 3, menu do livro (10/11): ver `docs/context/historico/2026-11-10-redesenho-etapa-3.md`.
