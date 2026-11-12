@@ -115,6 +115,11 @@ Persistência (legado mantido, não renomear `kindle-*`/`@kindle/*`): Native SQL
   `test-flashcards`, `test-flashcard-sessions`, `test-flashcard-battles`, `test-battle-account`, `test-ui-primitives` PASS; `export:web` PASS; Chromium PASS:
   `test:source-library:browser`, `test:saas:web`. Sessão de estudo vista em fixture de rascunho (pergunta/resposta/resumo, `.expo/redesign-step5/study/`).
   Batalha SEM cobertura de navegador (exige partida remota); só typecheck e testes de lógica. Android NÃO TESTADO.
+- **APK de ensaio do HEAD `99ce32d` (12/11, Community Etapa 2 + tudo do `827721f`)**: `device-rehearsal`, árvore limpa, pasta
+  `generated/res/react/release` apagada antes, Gradle 1 min 38 s (log `.expo/apk-99ce32d-build.log`).
+  `artifacts/apk/Aldus-99ce32d-device-rehearsal.apk` (ignorado), 161.936.237 bytes (154,4 MiB), SHA-256 `5aca3949…d884b8cb`. `aapt`:
+  `com.aldus.reader` 1.0.0-beta.2/code 3, 4 ABIs, sem debuggable; certificado `fac61745…033b9c` (o do Redmi). Livros: só os 7 ativos (hashes
+  conferidos), nenhum legado. Bundle Hermes com os textos da tela Pessoas e as RPCs `community_*`. **NÃO instalado**: o Redmi segue com `ae98991`.
 - **APK de ensaio do HEAD `827721f` (11/11, fases 1–5 + acervo sem os 33 protegidos)**: `device-rehearsal`, árvore limpa, Gradle 2 min 37 s
   (log `.expo/apk-827721f-build2.log`). `artifacts/apk/Aldus-827721f-device-rehearsal.apk` (ignorado), 161.919.137 bytes (154,4 MiB), SHA-256
   `a05fc392…7893ff39`. `aapt`: `com.aldus.reader` 1.0.0-beta.2/code 3, 4 ABIs, sem debuggable; certificado `fac61745…033b9c` (o do Redmi).
@@ -310,7 +315,7 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
    **Revisão de qualidade (09/11)**: Ondas 0–5 aprovadas concluídas (commits locais, sem push); 6 e 7 fora. R5: patches do SDK 57 aplicados
    (BUG 13); APK de ensaio `6883532` compilado e conferido (§3), **não instalado**; remover `js-polyfills` 0.76/`metro-cache` 0.81 segue pendente. Levantamento do
    **Community, Etapa 2 (12/11)**: código pronto e as duas migrations **aplicadas no Supabase** com autorização do usuário. Falta: homologar com
-   duas contas reais (publicar, pedir, aceitar, bloquear, denunciar), APK/deploy Web com o código novo (o APK `827721f` não tem a tela Pessoas),
+   duas contas reais (publicar, pedir, aceitar, bloquear, denunciar), instalar o APK `99ce32d` (já tem a tela Pessoas) e publicar o Web,
    aprovar o texto de privacidade sobre o perfil publicado e decidir se as migrations entram no ledger. Depois: clubes por convite e comentários
    por marco (§13.1), moderação antes de qualquer clube público.
    **Plano de mercado (11/11)**: FASES 0–5 concluídas (3 e 5a só planejamento: `docs/context/reader.md` e `community-estudo.md` §13.1; 4 em
