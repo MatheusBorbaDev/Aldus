@@ -127,6 +127,7 @@ Persistência (legado mantido, não renomear `kindle-*`/`@kindle/*`): Native SQL
   `expo-notifications`) e filtro VIEW `content://` PDF/EPUB; o `*/*` é a consulta OPEN_DOCUMENT já existente. `apksigner`: v2, certificado
   `fac61745…033b9c` (o do Redmi) — não é o Beta privado. dex com `expo/modules/speech`, `expo/modules/notifications`; bundle Hermes com textos
   das ondas A–D; 34 livros. **NÃO instalado**: o Redmi segue com `ae98991`.
+- **Community no Supabase (12/11)**: migrations aplicadas e conferidas por catálogo e por sonda REST anônima (ver log). Sessões autenticadas reais NÃO testadas.
 - **Community, Etapa 2 (12/11, `0ffe781`, `2140f8f`)**: typecheck PASS; `test:critical` **115/115** (novas `community-social-schema` em PGlite com as 3
   migrations reais e contas A/B/C/anon, e `community-social` com gateway/telas simulados); `export:web` PASS. Sem suíte de navegador para a Community.
 - **Acervo + FASES 3–5 (11/11, `51f69f0`…`80d2c88`)**: typecheck PASS; `test:critical` **113/113** (novas `bundled-catalog`, `legacy-reattach`,
@@ -245,7 +246,7 @@ Legenda: **IVER** = implementado e verificado (suíte/execução citada); **ISVS
 | Auth (email, Google PKCE, username) | IVER (local) / remoto ISVS | `auth*.ts`, `AuthContext.tsx`; `test-auth*` (critical). BUG 08 (cadastro/recovery reais) e BUG 09 (`username-login` não implantado) BLOQUEADOS externamente. |
 | Library Sync (outbox/CAS/tombstone/RLS) | IVER (local/PGlite) / remoto ISVS | `src/data/library/*`, migrations `*library*`; `test:library:*`, `test:library:rls`. BUG 02: QA autenticado remoto pendente; BUG 11 deploy incremental pendente. |
 | Sources / Drive | Sources IVER (local); Drive ISVS | `src/data/sources/*`, `src/data/drive/*`, `modules/aldus-drive-auth`; `test:source-catalog`, `test:drive`. BUG 03 (Drive real Android) e BUG 12 (Sources device-scoped) abertos. |
-| Community | PARC (local v0.1 + Etapa 2 pronta no código, servidor não aplicado) | `LocalCommunityRepository`; Pessoas/Leitor + `SupabaseCommunityGateway` (12/11); `test-community-*`. Migrations `202610130001_community_foundation.sql` e `20261112120000_community_social_graph.sql` **não aplicadas**: no app real a tela Pessoas responde "ainda não disponível no servidor". |
+| Community | PARC (local v0.1 + Etapa 2 no código e no servidor; sem homologação com sessões reais) | `LocalCommunityRepository`; Pessoas/Leitor + `SupabaseCommunityGateway` (12/11); `test-community-*`. Migrations `202610130001_community_foundation.sql` e `20261112120000_community_social_graph.sql` **aplicadas no Supabase em 12/11** pelo editor SQL do painel (não constam no ledger `supabase_migrations`). Falta APK/deploy com o código e teste com duas contas reais. |
 | SaaS/planos/cotas e Admin | IVER (local) / remoto ISVS | `src/domain/saas`, `src/admin`, migrations `20261015*`; `test:saas*`, `test:admin*`. Deploy/OWNER só por registro; login/TOTP real pendente. |
 | Landing Web e legal | IVER (local/Chromium) | `src/marketing`, `src/legal`; `test:marketing*`, `test:legal*`. Deploy Vercel não reconferido. |
 | Android (build/APK/módulos) | PARC | `android/`, `scripts/build-apk-local.mjs`; APK `00b6e4d`/`53b4e32` (privados, ignorados). Homologação física BLOQUEADA (Redmi ausente), APK do HEAD inexistente. |
@@ -308,9 +309,10 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
    (reanexam ao mesmo livro da conta) e um APK/deploy novos; o APK `cde4ce8` e deploys anteriores ainda contêm os arquivos; os binários seguem no histórico Git.
    **Revisão de qualidade (09/11)**: Ondas 0–5 aprovadas concluídas (commits locais, sem push); 6 e 7 fora. R5: patches do SDK 57 aplicados
    (BUG 13); APK de ensaio `6883532` compilado e conferido (§3), **não instalado**; remover `js-polyfills` 0.76/`metro-cache` 0.81 segue pendente. Levantamento do
-   **Community, Etapa 2 (12/11)**: grafo social pronto no código e testado em PGlite; **falta autorização do usuário para aplicar as duas
-   migrations no Supabase** (roteiro em `community-estudo.md` §13.2) e aprovar o texto de privacidade sobre o perfil publicado. Sem isso a
-   rede não funciona no app real. Depois: clubes por convite e comentários por marco (§13.1), moderação antes de qualquer clube público.
+   **Community, Etapa 2 (12/11)**: código pronto e as duas migrations **aplicadas no Supabase** com autorização do usuário. Falta: homologar com
+   duas contas reais (publicar, pedir, aceitar, bloquear, denunciar), APK/deploy Web com o código novo (o APK `827721f` não tem a tela Pessoas),
+   aprovar o texto de privacidade sobre o perfil publicado e decidir se as migrations entram no ledger. Depois: clubes por convite e comentários
+   por marco (§13.1), moderação antes de qualquer clube público.
    **Plano de mercado (11/11)**: FASES 0–5 concluídas (3 e 5a só planejamento: `docs/context/reader.md` e `community-estudo.md` §13.1; 4 em
    `docs/mockups/certo-errado/`). Pendentes do usuário: texto da política de dados sobre sessões e marcos; entrevistas da FASE 4; escolher itens da FASE 3.
    **Melhorias (11/11)**: Ondas A–D concluídas (C precisa de APK novo para valer no aparelho); Maestro não adotado (ver log D); rolagem contínua avaliada e adiada (segundo sistema de posição; ver log). Dependem do usuário: acervo, Play/Firebase, Redmi, Literata.
@@ -325,7 +327,7 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
 5. **Sources device-scoped** (BUG 12) e snapshot/config sem isolamento por conta.
 6. **Dependências** com avisos sem upgrade compatível (BUG 13; não rebaixar Expo/RN, sem `audit fix --force`).
 7. Limites conhecidos: atomicidade do lote entre abas Web independentes não comprovada; Reflow grande lento e consome memória (BUG 06);
-   Community com backend só local (migrations não aplicadas; ver item Community, Etapa 2); `FORENSIC` logs (≈50) atrás da flag `epubCenterResetDiagnostics`.
+   Community com backend aplicado em 12/11, sem homologação autenticada (ver item Community, Etapa 2); `FORENSIC` logs (≈50) atrás da flag `epubCenterResetDiagnostics`.
 Áreas frágeis: `ReaderScreen.tsx`/`EpubReaderDocument.ts` (âncoras, ACK, geometria), `src/data/library/*` (outbox/CAS/epoch),
 `LibraryOrganizationStore` (escrita única + CAS), cache Reflow (cancelamento durante gravação), `AccountBookRepository`/escopo de conta.
 
@@ -355,7 +357,16 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
   bloquear, denunciar), `SupabaseCommunityGateway` (sessão da conta em cada chamada, contrato validado, erros mapeados, "indisponível no servidor").
 - Não feito: aplicar no Supabase (exige autorização), atividades/estatísticas publicadas (continuam derivadas só pelo servidor, sem fonte confiável),
   clubes, comentários, painel de denúncias no Admin, texto de privacidade. Sem contagem de seguidores, ranking ou comparação.
-- NÃO TESTADO: Supabase real (RLS/RPC implantadas, PostgREST), navegador e Android das telas novas.
+- NÃO TESTADO (até a aplicação abaixo): Supabase real, navegador e Android das telas novas.
+- **Aplicação remota (12/11, autorizada pelo usuário: "Sim, aplicar" e "Usar o Chrome")**: projeto "Kindle reader" (branch main/PRODUCTION), editor SQL
+  do painel no Chrome do usuário. Inventário somente leitura antes: PG 17.6, 7 contas todas com @usuário, nenhuma tabela/função `community*`, ledger com
+  7 migrations (versões remotas diferentes das locais). Cada arquivo foi colado e conferido por SHA-256 contra o repositório antes de rodar
+  (`cc0e8c36…4c6ded` foundation, `4e2780a1…6f1a91` social graph); ambos "Success". O painel avisou de operação destrutiva na segunda (troca de duas
+  políticas em tabelas recém-criadas e vazias; `delete` só dentro de funções); confirmado. Depois: 8 tabelas com RLS, 10 políticas, 18 funções com os
+  grants esperados (RPCs só `authenticated`; internas sem execução por cliente; `community_can_view` para anon/authenticated), só SELECT em follows/blocks
+  e nada em reports para clientes, gatilhos novos em `profiles`/`community_profiles`, 0 linhas. Sonda REST anônima: perfis/atividades 200 `[]`,
+  follows/blocks/reports e RPCs 401, escrita direta 401. Nenhum dado existente alterado. **Não feito**: registro no ledger, homologação com sessões
+  reais A/B (não há contas de teste autorizadas), deploy do frontend.
 
 ### 11/11/2026 — Acervo (etapas 1–3) e plano de mercado, FASES 3–5 (Claude)
 - Pedido: "pode iniciar a implementação de todas as fases" (sem parar entre fases). Acervo: o usuário escolheu **reanexar ao importar** em vez da
