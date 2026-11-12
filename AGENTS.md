@@ -75,11 +75,26 @@ estas convenções; documentos antigos não ampliam o escopo autorizado.
 - UI em pt-BR, acessível, sóbria e literária. Não acrescente instrumentação, serviço pago
   ou envio de livros a IA externa sem pedido específico.
 
+## Como conduzir o trabalho (resumo)
+
+O procedimento completo está em [aldus-engineering-workflow](.agents/skills/aldus-engineering-workflow/SKILL.md).
+
+- Inventário somente leitura antes de editar; confira no código o que for afirmar em tela ou em texto legal.
+- Decisão irreversível, remota, de texto público, de dado que sai do aparelho ou de regra de produto é do dono:
+  pergunte uma vez, com opções. O resto decida e relate. Pare ao fim de cada fase, salvo ordem de seguir.
+- Um commit por item, cada um verde sozinho: domínio → dados → composição → hook → tela → teste → registro.
+- Antes de cada commit, leia a linha `N/N critical suites passed`. Teste exercita comportamento, não strings.
+- Melhoria de design: ver a tela, medir em 320/390 px e texto ampliado, entregar captura; roteiro em
+  [aldus-interface-review](.agents/skills/aldus-interface-review/SKILL.md).
+- Implantação em ordem, cada passo com autorização própria: código → servidor → APK → Web → homologação →
+  registro. PC verde não é aparelho nem conta real: o que não foi exercitado ali fica `NÃO TESTADO`.
+
 ## Skills locais
 
 | Quando usar | Skill |
 | --- | --- |
 | Entrada, retomada e fechamento de sessão | [aldus-project-continuity](.agents/skills/aldus-project-continuity/SKILL.md) |
+| Conduzir qualquer recurso, melhoria ou plano: decisões, fatias, camadas, testes, ordem de implantação | [aldus-engineering-workflow](.agents/skills/aldus-engineering-workflow/SKILL.md) |
 | Seleção de testes e interpretação de evidência | [aldus-validation](.agents/skills/aldus-validation/SKILL.md) |
 | Reader, EPUB, Original/Reflow, âncoras e marcações | [aldus-reader-safety](.agents/skills/aldus-reader-safety/SKILL.md) |
 | Biblioteca, organização, conta, progresso e Sync | [aldus-library-sync](.agents/skills/aldus-library-sync/SKILL.md) |

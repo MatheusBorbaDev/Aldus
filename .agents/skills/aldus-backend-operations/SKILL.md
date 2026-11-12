@@ -58,3 +58,23 @@ sem conceder autorização. Se ela já existir para a ação, prossiga sem solic
 Use [aldus-validation](../aldus-validation/SKILL.md) para testes locais. PGlite e Postgres
 isolado não provam GoTrue/PostgREST/Storage gerenciado. Falta de acesso é bloqueio externo
 da verificação remota; não invalida uma implementação local que passou seus próprios gates.
+
+## Sem CLI nem conector: o que já funcionou
+
+Quando o checkout só tem a URL e a chave pública do app, ainda dá para trabalhar com segurança:
+
+- **Inventário sem credencial**: sonda REST com a chave pública (`GET /rest/v1/<tabela>?limit=0` e
+  `POST /rest/v1/rpc/<função>`). `PGRST205`/`PGRST202` indicam objeto ausente; `42501` indica que existe e
+  está fechado para anônimo. É leitura; não imprima a chave.
+- **Aplicação pelo painel**, só com autorização vigente do dono para aquela operação e com ele já
+  autenticado no navegador: abrir o editor SQL do projeto certo, conferir nome do projeto e ambiente na
+  tela, rodar o inventário de catálogo (tabelas, políticas, funções, ledger `supabase_migrations`) e só
+  então colar **o arquivo de migration inteiro**, conferindo por SHA-256 que o texto no editor é idêntico
+  ao do repositório antes de executar. Uma migration por vez; verificar objetos, RLS, grants e contagem de
+  linhas depois de cada uma. O painel pede confirmação para `drop`/`delete`: leia o que é destrutivo e
+  confirme só se atingir apenas objetos criados pela própria mudança.
+- **Depois**: repetir a sonda REST anônima (o que deve abrir, o que deve negar, escrita direta negada).
+  SQL aplicado pelo editor **não entra no ledger**; registre no PROJECT_CONTEXT para ninguém reaplicar e
+  não use `db push` depois. Homologação com sessões reais A/B continua pendente até acontecer.
+- Não instale CLI, não peça senha, não crie contas de teste remotas sem pedido. Faltou acesso: ofereça o
+  conector oficial ou o painel e espere a escolha do dono.

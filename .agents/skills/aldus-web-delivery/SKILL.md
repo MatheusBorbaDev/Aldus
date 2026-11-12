@@ -18,6 +18,9 @@ que a URL de uma entrega antiga aponta para o código atual.
   validação de env pública, catálogo, Expo, assets/rotas e metadata. Não exporte ignorando o guard.
 - Leia `dist/build-info.json`: commit, dirty e hashes. `dirty=true` descreve uma fonte com
   diferenças; não a apresente como checkout limpo nem apague mudanças para obter `false`.
+- O pós-export (`scripts/copy-books-to-dist.mjs`) confere cada arquivo de `assets/Livros` contra o manifesto
+  de domínio público e recusa qualquer título do acervo antigo; se falhar, declare o livro com fonte e
+  licença ou retire o arquivo, nunca desligue a guarda. `dist` sem livros protegidos fica perto de 16 MB.
 - `node scripts/test-web-build.cjs --exported` confere o export existente. Exercite browser
   conforme [aldus-validation](../aldus-validation/SKILL.md). Não reutilize dist antigo por nome.
 - Env pública só pode conter chave anon/publishable e configuração destinada ao cliente.

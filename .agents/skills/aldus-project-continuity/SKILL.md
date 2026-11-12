@@ -25,6 +25,9 @@ description: "Iniciar, retomar ou encerrar trabalho no Aldus Reader, recuperando
 
 ## Executar e registrar
 
+- Para recurso, melhoria ou plano de várias fases, siga o
+  [fluxo de engenharia](../aldus-engineering-workflow/SKILL.md): inventário, decisões do dono, fatias,
+  testes e ordem de implantação.
 - Use o [mapa de navegação](references/project-map.md) para achar módulos; confirme os
   nomes no checkout. Carregue apenas as skills necessárias, usando o catálogo do AGENTS.
 - Se dependências já existem, não execute `npm ci` por hábito: ele reconstrói node_modules.

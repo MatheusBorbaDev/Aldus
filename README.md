@@ -20,7 +20,7 @@ skills, nomes de scripts e presença de ferramentas. Não instala, testa, compil
 valores de `.env`, conecta serviços ou usa o celular. Funciona mesmo iniciado em outra
 pasta quando chamado pelo caminho absoluto; `--root` permite indicar outro clone Aldus.
 
-As onze skills em [.agents/skills](.agents/skills) cobrem continuidade, validação,
+As doze skills em [.agents/skills](.agents/skills) cobrem continuidade, fluxo de engenharia, validação,
 Reader, biblioteca/Sync, importação/Sources/Drive, Community, Flashcards/Battle,
 interface, backend/Auth/Admin, entrega Web e APK. O catálogo com os gatilhos está no
 AGENTS. Leia apenas as pertinentes.

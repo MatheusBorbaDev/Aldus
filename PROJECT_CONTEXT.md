@@ -352,6 +352,17 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
 
 ## 10. Log (mais recente primeiro; máx. 5 entradas, resto → docs/context/historico/)
 
+### 12/11/2026 — Instruções para outras IAs: fluxo de engenharia, design e implantação (Claude)
+- Pedido do usuário: deixar instruções de como seguir com o projeto, melhorias de design, estrutura dos desenvolvimentos e implantações.
+- Nova skill `aldus-engineering-workflow` (inventário, decisões do dono × técnicas, fatias em commits verdes, camadas e convenções, testes,
+  gates, ordem de implantação, relato) com `references/pitfalls.md` (armadilhas reais de shell/CRLF, simulados de teste, navegador, build
+  Android, dados e textos). `aldus-interface-review` ganhou o roteiro de melhoria de design (ver a tela, propor, medir em 320/390 e texto
+  ampliado, evidência). `verify-android-apk-delivery`: limpar `generated/res/react/release` após remover assets, conferir livros por hash,
+  UTF-16 no Hermes, limites de entrega ao celular. `aldus-backend-operations`: caminho sem CLI (sonda REST anônima, painel SQL com conferência
+  por SHA-256, ledger). `aldus-web-delivery`: guarda do acervo no pós-export. AGENTS com resumo e catálogo; README com doze skills.
+- VALIDADO: `node scripts/validate-ai-instructions.cjs` PASS (12 skills, 17 documentos) e `git diff --check`. Só documentação: suítes do app não
+  foram reexecutadas. As regras de produto do dono (11/11) ficaram registradas na skill nova, §3.
+
 ### 12/11/2026 — Community, Etapa 2: grafo social (Claude)
 - Pedido: "desenvolva e aprimore a parte de rede social". Segui a ordem do §13: primeiro perfis publicados e seguir. `0ffe781` migration
   `20261112120000_community_social_graph.sql` (só local): identidade do perfil publicado vem da conta (`public.profiles`; a foundation deixava o
@@ -417,17 +428,6 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
   partir desta versão (acervo antigo não recalculado). Sem conta, >512 MiB, falha de leitura ou Web sem Blob: importa sem aviso. Nova suíte
   `import-duplicates`. Só a importação por arquivo avisa (catálogos, Drive e "Abrir com Aldus" não). Prompt sem suíte de navegador.
 
-### 11/11/2026 — Melhorias, Onda D: base técnica (Claude)
-- D1 `pdfjsRuntime.web.ts`: pdf.js por `import()` no visualizador, no Reflow e nas capas (worker/documento iguais); bundle principal −535 KiB,
-  pdf.js vira chunk de 536 KiB baixado só ao abrir PDF; trava em `test-pdfjs-lazy`. Erro de procedimento: o commit `fca5591` saiu com
-  `cover-thumbnails` falhando (o `grep` da verificação retornou sucesso); corrigido em `c8a5265` e a verificação passou a exigir "N/N".
-  Capa de PDF na Web sem suíte de navegador. Observação: `PdfPageViewer.web` usa cMaps do CDN na versão 3.11.174 (pacote 6.3.289); não alterado.
-- D2 (BUG 13, opção 2): a hipótese de que o Metro usava `js-polyfills` 0.76.9 estava errada (usa a 0.86.3 do `react-native`); `metro-cache`
-  0.81.5 não era usado. Removidos (−4 pacotes, nenhum novo). `fast-xml-parser` 5.11→5.12 (dentro de `^5.11.0`; aviso de CPU em EPUB malformado).
-- D3 Maestro **não adotado**: duplicaria `scripts/redmi-qa.cjs` (adb/UI Automator, sem instalar/limpar/trocar conta), exigiria baixar ferramenta
-  externa e rodaria contra a conta pessoal do Redmi (regra: testes não usam sessão/biblioteca pessoal). `redmi-qa.cjs` atualizado: título do
-  painel "Ajustes de leitura" e adb lido de `android/local.properties`. Precisa de rodada com aparelho e conta de teste.
-
 ### 06/11/2026 — Entradas anteriores
 - Fechamento UX/UI e Onboarding 1: ver `docs/context/historico/2026-11-06-ux-fechamento-e-onboarding-1.md`.
 - Onboarding 2 (auditoria e reescrita do contexto): ver `docs/context/historico/2026-11-06-onboarding-2.md`.
@@ -451,3 +451,4 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
 - Melhorias, Onda A (11/11): ver `docs/context/historico/2026-11-11-melhorias-onda-a.md`.
 - Melhorias, Onda B (11/11): ver `docs/context/historico/2026-11-11-melhorias-onda-b.md`.
 - Melhorias, Onda C (11/11): ver `docs/context/historico/2026-11-11-melhorias-onda-c.md`.
+- Melhorias, Onda D (11/11): ver `docs/context/historico/2026-11-11-melhorias-onda-d.md`.

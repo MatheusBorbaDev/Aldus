@@ -33,6 +33,9 @@ credenciais. Auditoria de APK não autoriza compilar, instalar ou usar o aparelh
 
 ## Conferir o artefato efetivo
 
+0. Se algum asset saiu do projeto desde o último build (livros, imagens), apague a pasta de saída
+   `android/app/build/generated/res/react/release` antes de compilar: o Gradle não remove recursos
+   antigos e o APK sai com os arquivos removidos (aconteceu em 11/11/2026: 244 MiB e 40 livros em vez de 7).
 1. Exija processo concluído com sucesso e `.apk` existente/não vazio. Se Gradle reutilizar
    artefato, confirme sua origem, bundle e correspondência com a fonte antes de atribuir revisão.
 2. Registre caminho absoluto, bytes e SHA-256 (`Get-FileHash -Algorithm SHA256`).
@@ -40,7 +43,9 @@ credenciais. Auditoria de APK não autoriza compilar, instalar ou usar o aparelh
    `apkanalyzer` ou `aapt dump badging` para applicationId, versionName, versionCode,
    debuggable e ABIs. Descubra caminhos/comandos reais; não deduza esses campos do nome.
 4. Compare manifesto/config com o esperado e confira JS/Hermes/assets incluídos quando
-   a entrega depender deles. Development build via Metro não é APK independente com o JS novo.
+   a entrega depender deles. Liste os PDF/EPUB dentro do APK e compare o SHA-256 de cada um com
+   `src/data/library/bundledBookManifest.json` (ativos) e `legacyBundledAssets.json` (nenhum legado pode
+   aparecer). Textos acentuados ficam em UTF-16 no bundle Hermes: procure nas duas codificações. Development build via Metro não é APK independente com o JS novo.
 5. Antes de upload autorizado, use destino privado e manifesto/hash. Se fragmentado por
    limite do conector, prove remontagem integral. Metadata remota não é redownload com hash.
    Não envie chaves, backups, livros ou dados pessoais junto do APK.
@@ -67,3 +72,8 @@ Informe fonte/dirty, arquivo/bytes/SHA-256, package/versão/code, certificado/AB
 tipo (Beta, ensaio legado ou development/Metro), evidência de instalação/preservação e
 cenários executados. Separe `IMPLEMENTADO`, artefato `VALIDADO`, instalação e QA `PARCIAL`
 ou `BLOQUEADO`. Sem hospedagem real, forneça caminho local; nunca invente link HTTPS.
+
+Entrega ao celular sem cabo: o APK passa de 150 MiB e não cabe nos envios de arquivo das ferramentas de
+conversa nem em upload por navegador automatizado; serviço de link temporário não é destino privado. Sem um
+serviço de nuvem que o dono já tenha instalado e conectado, diga logo que as opções são USB (com pedido de
+instalação) ou o dono copiar o arquivo de `artifacts/apk`. Não instale programas para contornar isso.
