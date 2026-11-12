@@ -110,3 +110,22 @@ podem não abrir no app (aviso obrigatório na entrada do clube). Sem ranking, s
   lembretes de "você está atrasado"). Dependências remotas exigem autorização específica (schema/Auth/RLS).
 
 A FASE 5b é a parte **local** disso, sem servidor: marcos de um livro, cartão-cronograma e "marco 2 de 3" (ver log do PROJECT_CONTEXT).
+
+### 13.2 Etapa 2 — grafo social (12/11/2026; código pronto, servidor NÃO aplicado)
+
+- **Servidor** (`supabase/migrations/20261112120000_community_social_graph.sql`, depende de `202610060001` e `202610130001`): identidade do
+  perfil publicado copiada da conta por trigger; `community_follows` (pending/accepted), `community_blocks`, `community_reports`; função
+  `community_can_view(owner, privacy)` usada nas políticas de perfil e atividade; RPCs `community_find_reader`, `community_search_readers`,
+  `community_follow`/`unfollow`, `community_respond_follow`, `community_remove_follower`, `community_list_follows`, `community_block`/
+  `unblock`, `community_list_blocked`, `community_report`. Erros `community:<motivo>`. Nenhum grant de escrita nas três tabelas novas.
+- **App**: `domain/social.ts` (tipos, validação do contrato, textos), `data/SupabaseCommunityGateway.ts`, telas `CommunityPeopleScreen` e
+  `CommunityReaderScreen` (rotas `/community/people` e `/community/reader/[username]`). Publicar é ato explícito na tela Pessoas; salvar o
+  perfil não publica. Só sai do aparelho: nome de exibição, @usuário, avatar, bio, favoritos, meta anual e privacidade.
+- **Decisões**: sem contagem de seguidores, ranking ou comparação; busca só entre perfis públicos e em ordem alfabética; quem segue aparece
+  para o seguido pelo @usuário da conta; bloqueio não avisa a pessoa; denúncia não é legível pelo cliente (tratamento manual via service role
+  até existir painel no Admin). Atividades, estatísticas e XP continuam sem publicação (não há fonte confiável no servidor).
+- **Para valer no app real (exige autorização do dono, skill aldus-backend-operations)**: 1) inventariar o projeto Supabase e confirmar que
+  `202610060001` está aplicada; 2) aplicar `202610130001_community_foundation.sql` e depois `20261112120000_community_social_graph.sql`;
+  3) conferir com duas contas de teste: publicar, pedir para seguir, aceitar, bloquear, denunciar, e que anônimo só lê perfil público;
+  4) aprovar e publicar o texto de privacidade sobre o perfil publicado. Até lá a tela Pessoas mostra "ainda não disponível no servidor".
+- **Próximo** (§13.1): clubes por convite e comentários ancorados em marco; moderação (fila de denúncias, termos de conduta) antes de clube público.

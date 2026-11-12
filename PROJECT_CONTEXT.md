@@ -127,6 +127,8 @@ Persistência (legado mantido, não renomear `kindle-*`/`@kindle/*`): Native SQL
   `expo-notifications`) e filtro VIEW `content://` PDF/EPUB; o `*/*` é a consulta OPEN_DOCUMENT já existente. `apksigner`: v2, certificado
   `fac61745…033b9c` (o do Redmi) — não é o Beta privado. dex com `expo/modules/speech`, `expo/modules/notifications`; bundle Hermes com textos
   das ondas A–D; 34 livros. **NÃO instalado**: o Redmi segue com `ae98991`.
+- **Community, Etapa 2 (12/11, `0ffe781`, `2140f8f`)**: typecheck PASS; `test:critical` **115/115** (novas `community-social-schema` em PGlite com as 3
+  migrations reais e contas A/B/C/anon, e `community-social` com gateway/telas simulados); `export:web` PASS. Sem suíte de navegador para a Community.
 - **Acervo + FASES 3–5 (11/11, `51f69f0`…`80d2c88`)**: typecheck PASS; `test:critical` **113/113** (novas `bundled-catalog`, `legacy-reattach`,
   `reading-milestones`); `export:web` PASS ("7 em domínio público"); Chromium PASS: `test:reader:{settings,epub,pdf,reflow}:web`, `test:reader:browser`,
   `test:library:{web,bulk:web}`, `test:source-library:browser`. Mockup medido sem estouro em 320/390/1280 px.
@@ -243,7 +245,7 @@ Legenda: **IVER** = implementado e verificado (suíte/execução citada); **ISVS
 | Auth (email, Google PKCE, username) | IVER (local) / remoto ISVS | `auth*.ts`, `AuthContext.tsx`; `test-auth*` (critical). BUG 08 (cadastro/recovery reais) e BUG 09 (`username-login` não implantado) BLOQUEADOS externamente. |
 | Library Sync (outbox/CAS/tombstone/RLS) | IVER (local/PGlite) / remoto ISVS | `src/data/library/*`, migrations `*library*`; `test:library:*`, `test:library:rls`. BUG 02: QA autenticado remoto pendente; BUG 11 deploy incremental pendente. |
 | Sources / Drive | Sources IVER (local); Drive ISVS | `src/data/sources/*`, `src/data/drive/*`, `modules/aldus-drive-auth`; `test:source-catalog`, `test:drive`. BUG 03 (Drive real Android) e BUG 12 (Sources device-scoped) abertos. |
-| Community | PARC (somente local v0.1) | `LocalCommunityRepository`; `test-community-*`. Migration `202610130001_community_foundation.sql` **não aplicada**; não existe `SupabaseCommunityRepository`. |
+| Community | PARC (local v0.1 + Etapa 2 pronta no código, servidor não aplicado) | `LocalCommunityRepository`; Pessoas/Leitor + `SupabaseCommunityGateway` (12/11); `test-community-*`. Migrations `202610130001_community_foundation.sql` e `20261112120000_community_social_graph.sql` **não aplicadas**: no app real a tela Pessoas responde "ainda não disponível no servidor". |
 | SaaS/planos/cotas e Admin | IVER (local) / remoto ISVS | `src/domain/saas`, `src/admin`, migrations `20261015*`; `test:saas*`, `test:admin*`. Deploy/OWNER só por registro; login/TOTP real pendente. |
 | Landing Web e legal | IVER (local/Chromium) | `src/marketing`, `src/legal`; `test:marketing*`, `test:legal*`. Deploy Vercel não reconferido. |
 | Android (build/APK/módulos) | PARC | `android/`, `scripts/build-apk-local.mjs`; APK `00b6e4d`/`53b4e32` (privados, ignorados). Homologação física BLOQUEADA (Redmi ausente), APK do HEAD inexistente. |
@@ -269,7 +271,7 @@ Legenda: **IVER** = implementado e verificado (suíte/execução citada); **ISVS
 | Auth/perfil/OAuth/username | `contexts/AuthContext.tsx`, `AuthGuard.tsx`, `AuthForm.tsx`, `src/data/remote/auth*.ts`, `src/domain/auth/authRules.ts`, `app/auth/*`, `supabase/functions/username-login/*` | `auth.md` |
 | Planos/cotas e Admin | `src/domain/saas/*`, `src/data/saas/SupabaseAccountPlanRepository.ts`, `presentation/saas/*`, `app/plan/*`; `src/admin/**`, `app/admin/index.tsx` (autorização real é RPC no servidor) | biblioteca-sync.md (6.1/6.2) |
 | Flashcards/Estudo/Batalha | `app/(tabs)/study.tsx`, `app/decks`, `app/study`, `app/battle.tsx`, `src/domain/study/*`, `src/domain/types/flashcards.ts`, `src/data/local/Flashcard*`, `src/data/remote/FlashcardBattleRepository.ts`, `components/flashcards/*` | `community-estudo.md` §12, `referencias/requisitos-flashcards-batalha-geracao.md`, skill study-flashcards |
-| Community | `src/community/**`, `app/community/*` | community-estudo.md §11/13, skill community |
+| Community | `src/community/**`, `app/community/*`, `supabase/migrations/*community*` | community-estudo.md §11/13/13.2, skill community |
 | Design system (tokens/primitivos) | `src/ui/*` (`tokens.ts`, `Text`, `Button`, `Chip`, `ListRow`, `Screen`, `EmptyState`, `ActionMenu`, `SearchField`), cores em `src/theme/tokens.ts` | `docs/context/design-system.md` |
 | Navegação/tema/UI geral | `app/(tabs)/_layout.tsx`, `app/_layout.tsx`, `src/theme/{tokens,appUi}.ts`, `components/{AppUi,SettingsLayout,TopHeader}.tsx`, `screens/SettingsScreen.tsx` | skill interface-review |
 | Landing/legal | `src/marketing/*`, `src/legal/*`, `app/legal/*`, `app/index.web.tsx`, `public/`; `LANDING_PAGE_CONTEXT.md` (raiz) | `legal-build-git.md` §14 |
@@ -306,6 +308,9 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
    (reanexam ao mesmo livro da conta) e um APK/deploy novos; o APK `cde4ce8` e deploys anteriores ainda contêm os arquivos; os binários seguem no histórico Git.
    **Revisão de qualidade (09/11)**: Ondas 0–5 aprovadas concluídas (commits locais, sem push); 6 e 7 fora. R5: patches do SDK 57 aplicados
    (BUG 13); APK de ensaio `6883532` compilado e conferido (§3), **não instalado**; remover `js-polyfills` 0.76/`metro-cache` 0.81 segue pendente. Levantamento do
+   **Community, Etapa 2 (12/11)**: grafo social pronto no código e testado em PGlite; **falta autorização do usuário para aplicar as duas
+   migrations no Supabase** (roteiro em `community-estudo.md` §13.2) e aprovar o texto de privacidade sobre o perfil publicado. Sem isso a
+   rede não funciona no app real. Depois: clubes por convite e comentários por marco (§13.1), moderação antes de qualquer clube público.
    **Plano de mercado (11/11)**: FASES 0–5 concluídas (3 e 5a só planejamento: `docs/context/reader.md` e `community-estudo.md` §13.1; 4 em
    `docs/mockups/certo-errado/`). Pendentes do usuário: texto da política de dados sobre sessões e marcos; entrevistas da FASE 4; escolher itens da FASE 3.
    **Melhorias (11/11)**: Ondas A–D concluídas (C precisa de APK novo para valer no aparelho); Maestro não adotado (ver log D); rolagem contínua avaliada e adiada (segundo sistema de posição; ver log). Dependem do usuário: acervo, Play/Firebase, Redmi, Literata.
@@ -320,7 +325,7 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
 5. **Sources device-scoped** (BUG 12) e snapshot/config sem isolamento por conta.
 6. **Dependências** com avisos sem upgrade compatível (BUG 13; não rebaixar Expo/RN, sem `audit fix --force`).
 7. Limites conhecidos: atomicidade do lote entre abas Web independentes não comprovada; Reflow grande lento e consome memória (BUG 06);
-   Community sem backend; `FORENSIC` logs (≈50) atrás da flag `epubCenterResetDiagnostics`.
+   Community com backend só local (migrations não aplicadas; ver item Community, Etapa 2); `FORENSIC` logs (≈50) atrás da flag `epubCenterResetDiagnostics`.
 Áreas frágeis: `ReaderScreen.tsx`/`EpubReaderDocument.ts` (âncoras, ACK, geometria), `src/data/library/*` (outbox/CAS/epoch),
 `LibraryOrganizationStore` (escrita única + CAS), cache Reflow (cancelamento durante gravação), `AccountBookRepository`/escopo de conta.
 
@@ -339,6 +344,18 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
 - **IA externa:** não enviar livros/trechos a serviço de IA sem pedido e consentimento explícito do usuário final.
 
 ## 10. Log (mais recente primeiro; máx. 5 entradas, resto → docs/context/historico/)
+
+### 12/11/2026 — Community, Etapa 2: grafo social (Claude)
+- Pedido: "desenvolva e aprimore a parte de rede social". Segui a ordem do §13: primeiro perfis publicados e seguir. `0ffe781` migration
+  `20261112120000_community_social_graph.sql` (só local): identidade do perfil publicado vem da conta (`public.profiles`; a foundation deixava o
+  cliente escolher o `username`), `community_follows` pending/accepted (PUBLIC direto, FOLLOWERS por pedido, PRIVATE nunca), política FOLLOWERS
+  aberta só a aceitos, `community_blocks` nos dois sentidos, `community_reports` sem leitura pelo cliente (20/dia), escrita só por RPC que responde
+  sobre quem chama, busca por prefixo só entre públicos e sem contagens. `2140f8f` app: tela Pessoas (publicar por ato explícito com aviso do
+  que sai do aparelho, atualizar/retirar com confirmação, buscar, pedidos, seguindo/seguidores/bloqueados), perfil de leitor (seguir/pedir/cancelar,
+  bloquear, denunciar), `SupabaseCommunityGateway` (sessão da conta em cada chamada, contrato validado, erros mapeados, "indisponível no servidor").
+- Não feito: aplicar no Supabase (exige autorização), atividades/estatísticas publicadas (continuam derivadas só pelo servidor, sem fonte confiável),
+  clubes, comentários, painel de denúncias no Admin, texto de privacidade. Sem contagem de seguidores, ranking ou comparação.
+- NÃO TESTADO: Supabase real (RLS/RPC implantadas, PostgREST), navegador e Android das telas novas.
 
 ### 11/11/2026 — Acervo (etapas 1–3) e plano de mercado, FASES 3–5 (Claude)
 - Pedido: "pode iniciar a implementação de todas as fases" (sem parar entre fases). Acervo: o usuário escolheu **reanexar ao importar** em vez da
@@ -395,18 +412,6 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
   externa e rodaria contra a conta pessoal do Redmi (regra: testes não usam sessão/biblioteca pessoal). `redmi-qa.cjs` atualizado: título do
   painel "Ajustes de leitura" e adb lido de `android/local.properties`. Precisa de rodada com aparelho e conta de teste.
 
-### 11/11/2026 — Melhorias, Onda C: voz alta, lembrete de revisão e "Abrir com Aldus" (Claude)
-- Dependências nativas novas (justificadas, via `expo install`, compatíveis com SDK 57): `expo-speech` ~57.0.3 (voz do sistema, offline) e
-  `expo-notifications` ~57.0.25 (notificação local; manifesto do pacote já declara POST_NOTIFICATIONS e BOOT_COMPLETED). Avisos de licença regenerados.
-- C1 `speechText.ts`/`useReadAloud`: "Ouvir a partir desta página" (Conforto) lê o capítulo atual desde a frase da posição proporcional da página,
-  no idioma declarado do capítulo, em trechos ≤3000; aviso com "Parar"; não vira páginas. O teste pegou um defeito real (pulava a frase
-  seguinte quando a posição caía entre frases); corrigido para recuar ao início da frase.
-- C2 `reviewReminder.ts`: lembrete diário 8h/12h/19h/21h no Estudo (desligado por padrão, um agendamento por vez, grava só após agendar, explica
-  bloqueio; texto sem números; oculto na Web); tocar abre `/study` (`useReviewReminderNavigation`, só rotas permitidas).
-- C3 "Abrir com Aldus" no lugar do "Compartilhar" (SEND exigiria módulo nativo de terceiros): filtro VIEW `content://` para PDF/EPUB no
-  `AndroidManifest.xml` versionado e espelhado em `app.json`; `app/+native-intent.tsx` leva a `/open-file`, que valida o endereço, exige conta e
-  usa o importador existente (formato pelos bytes). VALIDADO: ver §3. NÃO TESTADO: tudo no Android.
-
 ### 06/11/2026 — Entradas anteriores
 - Fechamento UX/UI e Onboarding 1: ver `docs/context/historico/2026-11-06-ux-fechamento-e-onboarding-1.md`.
 - Onboarding 2 (auditoria e reescrita do contexto): ver `docs/context/historico/2026-11-06-onboarding-2.md`.
@@ -429,3 +434,4 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
 - Redesenho, Etapa 5, deck/Plano/Community/estudo/Batalha (10/11): ver `docs/context/historico/2026-11-10-redesenho-etapa-5.md`.
 - Melhorias, Onda A (11/11): ver `docs/context/historico/2026-11-11-melhorias-onda-a.md`.
 - Melhorias, Onda B (11/11): ver `docs/context/historico/2026-11-11-melhorias-onda-b.md`.
+- Melhorias, Onda C (11/11): ver `docs/context/historico/2026-11-11-melhorias-onda-c.md`.
