@@ -13,7 +13,7 @@ const tests = [
   'google-drive', 'drive-tree', 'drive-download', 'source-catalog', 'source-library-actions', 'source-indexing', 'source-ownership', 'source-preparation', 'source-performance', 'source-ui', 'auth-native-pkce',
   'book-covers', 'cover-thumbnails', 'epub-resources', 'epub-native-read', 'epub-image-readiness', 'book-import', 'import-duplicates', 'download-import', 'catalogs', 'reading-anchors', 'study-storage',
   'settings-navigation', 'reader-navigation', 'reader-native', 'reader-bytecode', 'reader-location', 'reader-screen', 'reader-settings', 'reader-settings-categories', 'reading-session', 'reading-milestones', 'reader-concentration', 'reader-preferences-layout', 'reflow-native-scheduling', 'reflow-finalization', 'reflow-native-lifecycle', 'pdf-reflow',
-  'community-domain', 'community-data', 'community-provider', 'community-ui', 'community-schema', 'legal', 'web-build', 'android-build-command',
+  'community-domain', 'community-data', 'community-provider', 'community-ui', 'community-schema', 'community-social-schema', 'community-social', 'legal', 'web-build', 'android-build-command',
 ];
 let failures = 0;
 for (const name of tests) {

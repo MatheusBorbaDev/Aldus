@@ -43,6 +43,9 @@ export function CommunityHomeScreen() {
       <Action label="Atualizar leituras" disabled={busy} onPress={() => void refresh()} />
     </Card>
     <Timeline activities={view.state.activities} />
+    <Card title="Pessoas"><Copy secondary>Publique seu perfil, encontre leitores pelo @usuário e escolha quem acompanhar.</Copy>
+      <Action label="Encontrar leitores" onPress={() => router.push("/community/people" as Href)} />
+    </Card>
     {(Object.keys(communityDestinations) as CommunityDestination[]).map(key => <Card key={key} title={communityDestinations[key].title}>
       <Copy secondary>{communityDestinations[key].description} Em construção.</Copy>
       <Action label={`Conhecer ${communityDestinations[key].title.toLowerCase()}`} onPress={() => router.push(`/community/${key}` as Href)} />

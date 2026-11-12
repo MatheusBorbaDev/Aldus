@@ -11,7 +11,7 @@ export function CommunityProfileScreen() {
   const visible = profile && (!preview || canView(profile.privacy, profile.userId, null));
   const goal = profile && view ? goalProgress(profile.readingGoal, view.stats.booksByYear) : null;
   return <CommunityPage title="Perfil literário"><CommunityGate>{profile && view && <>
-    <Copy secondary>Perfil salvo neste dispositivo. A publicação para outros leitores chegará em uma próxima etapa.</Copy>
+    <Copy secondary>Perfil salvo neste dispositivo. Ele só aparece para outros leitores se você publicar em Pessoas.</Copy>
     <Action label={preview ? "Voltar ao meu perfil" : "Prévia para outros leitores"} onPress={() => setPreview(!preview)} />
     {visible ? <>
       <Card><ProfileIdentity profile={profile} /><Copy>{profile.bio || "Uma nova jornada literária."}</Copy></Card>

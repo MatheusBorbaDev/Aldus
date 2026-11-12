@@ -2,11 +2,14 @@ import { createContext, useContext, useMemo, useRef, useState, useCallback, type
 import { useFocusEffect } from "expo-router";
 import { useAuth } from "@/src/presentation/contexts/AuthContext";
 import { CallbackIdentityProvider, identityFromAccount } from "../adapters/identity";
-import { createCommunityService } from "../adapters/runtime";
+import { createCommunityService, createCommunitySocialGateway } from "../adapters/runtime";
+import type { CommunitySocialGateway } from "../domain/social";
 import type { CommunityService, CommunityView } from "../application/CommunityService";
 
 interface CommunityContextValue {
   service: CommunityService | null; view: CommunityView | null;
+  /** Grafo social da conta atual; null sem conta. Troca junto com a identidade. */
+  social: CommunitySocialGateway | null;
   loading: boolean; error: string | null; refresh(): Promise<void>;
 }
 const Context = createContext<CommunityContextValue | null>(null);
@@ -15,6 +18,7 @@ export function CommunityProvider({ children }: PropsWithChildren) {
   const identity = identityFromAccount(user?.id ?? null, profile);
   const identityRef = useRef(identity); identityRef.current = identity;
   const service = useMemo(() => identity?.userId ? createCommunityService(identity.userId, new CallbackIdentityProvider(() => identityRef.current)) : null, [identity?.userId]);
+  const social = useMemo(() => identity?.userId ? createCommunitySocialGateway(identity.userId) : null, [identity?.userId]);
   const [result, setResult] = useState<{ service: CommunityService; view: CommunityView } | null>(null);
   const [error, setError] = useState<{ service: CommunityService | null; message: string } | null>(null);
   const [loading, setLoading] = useState(true);
@@ -30,7 +34,7 @@ export function CommunityProvider({ children }: PropsWithChildren) {
       if (generation.current === run) setError({ service, message: failure instanceof Error ? failure.message : "Não foi possível carregar a comunidade." });
     } finally { if (generation.current === run) setLoading(false); }
   }, [service]);
-  const value: CommunityContextValue = { service, view: result?.service === service ? result.view : null,
+  const value: CommunityContextValue = { service, social, view: result?.service === service ? result.view : null,
     error: error?.service === service ? error.message : null, loading, refresh };
   return <Context.Provider value={value}>{children}</Context.Provider>;
 }

@@ -35,9 +35,10 @@ function press(label) { const button=renderer.root.findAllByType('Pressable').fi
   await press('Meu perfil literário');assert.equal(navigations.at(-1),'/community/profile');
   await press('Incluir estas leituras na minha jornada local');assert.deepEqual(include,[true]);
   await press('Atualizar leituras');assert.equal(refreshes,2);
-  for(const [label,path] of [['Conhecer clubes','clubs'],['Conhecer fóruns','forums'],['Conhecer pessoas','people']]){await press(label);assert.equal(navigations.at(-1),'/community/'+path);}
+  for(const [label,path] of [['Conhecer clubes','clubs'],['Conhecer fóruns','forums'],['Encontrar leitores','people']]){await press(label);assert.equal(navigations.at(-1),'/community/'+path);}
   const {CommunityFoundationScreen:Foundation}=load('src/community/presentation/CommunityFoundationScreen');
-  for(section of ['clubs','forums','people']) {root=await render(Foundation);assert.match(text(root),/Em construção/);await press('Voltar à comunidade');assert.equal(navigations.at(-1),'/community');}
+  for(section of ['clubs','forums']) {root=await render(Foundation);assert.match(text(root),/Em construção/);await press('Voltar à comunidade');assert.equal(navigations.at(-1),'/community');}
+  section='people';root=await render(Foundation);assert.match(text(root),/Página não encontrada/,'Pessoas tem tela própria, não é mais um espaço em construção');
   section='bad';root=await render(Foundation);assert.match(text(root),/Página não encontrada/);
   const {CommunityProfileScreen:Profile}=load('src/community/presentation/CommunityProfileScreen');
   root=await render(Profile);assert.match(text(root),/Leitor Real/);await press('Prévia para outros leitores');assert.match(text(renderer.root),/Perfil privado/);assert(!text(renderer.root).includes('Minha bio'));

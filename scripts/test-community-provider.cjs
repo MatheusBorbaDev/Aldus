@@ -15,7 +15,7 @@ const load=require('./community-test-loader.cjs')({
   '@/src/presentation/contexts/AuthContext':{useAuth:()=>auth},
   '../adapters/runtime':{createCommunityService:(id,identity)=>new CommunityService(identity,new LocalCommunityRepository(storage,id),{
     getSnapshot:()=>delayed?new Promise(resolve=>pending.push(resolve)):Promise.resolve(snapshot),
-  },()=>100)},
+  },()=>100),createCommunitySocialGateway:id=>({account:id})},
 });
 const {CommunityProvider,useCommunity,useCommunityFocus}=load('src/community/presentation/CommunityProvider');
 function Probe(){context=useCommunity();useCommunityFocus();return React.createElement('Text',null,context.view?.state.profile?.displayName??'loading');}
@@ -23,17 +23,19 @@ const tree=()=>React.createElement(CommunityProvider,null,React.createElement(Pr
 (async()=>{
   let renderer;await act(async()=>{renderer=create(tree());});
   assert.equal(context.view.state.userId,'a');assert.equal(context.view.state.profile.displayName,'Alice');
+  assert.equal(context.social.account,'a','social gateway belongs to the signed-in account');const socialA=context.social;
   await act(async()=>{await context.service.saveProfile({...context.view.state.profile,bio:'Somente Alice' },context.view.state.revision);await context.refresh();});
   assert.equal(context.view.state.profile.bio,'Somente Alice');
   delayed=true;let oldRefresh;
   await act(async()=>{oldRefresh=context.refresh();});
   auth=account('b');await act(async()=>renderer.update(tree()));
   assert.equal(context.view,null,'Old account data must be hidden while new account resolves');
+  assert.equal(context.social.account,'b','social gateway switches with the account');assert.notEqual(context.social,socialA);
   assert.equal(pending.length,2);
   await act(async()=>{for(const resolve of pending)resolve(snapshot);await oldRefresh;});
   assert.equal(context.view.state.userId,'b');assert.equal(context.view.state.profile.bio,'');
   assert.equal(context.error,null);
-  delayed=false;auth={user:null,profile:null};await act(async()=>renderer.update(tree()));assert.equal(context.view,null);assert.match(context.error,/Entre na sua conta/);
+  delayed=false;auth={user:null,profile:null};await act(async()=>renderer.update(tree()));assert.equal(context.view,null);assert.match(context.error,/Entre na sua conta/);assert.equal(context.social,null,'no social gateway without an account');
   auth=account('a');await act(async()=>renderer.update(tree()));assert.equal(context.view.state.profile.bio,'Somente Alice');
   await act(async()=>renderer.unmount());
   console.log('PASS actual CommunityProvider with local service: load/edit, pending request plus account switch, immediate hiding, no cross-account overwrite, logout, durable return. Controlled React/storage only.');

@@ -47,7 +47,7 @@ export function CommunityGate({ children }: PropsWithChildren) {
   if (!view) return <View accessibilityLabel="Carregando comunidade" style={{ padding: 24 }}><ActivityIndicator color={palette.text} /></View>;
   return <>{loading && <Copy secondary>Atualizando sua jornada…</Copy>}{children}</>;
 }
-export function ProfileIdentity({ profile }: { profile: LiteraryProfile }) {
+export function ProfileIdentity({ profile }: { profile: Pick<LiteraryProfile, "displayName" | "username" | "avatar"> }) {
   const { palette } = useAppTheme();
   return <View style={styles.identity}>
     {profile.avatar ? <Image source={{ uri: profile.avatar }} accessibilityLabel={`Avatar de ${profile.displayName}`} style={styles.avatar} /> :

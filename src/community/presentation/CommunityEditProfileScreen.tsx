@@ -45,7 +45,7 @@ function ProfileForm({ initial, revision }: { initial: LiteraryProfile; revision
     </Card>
     <Card title="Meta anual">{field("Livros na meta (vazio para remover)", target, setTarget, false, 5, true)}{field("Ano da meta", year, setYear, false, 4, true)}</Card>
     {(["privacy", "activityPrivacy"] as const).map(key => <Card key={key} title={key === "privacy" ? "Privacidade do perfil" : "Privacidade de novas atividades"}>
-      <Copy secondary>Esta escolha será usada quando a publicação estiver disponível. Atividades anteriores mantêm sua própria privacidade.</Copy>
+      <Copy secondary>{key === "privacy" ? "Vale para o perfil que você publicar em Pessoas: Público aparece para todos, Seguidores só para quem você aceitar, e Privado não pode ser publicado. Salvar aqui não publica nada." : "Atividades não são publicadas nesta etapa. Atividades anteriores mantêm sua própria privacidade."}</Copy>
       {privacyOptions.map(value => <Action key={value} label={`${draft[key] === value ? "Selecionado: " : ""}${privacyLabels[value]}`} disabled={busy} onPress={() => setDraft({ ...draft, [key]: value })} />)}
     </Card>)}
     {error && <Text accessibilityRole="alert" style={{ color: palette.text }}>{error}</Text>}
