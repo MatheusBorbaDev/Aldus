@@ -37,6 +37,10 @@ confiar: caminhos e nomes mudam.
 
 ## Testes de navegador
 
+- O documento do Reader tem CSP com nonce sorteado. `Page.setDocumentContent` troca o conteúdo na mesma página e mantém a CSP
+  `<meta>` do primeiro documento: o script do segundo é bloqueado e sobra o antigo. Em testes que trocam o documento, passe
+  `scriptNonce` fixo nas opções de `createEpubReaderDocument`. Para achar o script gerado, procure `<script nonce="…">`.
+- `test:legal:browser` não sobe o próprio Chrome: espera um na porta 9333 e um preview na 4877 (`LEGAL_PREVIEW_CDP_URL`).
 - Neste Windows, `test:marketing:web` precisa de `CINEMATIC_CHROME_ANGLE=d3d11`.
 - Suítes que escrevem em `dist` ou no mesmo perfil rodam em sequência, depois de `export:web`.
 - Asserção que depende de arredondamento de geometria é frágil: um toque a 25% do slider caía em

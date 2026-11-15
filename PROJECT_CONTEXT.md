@@ -132,6 +132,10 @@ Persistência (legado mantido, não renomear `kindle-*`/`@kindle/*`): Native SQL
   `expo-notifications`) e filtro VIEW `content://` PDF/EPUB; o `*/*` é a consulta OPEN_DOCUMENT já existente. `apksigner`: v2, certificado
   `fac61745…033b9c` (o do Redmi) — não é o Beta privado. dex com `expo/modules/speech`, `expo/modules/notifications`; bundle Hermes com textos
   das ondas A–D; 34 livros. **NÃO instalado**: o Redmi segue com `ae98991`.
+- **Segurança (15/11, `e71b31d`, `64ad127`, `68b18cd`)**: typecheck PASS; `test:critical` **117/117**; `export:web` PASS; Chromium PASS: `test:reader:
+  {epub,reflow,pdf,study,markings,settings}:web`, `test:reader:browser`, `test:library:web`, `test:marketing:web`; checagem ad hoc no Chromium
+  (script injetado bloqueado pela CSP). `processReleaseMainManifest` sem SYSTEM_ALERT_WINDOW. `test:legal:browser` BLOQUEADO (porta 9333).
+  NÃO TESTADO: WebView Android, cabeçalhos no Vercel (sem deploy).
 - **Community no Supabase (12/11)**: migrations aplicadas e conferidas por catálogo e por sonda REST anônima (ver log). Sessões autenticadas reais NÃO testadas.
 - **Community, Etapa 2 (12/11, `0ffe781`, `2140f8f`)**: typecheck PASS; `test:critical` **115/115** (novas `community-social-schema` em PGlite com as 3
   migrations reais e contas A/B/C/anon, e `community-social` com gateway/telas simulados); `export:web` PASS. Sem suíte de navegador para a Community.
@@ -314,6 +318,8 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
    (reanexam ao mesmo livro da conta) e um APK/deploy novos; o APK `cde4ce8` e deploys anteriores ainda contêm os arquivos; os binários seguem no histórico Git.
    **Revisão de qualidade (09/11)**: Ondas 0–5 aprovadas concluídas (commits locais, sem push); 6 e 7 fora. R5: patches do SDK 57 aplicados
    (BUG 13); APK de ensaio `6883532` compilado e conferido (§3), **não instalado**; remover `js-polyfills` 0.76/`metro-cache` 0.81 segue pendente. Levantamento do
+   **Segurança (15/11)**: SEG 01–04 corrigidos no código; pendentes de decisão: `npm audit` (SDK 58), `allowBackup`, `debug.keystore`
+   versionado, CSP do app Web. Precisa de APK e deploy novos para valer.
    **Community, Etapa 2 (12/11)**: código pronto e as duas migrations **aplicadas no Supabase** com autorização do usuário. Falta: homologar com
    duas contas reais (publicar, pedir, aceitar, bloquear, denunciar), instalar o APK `99ce32d` (já tem a tela Pessoas) e publicar o Web,
    aprovar o texto de privacidade sobre o perfil publicado e decidir se as migrations entram no ledger. Depois: clubes por convite e comentários
@@ -351,6 +357,16 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
 - **IA externa:** não enviar livros/trechos a serviço de IA sem pedido e consentimento explícito do usuário final.
 
 ## 10. Log (mais recente primeiro; máx. 5 entradas, resto → docs/context/historico/)
+
+### 15/11/2026 — Verificação de segurança (Claude)
+- Pedido: "faça verificações de segurança no Aldus, corrija o que for necessário". Achados e pendências em BUGS_ATUAIS (SEG 01–04).
+- `e71b31d` WebViews nativas presas ao próprio documento, sem acesso a arquivos; pdf.js 3.x com `isEvalSupported:false` (CVE-2024-4367) e
+  integridade sha512. `64ad127` `sanitizeBookHtml` (reconstrói as tags; o filtro antigo era contornável) e CSP com nonce no documento do
+  Reader; links externos não navegam; caminho RenderHTML filtrado e sem abrir links. `68b18cd` release sem SYSTEM_ALERT_WINDOW; Web com
+  `X-Frame-Options: DENY` e `Permissions-Policy`. Novas suítes `book-html-security` e `platform-security`.
+- Erro do caminho: o teste de navegador falhou com a CSP nova porque `Page.setDocumentContent` mantém a CSP do primeiro documento na mesma
+  página; confirmado por bisseção (só a regra de script causava) e resolvido com nonce fixo no teste. No app cada documento é carga nova.
+- Não alterado (decisão do dono): `npm audit` (3 altos só com SDK 58), `allowBackup`, `debug.keystore` versionado, CSP do app Web.
 
 ### 12/11/2026 — Instruções para outras IAs: fluxo de engenharia, design e implantação (Claude)
 - Pedido do usuário: deixar instruções de como seguir com o projeto, melhorias de design, estrutura dos desenvolvimentos e implantações.
@@ -413,21 +429,6 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
   como inatividade; política de dados (`dataDocument`) ainda não cita as sessões (texto a aprovar). Sessões não aparecem em lugar nenhum
   além do resumo do foco (diário é FASE 3).
 
-### 11/11/2026 — Plano de mercado, FASE 0 e FASE 1: ganhos rápidos (Claude)
-- Plano de 6 fases do usuário (relatórios Ciclo 1/1.1 e pesquisa de 56 respostas). Regras: sem cobrança, sem estatística inventada, sem streak
-  punitivo/ranking/comparação, todo número novo ocultável, dizer o que é só Android, nada que facilite compartilhar arquivos de livros, um commit
-  por item, **parar após cada fase**. FASE 0 (somente leitura) entregue; o usuário aceitou avançar com a homologação física do Ciclo 1 pendente.
-- 1 `f752cf3`: "Disléxica" → "Alta legibilidade (Verdana)", sem promessa sobre dislexia; Verdana ganha `letter-spacing` 0,05em e `word-spacing`
-  0,16em no documento EPUB/Reflow (inicial e ao vivo; cópia embutida com paridade em `test-reader-bytecode`). Valor salvo `dyslexic` mantido.
-  Fontes viraram linhas inteiras (o rótulo cortava a 320 px e com texto ampliado; medido no fixture Chromium).
-- 2 `66f8648`: texto antipirataria aprovado nos Termos (§7) e na landing (pergunta "Posso compartilhar livros pelo Aldus?"). **Sem** "não
-  distribui livros": o acervo embutido (`assets/Livros`, 34 arquivos, inclui obras protegidas) ainda vai no APK/Web; os testes travam a frase até
-  o acervo ser resolvido. Documentos legais 0.7 → 0.8 (vigência 11/11/2026).
-- 3 `9b29311`: aviso de duplicado na importação local. SHA-256 do arquivo escolhido (`hashBookFile`) num índice local por conta
-  (`@aldus/import-hashes.v1:<user>`), **sem** tocar `fileHash` (é do Sync) e sem merge/novo UUID. Decisão do usuário: só livros importados a
-  partir desta versão (acervo antigo não recalculado). Sem conta, >512 MiB, falha de leitura ou Web sem Blob: importa sem aviso. Nova suíte
-  `import-duplicates`. Só a importação por arquivo avisa (catálogos, Drive e "Abrir com Aldus" não). Prompt sem suíte de navegador.
-
 ### 06/11/2026 — Entradas anteriores
 - Fechamento UX/UI e Onboarding 1: ver `docs/context/historico/2026-11-06-ux-fechamento-e-onboarding-1.md`.
 - Onboarding 2 (auditoria e reescrita do contexto): ver `docs/context/historico/2026-11-06-onboarding-2.md`.
@@ -452,3 +453,4 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
 - Melhorias, Onda B (11/11): ver `docs/context/historico/2026-11-11-melhorias-onda-b.md`.
 - Melhorias, Onda C (11/11): ver `docs/context/historico/2026-11-11-melhorias-onda-c.md`.
 - Melhorias, Onda D (11/11): ver `docs/context/historico/2026-11-11-melhorias-onda-d.md`.
+- Plano de mercado, FASES 0 e 1 (11/11): ver `docs/context/historico/2026-11-11-plano-mercado-fases-0-1.md`.

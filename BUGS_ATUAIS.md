@@ -1,5 +1,34 @@
 # Aldus Reader — Bugs Atuais
 
+## 15/11/2026 — Verificação de segurança (corrigidos no código; riscos que dependem do dono)
+
+Sobre `main` `ad8ad80`, neste PC (Windows). Inventário de segredos, dependências, manifesto, cabeçalhos Web, conteúdo de livros,
+WebViews, Auth/deep links e sonda REST anônima no Supabase. Nada validado em aparelho Android.
+
+- **SEG 01 — Filtro do HTML dos livros contornável (ALTA). CORRIGIDO NO CÓDIGO (`64ad127`).** O filtro por expressões regulares de
+  uma passada deixava passar `<scr<script>ipt>`, `<img src="x"onerror=…>`, `<img/onerror=…>`, `java&#115;cript:`, tabulação dentro do
+  esquema e `<me<meta>ta http-equiv=refresh>` (sonda local). Agora `sanitizeBookHtml` reconstrói as tags e a CSP do documento só aceita
+  o script do Reader por nonce. Validado em Node (29 ataques, `test-book-html-security`) e no Chromium (script e manipulador injetados
+  depois do filtro não executam). NÃO TESTADO na WebView Android.
+- **SEG 02 — WebViews do Reader navegavam para fora e o PDF Original tinha acesso a arquivos (MÉDIA). CORRIGIDO NO CÓDIGO (`e71b31d`).**
+  Navegação presa ao próprio documento; removidos `allowFileAccess*`/`allowUniversalAccessFromFileURLs`; links externos não navegam.
+- **SEG 03 — pdf.js 3.11.174 sem `isEvalSupported:false` (ALTA; CVE-2024-4367, código por fonte em PDF hostil). CORRIGIDO NO CÓDIGO
+  (`e71b31d`)** nas duas WebViews nativas; o script do CDN ganhou integridade sha512 conferida no cdnjs. A Web usa pdfjs-dist 6.3.289.
+- **SEG 04 — Permissão "sobrepor a outros apps" no release e Web sem proteção contra exibição em outro site (BAIXA). CORRIGIDO NO
+  CÓDIGO (`68b18cd`).** Manifesto do release conferido por `processReleaseMainManifest`; `X-Frame-Options: DENY` e `Permissions-Policy`
+  só valem depois de um deploy no Vercel.
+- **Servidor (sonda anônima, 15/11):** todas as tabelas privadas, RPCs e escrita direta respondem 401/404; só `community_profiles` e
+  `community_activities` respondem 200 com lista vazia; Storage não lista buckets nem objetos; cadastro por e-mail exige confirmação.
+- **Pendentes, dependem do dono (não alterados):**
+  1. `npm audit --omit=dev`: 3 altos (`expo-router` → `query-string` → `decode-uri-component`, negação de serviço ao decodificar URL;
+     correção só no Expo SDK 58, versão maior) e 5 moderados em ferramentas de build (`glob`, `minimatch`, `sucrase`, `postcss-selector-parser`).
+  2. `android:allowBackup="true"`: o backup do Android leva a biblioteca local e a sessão salva (AsyncStorage). Desligar evita sessão em
+     backup, mas quem trocar de celular perde a biblioteca local não sincronizada.
+  3. `android/app/debug.keystore` (senha pública) versionado e usado nos APKs de ensaio: quem tiver o repositório consegue assinar uma
+     atualização aceita pelo app de ensaio instalado. Mitigação real é distribuir só com a chave privada do Beta.
+  4. CSP para o app Web inteiro não foi criada (Supabase, Google e CDN de cMaps precisariam ser listados e testados num preview).
+- **Ambiente:** `test:legal:browser` BLOQUEADO neste PC: espera um Chrome de pré-visualização na porta 9333, ocupada pelo HopToDesk.
+
 ## 09/11/2026 — Achados da revisão de qualidade (Etapa A) e Onda 0
 
 Diagnóstico sobre `main` `3cc1107`, neste PC (Windows). Evidência por código e medição local; nada validado em Android.
