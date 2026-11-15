@@ -4,6 +4,7 @@ import { WebView, WebViewMessageEvent } from "react-native-webview";
 import { PDFDocument } from "pdf-lib";
 import * as FileSystem from "expo-file-system/legacy";
 import { PdfPageViewerProps } from "@/src/presentation/components/PdfPageViewerProps";
+import { allowReaderNavigation, READER_BASE_URL } from "@/src/domain/reader/readerNavigationPolicy";
 
 export function PdfPageViewer({ uri, pageNumber, pageMode, fitMode, zoom, rotation, onTotalPages }: PdfPageViewerProps) {
   const webView = useRef<WebView>(null);
@@ -82,7 +83,7 @@ export function PdfPageViewer({ uri, pageNumber, pageMode, fitMode, zoom, rotati
   }, [pageNumber, pageMode, fitMode, zoom, rotation, pdfBase64]);
 
   const source = useMemo(
-    () => ({ html: getPdfViewerHtml(), baseUrl: "https://aldus-reader.local/" }),
+    () => ({ html: getPdfViewerHtml(), baseUrl: READER_BASE_URL }),
     []
   );
 
@@ -124,12 +125,11 @@ export function PdfPageViewer({ uri, pageNumber, pageMode, fitMode, zoom, rotati
           source={source}
           style={styles.webview}
           originWhitelist={["*"]}
+          // O PDF chega em base64 por mensagem e a origem do documento é https: a WebView não precisa de acesso a arquivos.
+          onShouldStartLoadWithRequest={request => allowReaderNavigation(request.url)}
           scrollEnabled={false}
           bounces={false}
           overScrollMode="never"
-          allowFileAccess
-          allowFileAccessFromFileURLs
-          allowUniversalAccessFromFileURLs
           onLoadEnd={handleWebViewLoaded}
           onMessage={handleMessage}
         />
@@ -199,7 +199,7 @@ function getPdfViewerHtml(): string {
       border-radius: 2px;
     }
   </style>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js" integrity="sha512-q+4liFwdPC/bNdhUpZx6aXDx/h77yEQtn4I1slHydcbZK34nLaR3cAeYSJshoxIOq3mjEf7xJE8YWIUHMn+oCQ==" crossorigin="anonymous"></script>
 </head>
 <body>
   <div id="container">
@@ -303,6 +303,8 @@ function getPdfViewerHtml(): string {
           pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
           pdfjsLib.getDocument({
             data: array,
+            // pdf.js 3.x: sem isto um PDF hostil executa código pela fonte (CVE-2024-4367).
+            isEvalSupported: false,
             cMapUrl: "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/cmaps/",
             cMapPacked: true
           }).promise.then(function(pdf) {

@@ -4,6 +4,7 @@ import { WebView, WebViewMessageEvent } from "react-native-webview";
 import { createEpubReaderDocument } from "@/src/presentation/components/EpubReaderDocument";
 import { EpubPageInfo, EpubPageViewerProps, ReaderStudyResult } from "@/src/presentation/components/EpubPageViewerProps";
 import { readerNavigationDiagnostic, ReaderNavigationOrigin } from "@/src/utils/readerNavigationDiagnostics";
+import { allowReaderNavigation, READER_BASE_URL } from "@/src/domain/reader/readerNavigationPolicy";
 
 export function EpubPageViewer({
   chapters,
@@ -64,7 +65,7 @@ export function EpubPageViewer({
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [chapters]
   );
-  const source = useMemo(() => ({ html, baseUrl: "https://aldus-reader.local/" }), [html]);
+  const source = useMemo(() => ({ html, baseUrl: READER_BASE_URL }), [html]);
 
   useEffect(() => {
     callback.current = onPageInfo;
@@ -155,6 +156,8 @@ export function EpubPageViewer({
         source={source}
         style={[styles.webview, { backgroundColor }]}
         originWhitelist={["*"]}
+        // Livro hostil não leva a WebView para outro endereço (link, redirecionamento ou script).
+        onShouldStartLoadWithRequest={request => allowReaderNavigation(request.url)}
         scrollEnabled={false}
         nestedScrollEnabled={false}
         showsHorizontalScrollIndicator={false}

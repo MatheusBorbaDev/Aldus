@@ -11,6 +11,7 @@ import { PdfReflowProgress, PdfReflowProcessorProps, reflowProgressLabel } from 
 import { createReflowOperation } from "./reflowOperation";
 import { reflowDiagnostic } from "@/src/utils/reflowDiagnostics";
 import { newLibraryId } from "@/src/domain/entities/libraryId";
+import { allowReaderNavigation, READER_BASE_URL } from "@/src/domain/reader/readerNavigationPolicy";
 
 export function PdfReflowProcessor({ uri, onProgress, onComplete, onError, onCancel }: PdfReflowProcessorProps) {
   const webView = useRef<WebView>(null);
@@ -26,7 +27,7 @@ export function PdfReflowProcessor({ uri, onProgress, onComplete, onError, onCan
   const [progress, setProgress] = useState<PdfReflowProgress>({ currentPage: 0, totalPages: 0 });
   const [ocrPlan, setOcrPlan] = useState<PdfOcrPlan | null>(null);
   const [processingState, setProcessingState] = useState<PdfTextProcessingState>("TEXT_VALID");
-  const source = useMemo(() => ({ html: getProcessorHtml(), baseUrl: "https://aldus-reader.local/" }), []);
+  const source = useMemo(() => ({ html: getProcessorHtml(), baseUrl: READER_BASE_URL }), []);
 
   useEffect(() => {
     const run = createReflowOperation();
@@ -228,6 +229,7 @@ export function PdfReflowProcessor({ uri, onProgress, onComplete, onError, onCan
           source={source}
           style={styles.webView}
           originWhitelist={["*"]}
+          onShouldStartLoadWithRequest={request => allowReaderNavigation(request.url)}
           javaScriptEnabled
           pointerEvents="none"
           onLoadEnd={handleWebViewLoaded}
@@ -301,7 +303,7 @@ async function readRemotePdf(uri: string, signal: AbortSignal): Promise<string> 
 export function getProcessorHtml(): string {
   return `<!doctype html>
 <html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script></head><body>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js" integrity="sha512-q+4liFwdPC/bNdhUpZx6aXDx/h77yEQtn4I1slHydcbZK34nLaR3cAeYSJshoxIOq3mjEf7xJE8YWIUHMn+oCQ==" crossorigin="anonymous"></script></head><body>
 <script>
 (function(){
   var operationId=0,cancelled=false,loadingTask=null,phase="opening",currentPage=0;
@@ -376,7 +378,7 @@ export function getProcessorHtml(): string {
     try{
       pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
       var raw=window.atob(base64);var bytes=new Uint8Array(raw.length);for(var i=0;i<raw.length;i++)bytes[i]=raw.charCodeAt(i);
-      loadingTask=pdfjsLib.getDocument({data:bytes,cMapUrl:"https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/cmaps/",cMapPacked:true});
+      loadingTask=pdfjsLib.getDocument({data:bytes,isEvalSupported:false,cMapUrl:"https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/cmaps/",cMapPacked:true});
       var pdf=await loadingTask.promise;check();
         for(var pageNumber=1;pageNumber<=pdf.numPages;pageNumber++){
           check();currentPage=pageNumber;stage("getPage");
