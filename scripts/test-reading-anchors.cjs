@@ -46,7 +46,7 @@ const sampleDocument = createEpubReaderDocument([{ id: 'chapter-1', title: 'Cap√
 assert.match(sampleDocument, /font-family: system-ui[^;]+sans-serif !important/);
 assert.doesNotMatch(readerCssFontFamily('System'), /Georgia/);
 assert.equal(new Function(`return (${readerCssFontFamily.toString()})('System')`)(), readerCssFontFamily('System'));
-new Function(sampleDocument.match(/<script>([\s\S]*?)<\/script>/)[1]);
+new Function(sampleDocument.match(/<script nonce="[^"]+">([\s\S]*?)<\/script>/)[1]);
 const { readHighlightLocation, exportStudyHighlights, parseStudyHighlightsBackup } = load('src/domain/usecases/StudyHighlights.ts');
 const encoded = JSON.stringify({ format: 'kindle-study-highlight', version: 1, anchor, chapterTitle: 'Cap√≠tulo 1', note: 'Uma nota sobre o trecho.' });
 const highlight = { id: 'highlight', bookId: book.id, chapterId: anchor.chapterId, startCfi: encoded, endCfi: encoded, highlightedText: anchor.quote, colorLabel: 'blue', createdAt: 1 };

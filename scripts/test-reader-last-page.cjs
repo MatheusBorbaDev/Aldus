@@ -10,6 +10,6 @@ assert.match(html, /\(node\.nodeValue \|\| ""\)\.trim\(\)\.length > 0/, 'non-emp
 assert.doesNotMatch(html, /\/S\/\.test\(node\.nodeValue/, 'no regex mangled into /S/ by template escaping');
 assert.match(html, /var byContent = lastContentPage\(left, width\);\s*if \(byContent > 0\) return byContent;/, 'falls back to section fragments only without content');
 // Generated script must still parse.
-const scripts = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].map(x => x[1]); assert.ok(scripts.length);
+const scripts = [...html.matchAll(/<script nonce="[^"]+">([\s\S]*?)<\/script>/g)].map(x => x[1]); assert.ok(scripts.length);
 for (const code of scripts) new Function(code);
 console.log('PASS reader last page (BUG 20): content-based total in the generated iframe script, escape-safe text check, fragment fallback, script parses.');

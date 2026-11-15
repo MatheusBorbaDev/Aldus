@@ -1,4 +1,5 @@
 import { StoredChapter } from "@/src/domain/entities/LibraryBook";
+import { sanitizeBookHtml } from "@/src/domain/reader/sanitizeBookHtml";
 import { readerAnchorDocumentScript } from "@/src/presentation/components/ReaderAnchorDocument";
 
 export interface ReaderDocumentOptions {
@@ -13,6 +14,8 @@ export interface ReaderDocumentOptions {
   allowTextSelection?: boolean;
   textColor: string;
   backgroundColor: string;
+  /** Nonce da CSP do documento. Só para testes; por padrão é sorteado a cada documento. */
+  scriptNonce?: string;
 }
 
 /**
@@ -34,16 +37,15 @@ export function createEpubReaderDocument(chapters: StoredChapter[], options: Rea
   const documentLanguage = languages.find(Boolean) ?? null;
   const sections = chapters.map((chapter, index) => {
     const rawBody = chapter.html.match(/<body\b[^>]*>([\s\S]*?)<\/body>/i)?.[1] ?? chapter.html.replace(/<\/?(?:html|head|body|\?xml)[^>]*>/gi, "");
-    const chapterStyles = [...chapter.html.matchAll(/<style\b[^>]*>([\s\S]*?)<\/style>/gi)].map((match) => `<style>${match[1]}</style>`).join("");
-    const safeBody = rawBody
-      .replace(/<(?:script|iframe|form|object|embed|meta|base)\b[^>]*>[\s\S]*?<\/(?:script|iframe|form|object|embed|meta|base)>/gi, "")
-      .replace(/<(?:script|iframe|form|object|embed|meta|base|link)\b[^>]*\/?\s*>/gi, "")
-      .replace(/\s+on[a-z][\w:-]*\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/gi, "")
-      .replace(/\s+(?:href|src|xlink:href|action|formaction)\s*=\s*(["']?)\s*(?:javascript:|vbscript:|data:text\/html)[^\s>]*\1/gi, "")
-      .replace(/<img\b([^>]*?)>/gi, (_match, attrs) => {
+    // CSS do capítulo é texto de <style>: um "<" ali poderia fechar o bloco e abrir marcação; vira escape de CSS.
+    const chapterStyles = [...chapter.html.matchAll(/<style\b[^>]*>([\s\S]*?)<\/style>/gi)].map((match) => `<style>${match[1].replace(/</g, "\\3c ")}</style>`).join("");
+    // Conteúdo do livro é entrada não confiável: sanitizeBookHtml reconstrói as tags (ver o módulo). A falha de imagem
+    // é marcada por um ouvinte no script do Reader; a CSP com nonce não permite manipuladores embutidos.
+    const safeBody = sanitizeBookHtml(rawBody)
+      .replace(/<img\b([^>]*?)\s*\/?>/gi, (_match, attrs) => {
         const inlinePdfImage = /\bdata-pdf-reflow-image(?:\s|=|$)/i.test(attrs);
         const loading = inlinePdfImage ? "eager" : "lazy";
-        return `<img ${attrs} onerror="this.dataset.epubError='true'" loading="${loading}" />`;
+        return `<img${attrs.replace(/\sloading="[^"]*"/i, "")} loading="${loading}" />`;
       });
     const lang = languages[index];
     return `<section id="epub-chapter-${index}" class="epub-chapter"${lang ? ` lang="${escapeAttribute(lang)}"` : ""} data-chapter-id="${escapeAttribute(chapter.id)}" data-chapter-index="${index}" data-chapter-title="${escapeAttribute(chapter.title)}">${chapterStyles}${safeBody}</section>`;
@@ -51,6 +53,7 @@ export function createEpubReaderDocument(chapters: StoredChapter[], options: Rea
 
   const pagePadding = Math.max(16, Math.min(48, Math.round(options.marginSize)));
   const safeFont = readerCssFontFamily(options.fontFamily);
+  const nonce = /^[A-Za-z0-9]{16,64}$/.test(options.scriptNonce ?? "") ? options.scriptNonce! : createScriptNonce();
   const fontSpacing = readerFontSpacingCss(options.fontFamily);
   const safeTextColor = /^#[\da-f]{3,8}$/i.test(options.textColor) ? options.textColor : "#2b2b2b";
   const safeBackgroundColor = /^#[\da-f]{3,8}$/i.test(options.backgroundColor) ? options.backgroundColor : "#f5ebd9";
@@ -64,7 +67,7 @@ export function createEpubReaderDocument(chapters: StoredChapter[], options: Rea
 <html${documentLanguage ? ` lang="${escapeAttribute(documentLanguage)}"` : ""}>
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data: blob:; font-src data:; style-src 'unsafe-inline'; script-src 'unsafe-inline'; connect-src 'none'; frame-src 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data: blob:; font-src data:; style-src 'unsafe-inline'; script-src 'nonce-${nonce}'; connect-src 'none'; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <style id="base-reader-styles">
   *, *::before, *::after {
@@ -239,7 +242,7 @@ export function createEpubReaderDocument(chapters: StoredChapter[], options: Rea
 <div id="reader-viewport">
   <div id="reader-content">${sections}</div>
 </div>
-<script>
+<script nonce="${nonce}">
 (function() {
   // Hermes Function.toString() supplies a bytecode placeholder, not source.
   // Keep this WebView boundary literal; parity is checked against the host helper.
@@ -708,11 +711,20 @@ export function createEpubReaderDocument(chapters: StoredChapter[], options: Rea
     }
   }
 
+  document.addEventListener("error", function(event) {
+    if (event.target && event.target.tagName === "IMG") event.target.dataset.epubError = "true";
+  }, true);
+
   document.addEventListener("click", function(event) {
     var target = event.target;
-    var link = target && target.closest ? target.closest('a[href^="#epub-chapter-"]') : null;
+    var anchor = target && target.closest ? target.closest("a, area") : null;
+    if (!anchor) return;
+    var href = anchor.getAttribute("href") || anchor.getAttribute("xlink:href") || "";
+    // Links para fora do livro não navegam o Reader: ele não é um navegador e a página de destino tomaria o lugar da leitura.
+    if (href && href.charAt(0) !== "#") { event.preventDefault(); return; }
+    var link = href.indexOf("#epub-chapter-") === 0 ? anchor : null;
     if (!link) return;
-    var chapter = document.getElementById(link.getAttribute("href").slice(1));
+    var chapter = document.getElementById(href.slice(1));
     if (!chapter) return;
     event.preventDefault();
     var width = getPageWidth();
@@ -791,6 +803,15 @@ export function createEpubReaderDocument(chapters: StoredChapter[], options: Rea
 </script>
 </body>
 </html>`;
+}
+
+/** Nonce por documento. O livro é estático e não executa nada para lê-lo; basta não ser previsível entre documentos. */
+function createScriptNonce(): string {
+  const bytes = new Uint8Array(16);
+  const source = (globalThis as { crypto?: { getRandomValues?: (array: Uint8Array) => Uint8Array } }).crypto;
+  if (source?.getRandomValues) source.getRandomValues(bytes);
+  else for (let i = 0; i < bytes.length; i++) bytes[i] = Math.floor(Math.random() * 256);
+  return Array.from(bytes, byte => byte.toString(16).padStart(2, "0")).join("");
 }
 
 function escapeAttribute(value: string): string {

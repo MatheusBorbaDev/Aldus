@@ -52,12 +52,14 @@ function load(file){if(cache.has(file))return cache.get(file);const exports={};c
   try{for(let n=1;n<=pdf.numPages;n++){const p=await pdf.getPage(n);try{const text=await p.getTextContent(),vp=p.getViewport({scale:1});pages.push({pageNumber:n,pageWidth:vp.width,pageHeight:vp.height,textItems:text.items.filter(i=>typeof i.str==='string'&&i.transform).map(i=>({text:i.str,x:i.transform[4],y:i.transform[5],width:i.width,height:i.height,fontName:i.fontName,hasEOL:i.hasEOL})),images:[]});}finally{p.cleanup();}}
   const builder=load('src/data/local/PdfReflowDocumentBuilder.ts');chapters=builder.toStoredReflowChapters('reflow-browser',builder.buildPdfReflowDocument(pages,pdf.numPages));console.log('REAL REFLOW',JSON.stringify({file:'memórias postumas.pdf',sourcePages:pdf.numPages,chapters:chapters.length}));}finally{await task.destroy();}
  }
- const options={fontSize:16,fontFamily:'Georgia',marginSize:24,lineHeight:1.65,paragraphSpacing:1,textColor:'#222222',backgroundColor:'#f5ebd9'};
+ // Nonce fixo: Page.setDocumentContent troca o conteúdo na MESMA página, e a CSP <meta> do primeiro documento continua valendo
+ // (o script do segundo, com outro nonce, seria bloqueado). No app cada documento é uma carga nova, com a própria CSP.
+ const options={fontSize:16,fontFamily:'Georgia',marginSize:24,lineHeight:1.65,paragraphSpacing:1,textColor:'#222222',backgroundColor:'#f5ebd9',scriptNonce:'readerbrowsertest0123456789abcd'};
  if(process.argv.includes('--lazy-images')){
   const image=color=>'data:image/svg+xml;base64,'+Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"><rect width="24" height="24" fill="${color}"/></svg>`).toString('base64');
   chapters=[{id:'synthetic-images',title:'Synthetic offscreen images',html:`<img src="${image('red')}"/>${paragraphs}<img src="${image('blue')}"/>`}];
  }
- const html=createEpubReaderDocument(chapters,options).replace('<script>','<script>window.messages=[];window.ReactNativeWebView={postMessage:function(x){messages.push(JSON.parse(x));}};');
+ const html=createEpubReaderDocument(chapters,options).replace(/<script nonce="([^"]+)">/,'<script nonce="$1">window.messages=[];window.ReactNativeWebView={postMessage:function(x){messages.push(JSON.parse(x));}};');
  const {frameTree}=await send('Page.getFrameTree');await send('Page.setDocumentContent',{frameId:frameTree.frame.id,html});
  await evaluate(`new Promise((resolve,reject)=>{let count=0;function step(){if(messages.some(m=>m.type==='page'&&m.layoutReady))return resolve(true);if(++count>600)return reject(Error('layout not ready'));requestAnimationFrame(step);}step();})`);
  if(process.argv.includes('--lazy-images')){
@@ -94,7 +96,7 @@ function load(file){if(cache.has(file))return cache.get(file);const exports={};c
  }
  // Cold restart uses a fresh document and the exact persisted text anchor, never the prior JS closure.
  if(!baseline){
-  const instrument=source=>source.replace('<script>','<script>window.messages=[];window.ReactNativeWebView={postMessage:x=>messages.push(JSON.parse(x))};');
+  const instrument=source=>source.replace(/<script nonce="([^"]+)">/,'<script nonce="$1">window.messages=[];window.ReactNativeWebView={postMessage:x=>messages.push(JSON.parse(x))};');
   const ready=()=>evaluate(`new Promise((resolve,reject)=>{let frames=0;function step(){if(messages.some(m=>m.type==='page'&&m.layoutReady))return resolve();if(++frames>600)return reject(Error('Cold layout unavailable'));requestAnimationFrame(step)}step()})`);
   for(const size of [25,18]){
    await send('Page.setDocumentContent',{frameId:frameTree.frame.id,html});await ready();

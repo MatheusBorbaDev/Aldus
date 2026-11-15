@@ -10,7 +10,7 @@ if(process.argv.includes('--baseline')){
   documentModule=module.exports;
 }
 const html=documentModule.createEpubReaderDocument([{id:'synthetic',title:'Synthetic images',html:'<p>Text</p><img src="data:image/png;base64,fixture"/>'}],{fontSize:16,fontFamily:'System',marginSize:24,textColor:'#111111',backgroundColor:'#ffffff'});
-const script=html.match(/<script>([\s\S]*?)<\/script>/)[1];
+const script=html.match(/<script nonce="[^"]+">([\s\S]*?)<\/script>/)[1];
 const parsed=ts.createSourceFile('reader.js',script,ts.ScriptTarget.Latest,true,ts.ScriptKind.JS);
 const declarations=[];
 function visit(node){if(ts.isFunctionDeclaration(node))declarations.push(node);ts.forEachChild(node,visit);}visit(parsed);

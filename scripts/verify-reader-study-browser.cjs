@@ -4,7 +4,7 @@ const fs=require('node:fs'),path=require('node:path'),assert=require('node:asser
 module.exports=async function verifyStudy({send,evaluate,frameId,createEpubReaderDocument,options}){
  const out=path.resolve('.expo/no-device-reader-study');fs.mkdirSync(out,{recursive:true});
  const chapters=['A','B'].map(letter=>({id:'study-'+letter,title:'Capítulo '+letter,html:`<h2>Capítulo ${letter}</h2>`+Array.from({length:35},(_,i)=>`<p>Parágrafo ${letter}-${i}. Trecho marcado do capítulo ${letter}. A leitura preserva a referência original mesmo depois de ajustar a página e consultar outro capítulo.</p>`).join('')}));
- const html=createEpubReaderDocument(chapters,options).replace('<script>','<script>window.messages=[];window.ReactNativeWebView={postMessage:x=>messages.push(JSON.parse(x))};');
+ const html=createEpubReaderDocument(chapters,options).replace(/<script nonce="([^"]+)">/,'<script nonce="$1">window.messages=[];window.ReactNativeWebView={postMessage:x=>messages.push(JSON.parse(x))};');
  const until=async(expression,label)=>{await evaluate(`new Promise((resolve,reject)=>{let frames=0;function step(){if(${expression})return resolve(true);if(++frames>600)return reject(Error(${JSON.stringify(label)}));requestAnimationFrame(step)}step()})`)};
  const open=async()=>{await send('Page.setDocumentContent',{frameId,html});await until("messages.some(m=>m.type==='page'&&m.layoutReady)",'Initial reader layout');};
  const request=async(value)=>{await evaluate(`window.readerStudy(${JSON.stringify(value)})`);await until(`messages.some(m=>m.type==='study'&&m.id===${value.id})`,'Study response');return evaluate(`messages.find(m=>m.type==='study'&&m.id===${value.id})`);};
