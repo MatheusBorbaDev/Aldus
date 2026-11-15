@@ -7,6 +7,9 @@
     "android": {
       "package": "com.aldus.reader",
       "versionCode": 3,
+      "blockedPermissions": [
+        "android.permission.SYSTEM_ALERT_WINDOW"
+      ],
       "intentFilters": [
         {
           "action": "VIEW",
