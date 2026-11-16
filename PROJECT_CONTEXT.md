@@ -132,6 +132,11 @@ Persistência (legado mantido, não renomear `kindle-*`/`@kindle/*`): Native SQL
   `expo-notifications`) e filtro VIEW `content://` PDF/EPUB; o `*/*` é a consulta OPEN_DOCUMENT já existente. `apksigner`: v2, certificado
   `fac61745…033b9c` (o do Redmi) — não é o Beta privado. dex com `expo/modules/speech`, `expo/modules/notifications`; bundle Hermes com textos
   das ondas A–D; 34 livros. **NÃO instalado**: o Redmi segue com `ae98991`.
+- **APK de ensaio do HEAD `268d62d` (16/11, Fases A–E, pedido do dono "Compilar APK")**: `npm run build:apk:local` com `device-rehearsal`, árvore
+  limpa, Gradle 2 min 38 s (log `.expo/apk-268d62d-build.log`); checagem obrigatória PASS (35 recursos no bundle, só acervo em domínio público,
+  manifesto conforme). `artifacts/apk/Aldus-268d62d-device-rehearsal.apk` (ignorado), 162.175.737 bytes, SHA-256 `039dd512…111b5d16`. `aapt`:
+  `com.aldus.reader` 1.0.0-beta.2/code 3, 4 ABIs, sem debuggable. `apksigner`: v2, certificado `fac61745…033b9c` (o do Redmi) — não é o Beta
+  privado. dex com `expo/modules/sharing`. **NÃO instalado** (instalação é outro passo, com autorização própria).
 - **Fase E fatias 2–3, rolagem no EPUB e na Leitura Livre (16/11, `0c31cf2`)**: typecheck PASS; `test:critical` **130/130**; 8 suítes `test:reader:*`
   PASS; `export:web` PASS; lista de entrega com 35 recursos. Plano dos seis itens de 16/11 concluído no código. Android NÃO TESTADO.
 - **Fase E fatia 1, rolagem no PDF Original (16/11, `b2d35e0`)**: typecheck PASS; `test:critical` **130/130**; `test:reader:pdf:web` com rolagem PASS;
