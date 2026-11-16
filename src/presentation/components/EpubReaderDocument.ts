@@ -602,7 +602,7 @@ export function createEpubReaderDocument(chapters: StoredChapter[], options: Rea
     var sheet = document.createElement("div"), inner = document.createElement("div");
     sheet.id = "reader-curl"; sheet.setAttribute("aria-hidden", "true");
     var surface = getComputedStyle(viewport);
-    sheet.style.cssText = "position:absolute;left:0;top:0;width:" + width + "px;height:" + height + "px;overflow:hidden;z-index:3;pointer-events:none;will-change:clip-path;";
+    sheet.style.cssText = "position:absolute;left:0;top:0;width:" + width + "px;height:" + height + "px;overflow:hidden;pointer-events:none;";
     sheet.style.backgroundColor = surface.backgroundColor; sheet.style.backgroundImage = viewport.style.backgroundImage;
     sheet.style.backgroundSize = viewport.style.backgroundSize; sheet.style.backgroundRepeat = viewport.style.backgroundRepeat;
     var wrapsChapters = fragment.querySelector && fragment.querySelector(".epub-chapter");
@@ -621,25 +621,19 @@ export function createEpubReaderDocument(chapters: StoredChapter[], options: Rea
     }
     return sheet;
   }
-  function curlLayer(id, z) {
-    var layer = document.createElement("div"); layer.id = id; layer.setAttribute("aria-hidden", "true");
-    layer.style.cssText = "position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;z-index:" + z + ";";
-    viewport.appendChild(layer); return layer;
+  // Fluidez (16/11, depois do APK 4e7ddbe: "a animação ficou toda travada"): nada é recortado nem redesenhado por quadro. O recorte é
+  // a borda de um contêiner girado pela linha da dobra (com o conteúdo contra-girado), o verso é o reflexo da página e a sombra é
+  // uma faixa fixa; só transformações mudam, em quadros-chave entregues à animação nativa (roda no compositor, fora da thread JS).
+  function curlBox(id, width, height, z) {
+    var box = document.createElement("div"); box.id = id; box.setAttribute("aria-hidden", "true");
+    box.style.cssText = "position:absolute;left:0;top:0;width:" + width + "px;height:" + height + "px;transform-origin:0 0;pointer-events:none;will-change:transform;z-index:" + z + ";";
+    return box;
   }
-  function curlClip(points, mid, normal, lifted) {
-    var out = [];
-    for (var i = 0; i < points.length; i++) {
-      var a = points[i], b = points[(i + 1) % points.length];
-      var da = (a[0] - mid[0]) * normal[0] + (a[1] - mid[1]) * normal[1], db = (b[0] - mid[0]) * normal[0] + (b[1] - mid[1]) * normal[1];
-      if (!lifted) { da = -da; db = -db; }
-      if (da >= 0) out.push(a);
-      if ((da >= 0) !== (db >= 0)) { var f = da / (da - db); out.push([a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f]); }
-    }
-    return out;
-  }
-  function curlPolygon(points) {
-    if (points.length < 3) return "polygon(0px 0px, 0px 0px, 0px 0px)";
-    return "polygon(" + points.map(function(p) { return p[0].toFixed(1) + "px " + p[1].toFixed(1) + "px"; }).join(", ") + ")";
+  function curlGeometry(t, width, height) {
+    var cx = width - t * 2.1 * width, cy = height - Math.sin(Math.PI * t) * height * 0.2;
+    var dx = width - cx, dy = height - cy, length = Math.sqrt(dx * dx + dy * dy);
+    if (length < 0.5) { dx = 0.5; dy = 0.5; length = Math.SQRT1_2; }
+    return { mx: (width + cx) / 2, my: (height + cy) / 2, angle: Math.atan2(dy / length, dx / length) };
   }
   function curlToPage(width) {
     var forward = targetPage > currentPage, height = getPageHeight();
@@ -647,39 +641,59 @@ export function createEpubReaderDocument(chapters: StoredChapter[], options: Rea
     if (!forward) content.style.transform = "translateX(-" + ((targetPage - 1) * width) + "px)";
     var range = curlPageRange();
     if (!range) { content.style.transform = "translateX(-" + ((currentPage - 1) * width) + "px)"; return false; }
-    var sheet = curlCopy(range), shadow = curlLayer("reader-curl-shadow", 2), flap = curlLayer("reader-curl-flap", 4);
+    var sheet = curlCopy(range);
     content.style.transform = "translateX(-" + (((forward ? targetPage : currentPage) - 1) * width) + "px)";
-    var paper = getComputedStyle(viewport).backgroundColor, rect = [[0, 0], [width, 0], [width, height], [0, height]];
+    var L = 2 * Math.ceil(Math.sqrt(width * width + height * height)), paper = getComputedStyle(viewport).backgroundColor;
+    var front = curlBox("reader-curl-front", L, 2 * L, 3), flapBox = curlBox("reader-curl-flap", L, 2 * L, 4);
+    var flap = curlBox("reader-curl-back", width, height, 0), shadow = curlBox("reader-curl-shadow", 70, 2 * L, 2), edge = curlBox("reader-curl-edge", 26, 2 * L, 5);
+    front.style.overflow = "hidden"; flapBox.style.overflow = "hidden";
+    sheet.style.transformOrigin = "0 0"; sheet.style.willChange = "transform"; sheet.style.zIndex = "0";
     flap.style.backgroundColor = paper;
-    var duration = 560, started = 0, finished = false;
-    function frame(now) {
-      if (finished) return;
-      if (!started) started = now;
-      var linear = Math.min(1, (now - started) / duration), eased = 0.5 - Math.cos(Math.PI * linear) / 2;
-      var t = forward ? eased : 1 - eased;
-      // O canto de baixo sobe em arco e atravessa a página.
-      var corner = [width - t * 2.1 * width, height - Math.sin(Math.PI * t) * height * 0.2];
-      var dx = width - corner[0], dy = height - corner[1], length = Math.sqrt(dx * dx + dy * dy) || 1;
-      var normal = [dx / length, dy / length], mid = [(width + corner[0]) / 2, (height + corner[1]) / 2];
-      var lifted = curlClip(rect, mid, normal, true);
-      var back = lifted.map(function(p) { var d = 2 * ((p[0] - mid[0]) * normal[0] + (p[1] - mid[1]) * normal[1]); return [p[0] - d * normal[0], p[1] - d * normal[1]]; });
-      sheet.style.clipPath = curlPolygon(curlClip(rect, mid, normal, false));
-      flap.style.clipPath = curlPolygon(back);
-      var angle = Math.atan2(-normal[0], normal[1]) * 180 / Math.PI;
-      flap.style.backgroundImage = "linear-gradient(" + (angle + 180) + "deg, rgba(0,0,0,0.16), rgba(255,255,255,0.28) 45%, rgba(0,0,0,0.06))";
-      shadow.style.clipPath = curlPolygon(lifted);
-      shadow.style.backgroundImage = "linear-gradient(" + angle + "deg, rgba(0,0,0,0.30), rgba(0,0,0,0) 22%)";
-      if (linear < 1) requestAnimationFrame(frame); else done();
+    flap.style.backgroundImage = "linear-gradient(90deg, rgba(0,0,0,0.10), rgba(255,255,255,0.22) 55%, rgba(0,0,0,0.05))";
+    shadow.style.backgroundImage = "linear-gradient(90deg, rgba(0,0,0,0.32), rgba(0,0,0,0))";
+    edge.style.backgroundImage = "linear-gradient(90deg, rgba(0,0,0,0), rgba(255,255,255,0.30) 70%, rgba(0,0,0,0.10))";
+    front.appendChild(sheet); flapBox.appendChild(flap);
+    [shadow, front, flapBox, edge].forEach(function(layer) { viewport.appendChild(layer); });
+    function frameAt(offset) {
+      var eased = 0.5 - Math.cos(Math.PI * offset) / 2, g = curlGeometry(forward ? eased : 1 - eased, width, height);
+      var at = "translate(" + g.mx.toFixed(2) + "px," + g.my.toFixed(2) + "px) rotate(" + g.angle.toFixed(5) + "rad)";
+      var back = "rotate(" + (-g.angle).toFixed(5) + "rad) translate(" + (-g.mx).toFixed(2) + "px," + (-g.my).toFixed(2) + "px)";
+      return {
+        box: at + " translate(" + (-L) + "px," + (-L) + "px)",
+        sheet: "translate(" + L + "px," + L + "px) " + back,
+        flap: "translate(" + L + "px," + L + "px) scale(-1,1) " + back,
+        shadow: at + " translate(0px," + (-L) + "px)",
+        edge: at + " translate(-26px," + (-L) + "px)"
+      };
     }
+    var duration = 520, steps = 30, frames = [], finished = false, animations = [];
+    for (var i = 0; i < steps; i++) frames.push(frameAt(i / (steps - 1)));
+    function track(element, key) { return frames.map(function(f) { return { transform: f[key] }; }); }
+    var first = frames[0];
+    front.style.transform = first.box; flapBox.style.transform = first.box; sheet.style.transform = first.sheet; flap.style.transform = first.flap;
+    shadow.style.transform = first.shadow; edge.style.transform = first.edge;
     function done() {
       if (finished) return; finished = true; clearTimeout(flipTimer);
+      animations.forEach(function(animation) { try { animation.cancel(); } catch (error) {} });
       content.style.transform = "translateX(-" + ((targetPage - 1) * width) + "px)";
-      [sheet, shadow, flap].forEach(function(layer) { if (layer.parentNode) layer.parentNode.removeChild(layer); });
+      [shadow, front, flapBox, edge].forEach(function(layer) { if (layer.parentNode) layer.parentNode.removeChild(layer); });
       finishNavigation();
     }
     // Sem quadros (aba oculta, WebView pausada) a virada termina mesmo assim.
     flipTimer = setTimeout(done, duration + 400);
-    requestAnimationFrame(frame);
+    if (typeof front.animate === "function") {
+      var timing = { duration: duration, easing: "linear", fill: "forwards" };
+      animations = [[front, "box"], [flapBox, "box"], [sheet, "sheet"], [flap, "flap"], [shadow, "shadow"], [edge, "edge"]].map(function(pair) { return pair[0].animate(track(pair[0], pair[1]), timing); });
+      animations[0].onfinish = done;
+    } else {
+      var started = 0;
+      (function step(now) {
+        if (finished) return; if (!started) started = now;
+        var f = frameAt(Math.min(1, (now - started) / duration));
+        front.style.transform = f.box; flapBox.style.transform = f.box; sheet.style.transform = f.sheet; flap.style.transform = f.flap; shadow.style.transform = f.shadow; edge.style.transform = f.edge;
+        if (now - started < duration) requestAnimationFrame(step); else done();
+      })(performance.now());
+    }
     return true;
   }
 

@@ -141,8 +141,8 @@ function load(file){if(cache.has(file))return cache.get(file);const exports={};c
    window.updateMotion({pageTurn:'flip'});window.readerStudy({type:'studyCapture',id:31});const startText=messages.filter(m=>m.type==='study'&&m.id===31).at(-1).anchor.quote.trim().slice(0,24);
    n=pages().length;const before=last();window.navigatePage(1);await sleep(200);
    const sheet=document.getElementById('reader-curl'),flap=document.getElementById('reader-curl-flap');
-   out.flipMid={messages:pages().length-n,sheet:!!sheet,flap:!!flap,clip:sheet&&sheet.style.clipPath.slice(0,8),copy:!!sheet&&sheet.textContent.replace(/s+/g,' ').includes(startText.replace(/s+/g,' ')),startText};await sleep(800);
-   out.flip={messages:pages().length-n,page:last(),from:before,left:!!document.getElementById('reader-curl')||!!document.getElementById('reader-curl-flap')||!!document.getElementById('reader-curl-shadow'),width:Math.round(v.getBoundingClientRect().width)};
+   out.flipMid={messages:pages().length-n,sheet:!!sheet,flap:!!flap,animated:(()=>{const box=document.getElementById('reader-curl-front');return box&&typeof box.getAnimations==='function'?box.getAnimations().length:-1})(),clip:sheet&&sheet.style.clipPath,copy:!!sheet&&sheet.textContent.replace(/s+/g,' ').includes(startText.replace(/s+/g,' ')),startText};await sleep(800);
+   out.flip={messages:pages().length-n,page:last(),from:before,left:['reader-curl','reader-curl-front','reader-curl-flap','reader-curl-shadow','reader-curl-edge'].some(id=>document.getElementById(id)),width:Math.round(v.getBoundingClientRect().width)};
    const back0=last();window.navigatePage(-1);await sleep(200);out.backMid=!!document.getElementById('reader-curl');await sleep(800);out.back={from:back0,to:last(),left:!!document.getElementById('reader-curl')};window.navigatePage(1);await sleep(900);
    const startFlip=last();window.navigatePage(1);window.navigatePage(1);window.navigatePage(1);await sleep(2500);out.flipRapid={from:startFlip,to:last()};
    window.updateMotion({pageTurn:'slide'});const startSlide=last();window.navigatePage(1);window.navigatePage(1);window.navigatePage(1);await sleep(1500);out.slideRapid={from:startSlide,to:last()};
@@ -188,7 +188,7 @@ function load(file){if(cache.has(file))return cache.get(file);const exports={};c
   before=await evaluate(`(()=>{window.goToPage(${beforePage});window.readerStudy({type:'studyCapture',id:97});return messages.filter(m=>m.type==='study'&&m.id===97).at(-1);})()`);assert.equal(before.status,'captured');
   assert.deepEqual(turns.none,{sync:1,page:11},'Sem animação turns at once');
   assert.equal(turns.slideSync,0,'Deslizar animates (not instant) without reduce motion');assert.ok(turns.slideMs>=150,'slide lasts its transition: '+turns.slideMs);
-  assert.equal(turns.flipMid.messages,0,'Folhear does not confirm the page mid-turn');assert.equal(turns.flipMid.sheet&&turns.flipMid.flap,true,'page copy and paper flap mid-turn');assert.equal(turns.flipMid.clip,'polygon(');
+  assert.equal(turns.flipMid.messages,0,'Folhear does not confirm the page mid-turn');assert.equal(turns.flipMid.sheet&&turns.flipMid.flap,true,'page copy and paper flap mid-turn');assert.equal(turns.flipMid.animated,1,'the fold runs as a native transform animation');assert.equal(turns.flipMid.clip,'','no per-frame clip-path (it made the turn stutter on the Redmi)');
   assert.equal(turns.flipMid.copy,true,'the curling sheet is a copy of the visible page: '+JSON.stringify(turns.flipMid.startText));
   assert.equal(turns.backMid,true,'going back also curls');assert.equal(turns.back.to,turns.back.from-1);assert.equal(turns.back.left,false);
   assert.equal(turns.flip.messages,1);assert.equal(turns.flip.page,turns.flip.from+1);assert.equal(turns.flip.left,false,'no curl layer left behind');assert.ok(turns.flip.width>300,'viewport back to full width');
