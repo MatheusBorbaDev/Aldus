@@ -132,6 +132,8 @@ Persistência (legado mantido, não renomear `kindle-*`/`@kindle/*`): Native SQL
   `expo-notifications`) e filtro VIEW `content://` PDF/EPUB; o `*/*` é a consulta OPEN_DOCUMENT já existente. `apksigner`: v2, certificado
   `fac61745…033b9c` (o do Redmi) — não é o Beta privado. dex com `expo/modules/speech`, `expo/modules/notifications`; bundle Hermes com textos
   das ondas A–D; 34 livros. **NÃO instalado**: o Redmi segue com `ae98991`.
+- **Fase D, virar página (16/11, `de31a33`)**: typecheck PASS; `test:critical` **129/129**; 8 suítes `test:reader:*` de navegador PASS; `export:web` PASS;
+  lista de entrega com 33 recursos. Android NÃO TESTADO.
 - **Fase C, card de trecho (16/11, `d1c1402`, `68e2d13`, `9e5b2ad`)**: typecheck PASS; `test:critical` **128/128**; `export:web` PASS; lista de entrega
   com 32 recursos; legal PASS. Nova dependência nativa `expo-sharing`: exige APK novo. Android NÃO TESTADO.
 - **Fase B, grifo (16/11, `763feca`, `ee53a66`)**: typecheck PASS; `test:critical` **126/126**; `test:reader:browser`, `test:reader:{study,markings,epub}:web`
@@ -268,6 +270,7 @@ Legenda: **IVER** = implementado e verificado (suíte/execução citada); **ISVS
 | Landing Web e legal | IVER (local/Chromium) | `src/marketing`, `src/legal`; `test:marketing*`, `test:legal*`. Deploy Vercel não reconferido. |
 | Android (build/APK/módulos) | PARC | `android/`, `scripts/build-apk-local.mjs`; APK `00b6e4d`/`53b4e32` (privados, ignorados). Homologação física BLOQUEADA (Redmi ausente), APK do HEAD inexistente. |
 | UX/UI reformulação (27/10) | IVER (Web controlado) / físico PENDENTE | commits `d6ef9c7`, `ea0b1ec`, `f970c2d`; `test-app-design`, 8 suítes Chromium. Será substituída pelo redesign abaixo. |
+| Virar página: Sem animação/Deslizar/Folhear (16/11) | IVER (Chromium); Android NÃO TESTADO | `src/domain/reader/pageTurn.ts`, `updateMotion` no `EpubReaderDocument`, `useReduceMotion`; `test-page-turn`, `test:reader:browser` (EPUB e Reflow). |
 | Card de trecho para Stories/X (16/11) | IVER (local + Chromium); Android NÃO TESTADO | `src/domain/reader/quoteCard.ts`, `QuoteCardModal`, `QuoteCardCanvas.{native,web}`, `shareQuoteCard.{native,web}`; `test-quote-card`, `test-quote-card-modal`. Limite de 400 caracteres; só a folha do sistema. |
 | Paletas Clássico/Moderno e textura de papel (16/11) | IVER (local + Chromium); Android NÃO TESTADO | `src/theme/tokens.ts` (`appPalettes`, `readerChromePalette`), `AppThemeContext`, `app/preferences.tsx`, `src/domain/reader/paperTexture.ts`, `updateSurface` no `EpubReaderDocument`; `test-app-design`, `test-preference-persistence`, `test-paper-texture`, `test:reader:browser`. |
 | Redesign editorial (06/11, fases 1–5) | Fases 1–5 IVER (local + Chromium); Android NÃO TESTADO | `src/ui/*`, `app/(tabs)/_layout.tsx`, `app/(tabs)/search.tsx` (Descobrir), `app/(tabs)/library.tsx`, `BookCard.tsx`; `test-ui-primitives`, `test-discover-ui`, `test-app-design` (critical), `test:source-library:browser`. Ver `docs/context/design-system.md`. |
@@ -339,8 +342,7 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
    homologar com duas contas reais e publicar o app. Denúncias de conteúdo ficam só no servidor (sem painel no Admin ainda).
    **Leitura e compartilhamento (16/11)**: plano de 5 fases em `docs/context/design-system.md` §Paletas e plano. Fase A (paletas e textura)
    , B (grifo: captura pela seleção parada, pressionar e segurar, pop-up) e C (card de trecho, `expo-sharing`, 400 caracteres) concluídas no
-   código; B e C precisam de APK e Redmi. Pendentes: D "Folhear"/"Sem animação"
-   ("Deslizar" já existe), E rolagem contínua (PDF → EPUB num capítulo → entre capítulos). Candidato: a imagem do cartão de foco pode usar o
+   código, e D (virar página: Sem animação/Deslizar/Folhear) também; B, C e D precisam de APK e Redmi. Pendente: E rolagem contínua (PDF → EPUB num capítulo → entre capítulos). Candidato: a imagem do cartão de foco pode usar o
    mesmo desenho em canvas. Decisões D3–D5 tomadas em 16/11 (expo-sharing sim, 400 caracteres, sem botão direto de Stories).
    **Plano de mercado (11/11)**: FASES 0–5 concluídas (3 e 5a só planejamento: `docs/context/reader.md` e `community-estudo.md` §13.1; 4 em
    `docs/mockups/certo-errado/`). FASE 3 implementada em 16/11 (A1, A2, B1, B2, C em texto); A3, A4, B3 e D seguem só planejados. Pendentes do usuário: texto da política de
@@ -375,6 +377,19 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
 - **IA externa:** não enviar livros/trechos a serviço de IA sem pedido e consentimento explícito do usuário final.
 
 ## 10. Log (mais recente primeiro; máx. 5 entradas, resto → docs/context/historico/)
+
+### 16/11/2026 — Leitura e compartilhamento, Fase D: virar página (Claude)
+- Pedido do dono: animação de troca de página "com a página passando, igual o Kindle". `de31a33`: Ajustes de leitura → Página → "Virar
+  página" (Sem animação · Deslizar, o de sempre e padrão · Folhear), EPUB e Leitura Livre. "Folhear" gira a página visível em 3D pela lombada
+  (dobra, troca de lado, abre); decisão técnica: sem cópia da página, porque os capítulos dividem as mesmas colunas e copiar "só a página"
+  exigiria copiar o livro a cada virada. A página só é confirmada no fim; toques rápidos agora acumulam (3 toques = 3 páginas) em todos os
+  modos; reduzir movimento do sistema (Android e `prefers-reduced-motion`) força "Sem animação" sem mudar a escolha.
+- Achado do caminho: o Windows deste PC está com animações desligadas e o Chrome reporta `reduce`; o teste de navegador agora emula as duas
+  preferências. Também corrigidas duas regressões de TESTE das fases anteriores: a fixture de `test:reader:settings:web` devolvia `{}` para os
+  módulos novos (painel quebrava ali desde a Fase A) e a seleção da Fase B falhava no `test:reader:reflow:web` (página sem palavra: SKIP explícito).
+- VALIDADO (local): typecheck; `test:critical` 129/129 (nova `page-turn`); `test:reader:{browser,epub,reflow,settings,study,markings,pdf,concentration}`
+  PASS; `export:web`; lista de entrega com 33 recursos. Quadros reais do "Folhear" capturados no Chrome.
+- NÃO TESTADO: fluidez no Redmi (o "Folhear" usa 3D da WebView), arrastar a folha com o dedo (fora do escopo), PDF Original (troca como antes).
 
 ### 16/11/2026 — Leitura e compartilhamento, Fase C: card de trecho (Claude)
 - Pedido do dono: compartilhar trecho "igual o Spotify", para Stories do Instagram e X, card bonito e seleção simples. Decisões do dono antes
@@ -440,17 +455,6 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
   RLS, 0 políticas e 0 grants a clientes, 41 funções (23 novas), as internas sem execução por `authenticated`, só `community_can_view` para
   anon, 0 linhas. Sonda REST anônima: as 6 tabelas, `POST` direto e 4 RPCs → 401. Não registrada no ledger; nenhum dado existente alterado.
 
-### 16/11/2026 — Aba Comunidade e lista de entrega obrigatória (Claude)
-- Dono: "na última compilação não veio a rede social" e "garanta que o app estará exatamente do jeito que solicitei". Diagnóstico: o APK
-  `99ce32d` tinha Pessoas e perfis (confirmado pela checagem nova), mas o acesso era Conta → Comunidade literária → fim da página.
-- `c27b26a` (decisão do dono: "Nova aba Comunidade"): barra Biblioteca · Descobrir · Estudo · Comunidade · Conta; Pessoas no topo da
-  Comunidade; sem seta de voltar na aba. `2efa908` `scripts/verify-release-features.cjs` com os 21 recursos pedidos e marcadores;
-  `--source` na matriz crítica, `--dist` para o site, `--apk` para bundle Hermes, livros e manifesto; `npm run build:apk:local` limpa
-  `generated/res/react/release` e falha se a checagem falhar; `npm run verify:release`.
-- VALIDADO: typecheck; `test:critical` 118/118; `export:web` e `--dist` PASS; `test:library:web` PASS; `--apk` no `99ce32d` falha só no que veio
-  depois (segurança, aba, backup), como esperado. NÃO TESTADO: barra de 5 abas no aparelho e a 320 px ("Comunidade" tem o tamanho de
-  "Biblioteca"); próximo APK ainda não compilado (dono: "não por agora").
-
 ### 06/11/2026 — Entradas anteriores
 - Fechamento UX/UI e Onboarding 1: ver `docs/context/historico/2026-11-06-ux-fechamento-e-onboarding-1.md`.
 - Onboarding 2 (auditoria e reescrita do contexto): ver `docs/context/historico/2026-11-06-onboarding-2.md`.
@@ -481,3 +485,4 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
 - Community, Etapa 2: grafo social (12/11): ver `docs/context/historico/2026-11-12-community-etapa-2.md`.
 - Instruções para outras IAs (12/11): ver `docs/context/historico/2026-11-12-instrucoes-para-ias.md`.
 - Verificação de segurança e backup desligado (15–16/11): ver `docs/context/historico/2026-11-15-verificacao-de-seguranca.md`.
+- Aba Comunidade e lista de entrega obrigatória (16/11): ver `docs/context/historico/2026-11-16-aba-comunidade-e-lista-de-entrega.md`.

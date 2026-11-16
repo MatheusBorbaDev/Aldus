@@ -119,3 +119,13 @@ Ordem sugerida: B1 → B2 → A1 → A2 → C → A3 → D → A4.
   de desenhos antigos são ignoradas.
 - **Envio**: Android grava o JPEG no cache do app e abre a folha do sistema com `expo-sharing` (sem botão direto de Stories, decisão do dono);
   site usa `navigator.share` com arquivo quando aceito, senão baixa a imagem. Só o trecho (e título/autor, se ligados) sai do aparelho.
+
+## Virar página (Fase D, 16/11/2026)
+
+- **Modos** (`src/domain/reader/pageTurn.ts`): `none`, `slide` (padrão, a transição de 0,24 s de sempre) e `flip`. A escolha fica nos
+  ajustes de leitura; o app manda `updateMotion` já resolvido com o reduzir movimento do sistema (`useReduceMotion`), e o documento também
+  respeita `prefers-reduced-motion`. Mudar o modo não refaz layout.
+- **Folhear** (`flipToPage` no documento): gira o `#reader-viewport` em 3D (origem na lombada), troca o `translateX` quando a página está de
+  lado e abre a nova. A largura é lida antes de girar. Um temporizador de 700 ms encerra a virada se `transitionend` não vier.
+- **Invariantes**: a mensagem de página só sai no fim da virada (`finishNavigation`); toques durante a virada acumulam em `deferredPage`;
+  nada fica girado depois. O PDF Original não usa estes modos.
