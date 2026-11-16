@@ -22,8 +22,9 @@ WebViews, Auth/deep links e sonda REST anônima no Supabase. Nada validado em ap
 - **Pendentes, dependem do dono (não alterados):**
   1. `npm audit --omit=dev`: 3 altos (`expo-router` → `query-string` → `decode-uri-component`, negação de serviço ao decodificar URL;
      correção só no Expo SDK 58, versão maior) e 5 moderados em ferramentas de build (`glob`, `minimatch`, `sucrase`, `postcss-selector-parser`).
-  2. `android:allowBackup="true"`: o backup do Android leva a biblioteca local e a sessão salva (AsyncStorage). Desligar evita sessão em
-     backup, mas quem trocar de celular perde a biblioteca local não sincronizada.
+  2. ~~`android:allowBackup="true"`~~ **CORRIGIDO NO CÓDIGO (`127b7db`, decisão do dono em 16/11):** backup na nuvem e transferência
+     entre aparelhos desligados (`allowBackup`/`fullBackupContent` false e `data_extraction_rules.xml` para o SDK 31+). Quem trocar de
+     celular não leva dados locais; o que precisa passar vai pela sincronização da conta. NÃO TESTADO no aparelho.
   3. `android/app/debug.keystore` (senha pública) versionado e usado nos APKs de ensaio: quem tiver o repositório consegue assinar uma
      atualização aceita pelo app de ensaio instalado. Mitigação real é distribuir só com a chave privada do Beta.
   4. CSP para o app Web inteiro não foi criada (Supabase, Google e CDN de cMaps precisariam ser listados e testados num preview).

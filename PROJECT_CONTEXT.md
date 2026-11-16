@@ -318,8 +318,8 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
    (reanexam ao mesmo livro da conta) e um APK/deploy novos; o APK `cde4ce8` e deploys anteriores ainda contêm os arquivos; os binários seguem no histórico Git.
    **Revisão de qualidade (09/11)**: Ondas 0–5 aprovadas concluídas (commits locais, sem push); 6 e 7 fora. R5: patches do SDK 57 aplicados
    (BUG 13); APK de ensaio `6883532` compilado e conferido (§3), **não instalado**; remover `js-polyfills` 0.76/`metro-cache` 0.81 segue pendente. Levantamento do
-   **Segurança (15/11)**: SEG 01–04 corrigidos no código; pendentes de decisão: `npm audit` (SDK 58), `allowBackup`, `debug.keystore`
-   versionado, CSP do app Web. Precisa de APK e deploy novos para valer.
+   **Segurança (15–16/11)**: SEG 01–04 e backup do Android corrigidos no código; pendentes de decisão: `npm audit` (SDK 58),
+   `debug.keystore` versionado, CSP do app Web. Precisa de APK e deploy novos para valer.
    **Community, Etapa 2 (12/11)**: código pronto e as duas migrations **aplicadas no Supabase** com autorização do usuário. Falta: homologar com
    duas contas reais (publicar, pedir, aceitar, bloquear, denunciar), instalar o APK `99ce32d` (já tem a tela Pessoas) e publicar o Web,
    aprovar o texto de privacidade sobre o perfil publicado e decidir se as migrations entram no ledger. Depois: clubes por convite e comentários
@@ -366,7 +366,10 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
   `X-Frame-Options: DENY` e `Permissions-Policy`. Novas suítes `book-html-security` e `platform-security`.
 - Erro do caminho: o teste de navegador falhou com a CSP nova porque `Page.setDocumentContent` mantém a CSP do primeiro documento na mesma
   página; confirmado por bisseção (só a regra de script causava) e resolvido com nonce fixo no teste. No app cada documento é carga nova.
-- Não alterado (decisão do dono): `npm audit` (3 altos só com SDK 58), `allowBackup`, `debug.keystore` versionado, CSP do app Web.
+- Não alterado (decisão do dono): `npm audit` (3 altos só com SDK 58), `debug.keystore` versionado, CSP do app Web.
+- 16/11, `127b7db` (dono escolheu "Desligar backup"): backup do Android desligado na nuvem e na transferência entre aparelhos (`allowBackup`
+  e `fullBackupContent` false, `data_extraction_rules.xml` excluindo todos os domínios, `tools:replace`; `app.json` espelhado). Manifesto e
+  recursos do release conferidos pelo Gradle; `test:critical` 117/117. NÃO TESTADO no aparelho.
 
 ### 12/11/2026 — Instruções para outras IAs: fluxo de engenharia, design e implantação (Claude)
 - Pedido do usuário: deixar instruções de como seguir com o projeto, melhorias de design, estrutura dos desenvolvimentos e implantações.
