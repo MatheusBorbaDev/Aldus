@@ -15,18 +15,22 @@ for (const [name, theme] of Object.entries(readerThemes)) {
   assert.equal(paperTextureCss('none', theme.background), 'none', `${name}: none turns the texture off`);
   assert.equal(paperTextureWorstBackground('none', theme.background).toLowerCase(), theme.background.toLowerCase());
   for (const texture of ['paper', 'aged']) {
-    const worst = paperTextureWorstBackground(texture, theme.background);
+    const worst = paperTextureWorstBackground(texture, theme.background, theme.text);
     // Only the book text sits on the texture: the document forces `color: inherit` on every element, the footer has its own
     // opaque background and the loading screen is outside the document, so secondaryText never lands on the grain.
     const ratio = contrast(theme.text, worst);
     assert.ok(ratio >= 4.5, `${name}/${texture}: book text on the most marked pixel ${ratio.toFixed(2)} >= 4.5`);
-    const css = paperTextureCss(texture, theme.background);
+    const css = paperTextureCss(texture, theme.background, theme.text);
     assert.match(css, /^url\("data:image\/svg\+xml,/, `${name}/${texture}: data: SVG tile`);
     const end = css.indexOf('")'), svg = decodeURIComponent(css.slice(css.indexOf('svg+xml,') + 8, end));
     assert.ok(!/https?:|javascript:|[{};]/.test(svg.replace(/xmlns='http:\/\/www\.w3\.org\/2000\/svg'/, '')), `${name}/${texture}: no external URL or extra CSS in the tile`);
     assert.ok(!/[{};]|url\(/.test(css.slice(end + 2)), `${name}/${texture}: after the tile only a gradient`);
     const dark = ['dark', 'black'].includes(name);
-    assert.equal(paperTextureLayers(texture, theme.background).grain.color, dark ? '#FFFFFF' : '#4A3B2C', `${name}/${texture}: grain follows the page tone`);
+    const layers = paperTextureLayers(texture, theme.background, theme.text);
+    assert.equal(layers.grain.color, dark ? '#FFFFFF' : '#4A3B2C', `${name}/${texture}: grain follows the page tone`);
+    // Visible on a phone (owner's APK test, 16/11): far stronger than the old 8% grain, still bounded by the text contrast.
+    assert.ok(layers.grain.maxAlpha + layers.mottle.maxAlpha >= (dark ? 0.1 : 0.15), `${name}/${texture}: visible paper ${JSON.stringify(layers)}`);
+    assert.match(svg, /feFuncA type='table'/, `${name}/${texture}: noise spread into real grain`);
     assert.equal(/radial-gradient/.test(css), texture === 'aged', `${name}/${texture}: only the aged paper darkens the edges`);
   }
   assert.notEqual(paperTextureCss('paper', theme.background), paperTextureCss('aged', theme.background));

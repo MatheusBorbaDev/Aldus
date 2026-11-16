@@ -656,7 +656,7 @@ export function ReaderScreen({ bookId }: Props) {
         allowTextSelection: true,
         palette: activePalette,
         theme: pdfTheme(pdfReaderSettings.theme),
-        pageSurfaceImage: paperTextureCss(settings.paperTexture ?? "none", activePalette.background),
+        pageSurfaceImage: paperTextureCss(settings.paperTexture ?? "none", activePalette.background, activePalette.text),
         pageTurn,
         readingFlow: settings.readingFlow ?? "paged",
       }
@@ -671,7 +671,7 @@ export function ReaderScreen({ bookId }: Props) {
         allowTextSelection: false,
         palette: activePalette,
         theme: settings.theme,
-        pageSurfaceImage: paperTextureCss(settings.paperTexture ?? "none", activePalette.background),
+        pageSurfaceImage: paperTextureCss(settings.paperTexture ?? "none", activePalette.background, activePalette.text),
         pageTurn,
         readingFlow: settings.readingFlow ?? "paged",
       };

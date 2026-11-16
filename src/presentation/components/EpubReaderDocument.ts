@@ -670,7 +670,7 @@ export function createEpubReaderDocument(chapters: StoredChapter[], options: Rea
     if (image !== "none" && (image.indexOf('url("data:image/svg+xml,') !== 0 || image.length > 20000)) image = "none";
     viewport.style.backgroundImage = image;
     viewport.style.backgroundRepeat = image === "none" ? "" : "repeat, no-repeat";
-    viewport.style.backgroundSize = image === "none" ? "" : "160px 160px, 100% 100%";
+    viewport.style.backgroundSize = image === "none" ? "" : "400px 400px, 100% 100%";
   };
 
   window.updateTypography = function(options) {
