@@ -68,4 +68,4 @@
 - **Plano aprovado** (ordem): A paletas + textura (feito: `f0215f7`, `fcde063`, `986f099`, `1aca293`); B grifo (captura por mudança da
   seleção, pop-up próprio, gestos suspensos durante a seleção); C card de trecho 9:16/1:1/4:5 desenhado em canvas na WebView, envio por
   `expo-sharing` (aprovado e feito em 16/11: `9e5b2ad`), 400 caracteres, nunca o arquivo; D "Sem animação/Deslizar/Folhear" com reduzir movimento (feito em 16/11: `de31a33`);
-  E rolagem contínua por fatias (PDF Original → EPUB em um capítulo → entre capítulos), posição gravada só ao parar.
+  E rolagem contínua (feita em 16/11: PDF Original `b2d35e0`; EPUB e Leitura Livre `0c31cf2`), posição gravada só ao parar.

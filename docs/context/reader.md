@@ -136,6 +136,10 @@ Ordem sugerida: B1 → B2 → A1 → A2 → C → A3 → D → A4.
   `pdfPositionPayload`). `createPdfScroller` (fonte literal) empilha as páginas na largura, desenha só perto da área visível e libera as
   distantes (±3 da atual), informa a página do topo 220 ms depois de parar, separa toque de arrasto (< 10 px) e não ecoa a navegação do app
   (`goTo` suprime relatórios por 450 ms). Sem zonas de toque nesse modo. Progresso = página do topo; o deslocamento dentro da página não é salvo.
-- **Fatias 2 e 3, EPUB e Leitura Livre (planejadas)**: o documento troca colunas por fluxo vertical; a posição continua a âncora de texto do
-  topo (alternar modos volta ao mesmo trecho); gravação só quando a rolagem para; depois, carga do capítulo seguinte embaixo e descarga dos
-  anteriores. Mexe no núcleo de posição: testes de ida e volta Páginas ↔ Rolagem, troca de conta e livro grande antes de liberar.
+- **Fatias 2 e 3, EPUB e Leitura Livre (feitas juntas, `0c31cf2`)**: o livro inteiro já está no documento, então não há carga por capítulo.
+  `html.reader-scroll` troca as colunas por uma coluna vertical; páginas = telas virtuais (`scrollPageFor`). Toda conversão âncora→página usa
+  `pageForRect`; na rolagem `topForRect` põe o trecho no topo (Páginas ↔ Rolagem sem deriva). `updateFlow` guarda a âncora do topo, troca o
+  layout e volta a ela (origem SETTINGS_LAYOUT, mesma âncora). Rolagem do leitor: relato 200 ms após parar, origem SCROLL, nova âncora.
+  `goToPage` com LAYOUT_RECALC/SETTINGS_LAYOUT não move a rolagem. Sem zonas de toque: o documento envia `tap` (< 10 px) e `longPress`
+  (500 ms parado); toques são ignorados com seleção armada. Imagens fora da tela no modo página carregam na rolagem e podem deslocar páginas
+  ao voltar: a posição segue a âncora.
