@@ -8,6 +8,7 @@ import { LegacyReadingDataSource } from "./LegacyReadingDataSource";
 import { supabase } from "@/src/data/remote/supabase";
 import { SupabaseCommunityGateway, type CommunityRemoteClient } from "../data/SupabaseCommunityGateway";
 import type { CommunitySocialGateway } from "../domain/social";
+import type { CommunityClubsGateway } from "../domain/clubs";
 
 const webLock: CommunityLock = (key, operation) => {
   if (Platform.OS !== "web") return operation();
@@ -20,6 +21,6 @@ export function createCommunityService(userId: string, identity: CommunityIdenti
     new LegacyReadingDataSource(appDependencies.bookRepository, appDependencies.readingProgressRepository, libraryOrganization));
 }
 /** Grafo social (Etapa 2): um gateway por conta; sem Supabase configurado ele responde "indisponível". */
-export function createCommunitySocialGateway(userId: string): CommunitySocialGateway {
+export function createCommunitySocialGateway(userId: string): CommunitySocialGateway & CommunityClubsGateway {
   return new SupabaseCommunityGateway(supabase as unknown as CommunityRemoteClient | null, userId);
 }

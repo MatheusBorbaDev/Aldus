@@ -46,6 +46,8 @@ const FEATURES = [
   { id: 'community-tab', pedido: '16/11: aba Comunidade na barra principal', markers: ['Comunidade'], routes: ['(tabs)/community'] },
   { id: 'community-people', pedido: 'Community Etapa 2: Pessoas e perfis', markers: ['Encontrar leitores', 'Publicar perfil como', 'Pedidos para seguir você', 'Retirar meu perfil da rede', 'Denunciar @'], routes: ['community/people', 'community/reader/[username]'] },
   { id: 'community-server', pedido: 'Community Etapa 2: grafo social no servidor', markers: ['community_find_reader', 'community_follow', 'community_report'] },
+  { id: 'community-clubs', pedido: 'Community Etapa 3: clubes por convite e marcos', markers: ['Abrir clubes', 'Entrar no clube', 'Criar um clube', 'Até onde você leu', 'Publicar comentário', 'Gerar novo código', 'community_join_club'], routes: ['community/clubs', 'community/club/[id]'] },
+  { id: 'community-forums', pedido: 'Community Etapa 3: fóruns com spoiler e moderação', markers: ['Abrir fóruns', 'Publicar tópico', 'Contém spoiler · mostrar', 'Enviar denúncia', 'community_report_content'], routes: ['community/forums', 'community/thread/[id]'] },
   // Termos
   { id: 'legal-antipiracy', pedido: 'FASE 1: texto antipirataria nos termos', markers: ['não vende nem empresta livros'] },
 ];

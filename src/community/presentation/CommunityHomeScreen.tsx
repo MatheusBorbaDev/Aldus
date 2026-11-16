@@ -2,7 +2,6 @@ import { useState } from "react";
 import { router, type Href } from "expo-router";
 import { useCommunity, useCommunityFocus } from "./CommunityProvider";
 import { Action, Card, CommunityGate, CommunityPage, Copy, Meter, ProfileIdentity, Stats, Timeline } from "./components";
-import { communityDestinations, type CommunityDestination } from "./content";
 import { goalProgress } from "../domain/profile";
 import { achievements } from "../domain/progression";
 
@@ -23,6 +22,12 @@ export function CommunityHomeScreen({ asTab = false }: { asTab?: boolean } = {})
     <Copy secondary>Uma jornada construída entre livros.</Copy>
     <Card title="Pessoas"><Copy secondary>Publique seu perfil, encontre leitores pelo @usuário e escolha quem acompanhar.</Copy>
       <Action label="Encontrar leitores" onPress={() => router.push("/community/people" as Href)} />
+    </Card>
+    <Card title="Clubes"><Copy secondary>Leitura conjunta por convite, com comentários presos aos marcos do livro.</Copy>
+      <Action label="Abrir clubes" onPress={() => router.push("/community/clubs" as Href)} />
+    </Card>
+    <Card title="Fóruns"><Copy secondary>Conversas sobre livros, com aviso de spoiler.</Copy>
+      <Action label="Abrir fóruns" onPress={() => router.push("/community/forums" as Href)} />
     </Card>
     <Card><ProfileIdentity profile={view.state.profile} /><Action label="Meu perfil literário" onPress={() => router.push("/community/profile" as Href)} /></Card>
     <Card title="Sua jornada literária"><Meter fraction={view.progression.fraction} label={view.progression.level.name} />
@@ -47,9 +52,5 @@ export function CommunityHomeScreen({ asTab = false }: { asTab?: boolean } = {})
       <Action label="Atualizar leituras" disabled={busy} onPress={() => void refresh()} />
     </Card>
     <Timeline activities={view.state.activities} />
-    {(Object.keys(communityDestinations) as CommunityDestination[]).map(key => <Card key={key} title={communityDestinations[key].title}>
-      <Copy secondary>{communityDestinations[key].description} Em construção.</Copy>
-      <Action label={`Conhecer ${communityDestinations[key].title.toLowerCase()}`} onPress={() => router.push(`/community/${key}` as Href)} />
-    </Card>)}
   </>}</CommunityGate></CommunityPage>;
 }

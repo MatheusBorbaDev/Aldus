@@ -4,12 +4,13 @@ import { useAuth } from "@/src/presentation/contexts/AuthContext";
 import { CallbackIdentityProvider, identityFromAccount } from "../adapters/identity";
 import { createCommunityService, createCommunitySocialGateway } from "../adapters/runtime";
 import type { CommunitySocialGateway } from "../domain/social";
+import type { CommunityClubsGateway } from "../domain/clubs";
 import type { CommunityService, CommunityView } from "../application/CommunityService";
 
 interface CommunityContextValue {
   service: CommunityService | null; view: CommunityView | null;
   /** Grafo social da conta atual; null sem conta. Troca junto com a identidade. */
-  social: CommunitySocialGateway | null;
+  social: (CommunitySocialGateway & CommunityClubsGateway) | null;
   loading: boolean; error: string | null; refresh(): Promise<void>;
 }
 const Context = createContext<CommunityContextValue | null>(null);

@@ -1,12 +1,10 @@
-import { router, useLocalSearchParams, type Href } from "expo-router";
+import { router, type Href } from "expo-router";
 import { Action, Card, CommunityPage, Copy } from "./components";
-import { destination } from "./content";
 
+/** Endereço desconhecido dentro da Comunidade. Clubes, Fóruns e Pessoas têm telas próprias (Etapas 2 e 3). */
 export function CommunityFoundationScreen() {
-  const { section } = useLocalSearchParams<{ section: string }>();
-  const content = destination(section);
-  return <CommunityPage title={content?.title ?? "Comunidade"}><Card title={content ? "Em construção" : "Página não encontrada"}>
-    <Copy secondary>{content?.empty ?? "Este espaço não está disponível."}</Copy>
+  return <CommunityPage title="Comunidade"><Card title="Página não encontrada">
+    <Copy secondary>Este espaço não está disponível.</Copy>
     <Action label="Voltar à comunidade" onPress={() => router.replace("/community" as Href)} />
   </Card></CommunityPage>;
 }

@@ -26,7 +26,7 @@ export interface PublishedProfile {
   readingGoal: ReadingGoal | null; privacy: Privacy; updatedAt: number;
 }
 
-export type SocialErrorKind = "unavailable" | "session" | "network" | "contract" | "account" | "target" | "limit" | "query" | "private";
+export type SocialErrorKind = "unavailable" | "session" | "network" | "contract" | "account" | "target" | "limit" | "query" | "private" | "milestone" | "text" | "owner" | "report";
 const socialMessages: Record<SocialErrorKind, string> = {
   unavailable: "A rede de leitores ainda não está disponível no servidor.",
   session: "Entre novamente na sua conta para usar a rede de leitores.",
@@ -37,6 +37,10 @@ const socialMessages: Record<SocialErrorKind, string> = {
   limit: "Limite atingido. Tente de novo mais tarde.",
   query: "Digite de 2 a 40 caracteres para buscar.",
   private: "Um perfil privado não pode ser publicado. Escolha Público ou Seguidores em Editar perfil.",
+  milestone: "Marque que chegou a esse marco antes de comentar sobre ele.",
+  text: "Confira o texto: está vazio ou maior que o permitido.",
+  owner: "Quem criou o clube não sai dele. Para encerrar, exclua o clube.",
+  report: "Escolha um motivo para a denúncia (detalhes com até 1.000 caracteres).",
 };
 export class SocialError extends Error {
   constructor(readonly kind: SocialErrorKind) { super(socialMessages[kind]); this.name = "SocialError"; }
