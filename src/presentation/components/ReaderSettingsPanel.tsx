@@ -12,7 +12,6 @@ import { readerUiDiagnostic } from "@/src/utils/readerUiDiagnostics";
 import { FOCUS_GOAL_MINUTES } from "@/src/domain/reader/readingSession";
 import { PAPER_TEXTURES } from "@/src/domain/reader/paperTexture";
 import { PAGE_TURNS } from "@/src/domain/reader/pageTurn";
-import { PDF_FLOWS } from "@/src/domain/reader/pdfScroll";
 
 /**
  * Ajustes de leitura (redesenho, etapa 1). Folha baixa: o texto continua visível atrás para o leitor ver o efeito.
@@ -309,6 +308,21 @@ export function ReaderSettingsPanel({
                 </View>
               </Field>
 
+              {/* Pedido do dono (16/11, depois do APK): escolha simples, na primeira tela do painel, valendo para todos os formatos. */}
+              <Field label="Passar página" palette={palette}>
+                <View accessibilityRole="radiogroup" style={styles.segmented}>
+                  {([["paged", "Virar páginas", "book-outline"], ["scroll", "Rolar para baixo", "swap-vertical-outline"]] as const).map(([value, label, icon]) => {
+                    const selected = (settings.readingFlow === "scroll" ? "scroll" : "paged") === value;
+                    return <Pressable key={value} accessibilityRole="radio" accessibilityLabel={label} accessibilityState={{ checked: selected }} aria-checked={selected}
+                      onPress={() => settings.setReadingFlow?.(value)} android_ripple={{ color: palette.separator }}
+                      style={[styles.autoChip, styles.flowChoice, { borderColor: selected ? palette.accent : palette.separator, borderWidth: selected ? 2 : 1 }]}>
+                      <Ionicons name={selected ? "checkmark" : icon} size={16} color={palette.text} />
+                      <Text style={{ color: palette.text, fontSize: 14, fontWeight: selected ? "600" : "400" }}>{label}</Text>
+                    </Pressable>;
+                  })}
+                </View>
+              </Field>
+
               <View accessibilityRole="tablist" style={[styles.tabs, { borderColor: palette.separator }]}>
                 {availableSections.map(item => {
                   const selected = expanded && activeSection === item.id;
@@ -376,16 +390,6 @@ export function ReaderSettingsPanel({
                   />
                 </Field>
               ) : null}
-              {!isOriginalPdf ? (
-                <Field label="Leitura" palette={palette}>
-                  <SegmentedControl
-                    options={PDF_FLOWS.map((item, index) => ({ label: item.label, value: index }))}
-                    selectedValue={settings.readingFlow === "scroll" ? 1 : 0}
-                    palette={palette}
-                    onSelect={(value) => settings.setReadingFlow?.(PDF_FLOWS[Number(value)]?.value ?? "paged")}
-                  />
-                </Field>
-              ) : null}
               {!isOriginalPdf && settings.readingFlow !== "scroll" ? (
                 <Field label="Virar página" palette={palette}>
                   <SegmentedControl
@@ -421,13 +425,7 @@ export function ReaderSettingsPanel({
                 </Field>
               ) : (
                 <>
-                  <Field label="Leitura" palette={palette}>
-                    <View style={styles.segmented}>
-                      {PDF_FLOWS.map(item => <Segment key={item.value} label={item.label} selected={(pdfSettings.flow === "scroll" ? "scroll" : "paged") === item.value} onPress={() => updatePdfSettings(item.value === "scroll" ? { flow: "scroll", layout: "single" } : { flow: "paged" })} palette={palette} />)}
-                    </View>
-                  </Field>
-                  {pdfSettings.flow === "scroll" ? <Text style={[styles.hint, { color: palette.secondaryText }]}>As páginas ficam uma embaixo da outra, na largura da tela. Toque na página para mostrar os controles.</Text> : null}
-                  {pdfSettings.flow !== "scroll" ? <><Field label="Ajuste" palette={palette}>
+                  {settings.readingFlow !== "scroll" ? <><Field label="Ajuste" palette={palette}>
                     <View style={styles.segmented}>
                       <Segment label="À página" selected={pdfSettings.fitMode === "page"} onPress={() => updatePdfSettings({ fitMode: "page", zoom: 1 })} palette={palette} />
                       <Segment label="À largura" selected={pdfSettings.fitMode === "width"} onPress={() => updatePdfSettings({ fitMode: "width", zoom: 1 })} palette={palette} />
@@ -521,6 +519,7 @@ const styles = StyleSheet.create({
   panelContent: { paddingHorizontal: 20, paddingTop: 4, paddingBottom: 24 },
   title: { flex: 1, fontSize: 17, fontWeight: "600" },
   quick: { gap: 14 },
+  flowChoice: { flex: 1, justifyContent: "center", minHeight: 48 },
   section: { gap: 16, paddingTop: 16 },
   field: { gap: 8 },
   fieldLabel: { fontSize: 13, fontWeight: "500" },

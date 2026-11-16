@@ -1048,11 +1048,11 @@ export function ReaderScreen({ bookId }: Props) {
         filePath={bookFilePath}
         chapters={chapters}
         pdfPage={pdfPage}
-        pdfPageMode={pdfReaderSettings?.layout ?? pdfPageMode}
+        pdfPageMode={settings.readingFlow === "scroll" ? "single" : pdfReaderSettings?.layout ?? pdfPageMode}
         pdfFitMode={pdfReaderSettings?.fitMode ?? "page"}
         pdfZoom={pdfReaderSettings?.zoom ?? 1}
         pdfRotation={pdfReaderSettings?.rotation ?? 0}
-        pdfFlow={pdfReaderSettings?.flow === "scroll" ? "scroll" : "paged"}
+        pdfFlow={settings.readingFlow === "scroll" ? "scroll" : "paged"}
         onPdfScrollPage={page => { if (pdfTotalPages > 0 && page !== pdfPage) handleProgress(pdfTotalPages > 1 ? (page - 1) / (pdfTotalPages - 1) : 0); }}
         pdfReadingMode={pdfReadingMode}
         pdfReflowChapters={pdfReflowChapters}

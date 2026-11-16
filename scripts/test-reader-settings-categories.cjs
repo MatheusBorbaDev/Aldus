@@ -33,7 +33,11 @@ new Function('require', 'exports', ts.transpileModule(source, { compilerOptions:
   const byLabel = label => tree.root.findAllByType('Pressable').find(x => x.props.accessibilityLabel === label);
   const flat = style => Object.assign({}, ...[style].flat(Infinity).filter(Boolean));
   const scroll = tree.root.findByType('ScrollView'), slider = tree.root.findAllByType('Slider').find(x => x.props.accessibilityLabel === 'Tamanho da fonte');
-  assert(slider, 'size slider is in the quick area'); assert.equal(byLabel('Expandir ajustes').props.accessibilityState.expanded, false, 'starts as a low sheet');
+  assert(slider, 'size slider is in the quick area');
+  // Owner (16/11, after the APK): how to pass the page is a simple choice on the first screen of the panel, for every format.
+  assert.deepEqual(['Virar páginas', 'Rolar para baixo'].map(l => byLabel(l).props.accessibilityState.checked), [true, false], 'visible before expanding, pages by default');
+  await act(async () => byLabel('Rolar para baixo').props.onPress()); assert.deepEqual(changes.pop(), ['ReadingFlow', 'scroll']);
+  for (const l of ['Virar páginas', 'Rolar para baixo']) assert.ok(flat(byLabel(l).props.style).minHeight >= 44, l + ': 44 px'); assert.equal(byLabel('Expandir ajustes').props.accessibilityState.expanded, false, 'starts as a low sheet');
   assert.equal(flat(scroll.parent.props.style).maxHeight, '62%', 'collapsed sheet keeps the page visible');
   for (const label of ['Texto', 'Página', 'Conforto', 'Texto']) {
     const tab = byLabel('Mais ajustes: ' + label); assert(tab, label); await act(async () => tab.props.onPress());
@@ -49,9 +53,6 @@ new Function('require', 'exports', ts.transpileModule(source, { compilerOptions:
   assert.equal(byLabel('Deslizar').props.accessibilityState.selected, true);
   await act(async () => byLabel('Folhear').props.onPress()); assert.deepEqual(changes.at(-1), ['PageTurn', 'flip']);
   await act(async () => byLabel('Sem animação').props.onPress()); assert.deepEqual(changes.at(-1), ['PageTurn', 'none']);
-  // Continuous scroll (16/11/2026): Página a página by default; choosing Rolagem contínua writes only that preference.
-  assert.equal(byLabel('Página a página').props.accessibilityState.selected, true);
-  await act(async () => byLabel('Rolagem contínua').props.onPress()); assert.deepEqual(changes.at(-1), ['ReadingFlow', 'scroll']);
   changes.length = 0;
   // Quick controls.
   await act(async () => slider.props.onValueChange(24)); assert.deepEqual(changes, [['FontSize', 24]]);
