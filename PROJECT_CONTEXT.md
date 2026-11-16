@@ -133,7 +133,7 @@ Persistência (legado mantido, não renomear `kindle-*`/`@kindle/*`): Native SQL
   `fac61745…033b9c` (o do Redmi) — não é o Beta privado. dex com `expo/modules/speech`, `expo/modules/notifications`; bundle Hermes com textos
   das ondas A–D; 34 livros. **NÃO instalado**: o Redmi segue com `ae98991`.
 - **Pendências antes do APK (16/11, `98a8ead`…`3cd2d9a`)**: typecheck PASS; `test:critical` **124/124**; `export:web` PASS; lista de entrega
-  `--source`/`--dist` PASS com 28 recursos. Migration de clubes/fóruns só local. APK não compilado (aguarda pedido).
+  `--source`/`--dist` PASS com 28 recursos. Migration de clubes/fóruns **aplicada no Supabase em 16/11** (ver log). APK não compilado (aguarda pedido).
 - **Segurança (15/11, `e71b31d`, `64ad127`, `68b18cd`)**: typecheck PASS; `test:critical` **117/117**; `export:web` PASS; Chromium PASS: `test:reader:
   {epub,reflow,pdf,study,markings,settings}:web`, `test:reader:browser`, `test:library:web`, `test:marketing:web`; checagem ad hoc no Chromium
   (script injetado bloqueado pela CSP). `processReleaseMainManifest` sem SYSTEM_ALERT_WINDOW. `test:legal:browser` BLOQUEADO (porta 9333).
@@ -257,7 +257,7 @@ Legenda: **IVER** = implementado e verificado (suíte/execução citada); **ISVS
 | Auth (email, Google PKCE, username) | IVER (local) / remoto ISVS | `auth*.ts`, `AuthContext.tsx`; `test-auth*` (critical). BUG 08 (cadastro/recovery reais) e BUG 09 (`username-login` não implantado) BLOQUEADOS externamente. |
 | Library Sync (outbox/CAS/tombstone/RLS) | IVER (local/PGlite) / remoto ISVS | `src/data/library/*`, migrations `*library*`; `test:library:*`, `test:library:rls`. BUG 02: QA autenticado remoto pendente; BUG 11 deploy incremental pendente. |
 | Sources / Drive | Sources IVER (local); Drive ISVS | `src/data/sources/*`, `src/data/drive/*`, `modules/aldus-drive-auth`; `test:source-catalog`, `test:drive`. BUG 03 (Drive real Android) aberto; BUG 12 resolvido no código (`10d6d24`, `test-source-ownership`), Android não testado. |
-| Community | PARC (local v0.1 + Etapa 2 no código e no servidor; Etapa 3 clubes/fóruns só no código; sem homologação com sessões reais) | `LocalCommunityRepository`; Pessoas/Leitor + `SupabaseCommunityGateway` (12/11); `test-community-*`. Migrations `202610130001_community_foundation.sql` e `20261112120000_community_social_graph.sql` **aplicadas no Supabase em 12/11** pelo editor SQL do painel (não constam no ledger `supabase_migrations`). Clubes/Fóruns (16/11): `20261116120000_community_clubs_forums.sql` **não aplicada**; `test-community-clubs{,-schema}`. Falta APK/deploy com o código e teste com duas contas reais. |
+| Community | PARC (local v0.1 + Etapas 2 e 3 no código e no servidor; sem homologação com sessões reais) | `LocalCommunityRepository`; Pessoas/Leitor + `SupabaseCommunityGateway` (12/11); `test-community-*`. Migrations `202610130001_community_foundation.sql` e `20261112120000_community_social_graph.sql` **aplicadas no Supabase em 12/11** pelo editor SQL do painel (não constam no ledger `supabase_migrations`). Clubes/Fóruns (16/11): `20261116120000_community_clubs_forums.sql` **aplicada em 16/11** pelo mesmo caminho (fora do ledger); `test-community-clubs{,-schema}`. Falta APK/deploy com o código e teste com duas contas reais. |
 | SaaS/planos/cotas e Admin | IVER (local) / remoto ISVS | `src/domain/saas`, `src/admin`, migrations `20261015*`; `test:saas*`, `test:admin*`. Deploy/OWNER só por registro; login/TOTP real pendente. |
 | Landing Web e legal | IVER (local/Chromium) | `src/marketing`, `src/legal`; `test:marketing*`, `test:legal*`. Deploy Vercel não reconferido. |
 | Android (build/APK/módulos) | PARC | `android/`, `scripts/build-apk-local.mjs`; APK `00b6e4d`/`53b4e32` (privados, ignorados). Homologação física BLOQUEADA (Redmi ausente), APK do HEAD inexistente. |
@@ -327,8 +327,8 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
    **Community, Etapa 2 (12/11)**: código pronto e as duas migrations **aplicadas no Supabase** com autorização do usuário. Falta: homologar com
    duas contas reais (publicar, pedir, aceitar, bloquear, denunciar), instalar o APK `99ce32d` (já tem a tela Pessoas) e publicar o Web,
    aprovar o texto de privacidade sobre o perfil publicado e decidir se as migrations entram no ledger.
-   **Clubes e Fóruns (16/11)**: código pronto; aplicar `20261116120000_community_clubs_forums.sql` exige autorização do dono (mesmo caminho
-   do painel com SHA-256); depois homologar com duas contas. Denúncias de conteúdo ficam só no servidor (sem painel no Admin ainda).
+   **Clubes e Fóruns (16/11)**: código pronto e `20261116120000_community_clubs_forums.sql` aplicada no Supabase (autorização do dono); falta
+   homologar com duas contas reais e publicar o app. Denúncias de conteúdo ficam só no servidor (sem painel no Admin ainda).
    **Plano de mercado (11/11)**: FASES 0–5 concluídas (3 e 5a só planejamento: `docs/context/reader.md` e `community-estudo.md` §13.1; 4 em
    `docs/mockups/certo-errado/`). FASE 3 implementada em 16/11 (A1, A2, B1, B2, C em texto); A3, A4, B3 e D seguem só planejados. Pendentes do usuário: texto da política de
    dados sobre sessões, marcos e diário; entrevistas da FASE 4.
@@ -370,12 +370,19 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
   envia o campo; ausente = não fixado). `2a3d8fd` "Todas as anotações" (menu ⋯ da Biblioteca; tocar abre o livro, sem navegar à âncora).
   `68d4f09` Diário de leitura (só sessões medidas, números ocultáveis, sem dias seguidos) e CSV no padrão Goodreads (só campos com dado real).
   `da43e57` cartão de foco: compartilha **texto** (imagem exigiria dependência nova, não adicionada).
-- `ff25abc` migration `20261116120000_community_clubs_forums.sql` (**só local, não aplicada**): clubes por convite com marcos, comentários
+- `ff25abc` migration `20261116120000_community_clubs_forums.sql` (aplicada em 16/11, ver abaixo): clubes por convite com marcos, comentários
   ancorados em marco e visíveis só até o marco de cada um, fóruns com aviso de spoiler, denúncias de conteúdo, limites contra abuso, tudo por RPC.
   `3cd2d9a` telas Clubes, Clube, Fóruns e Tópico; denúncia abre sem motivo escolhido; aviso de DRM. Sem contagens de membros ou curtidas.
 - VALIDADO (local): typecheck; `test:critical` 124/124 (novas `pinned-highlights`, `all-annotations`, `reading-diary`, `focus-card`,
   `community-clubs-schema` em PGlite, `community-clubs`); `verify-release-features --source` e `--dist` com 28 recursos; `export:web`; diff-check.
-- NÃO TESTADO: Supabase real (até aplicar, Clubes/Fóruns avisam que a rede ainda não está disponível no servidor), Android, navegador para as telas novas.
+- NÃO TESTADO: sessões autenticadas reais, Android, navegador para as telas novas.
+- **Aplicação remota (16/11, autorizada: "Sim, aplicar")**: projeto "Kindle reader", editor SQL do painel no Chrome do usuário. Inventário somente
+  leitura antes: PG 17.6, 8 tabelas e 18 funções `community*` (estado de 12/11), nenhum objeto de clubes/fóruns. O arquivo entrou pela área de
+  transferência e foi conferido na página por SHA-256 (`115bd504…bcd0f9`, idêntico ao repositório; o editor só usa CRLF). Erro do caminho: o
+  `clip.exe` com UTF-8 trocou os acentos (hash diferente, nada executado); refeito em UTF-16 e removido o BOM antes da conferência. O painel
+  avisou de operação destrutiva (só os `delete` dentro das funções novas e `on delete cascade`); confirmado; "Success". Depois: 6 tabelas com
+  RLS, 0 políticas e 0 grants a clientes, 41 funções (23 novas), as internas sem execução por `authenticated`, só `community_can_view` para
+  anon, 0 linhas. Sonda REST anônima: as 6 tabelas, `POST` direto e 4 RPCs → 401. Não registrada no ledger; nenhum dado existente alterado.
 
 ### 16/11/2026 — Aba Comunidade e lista de entrega obrigatória (Claude)
 - Dono: "na última compilação não veio a rede social" e "garanta que o app estará exatamente do jeito que solicitei". Diagnóstico: o APK

@@ -130,7 +130,7 @@ A FASE 5b é a parte **local** disso, sem servidor: marcos de um livro, cartão-
   app com o código novo e aprovar o texto de privacidade sobre o perfil publicado.
 - **Próximo** (§13.1): clubes por convite e comentários ancorados em marco; moderação (fila de denúncias, termos de conduta) antes de clube público.
 
-### 13.3 Etapa 3 — clubes e fóruns (16/11/2026; código pronto; migration NÃO aplicada no Supabase)
+### 13.3 Etapa 3 — clubes e fóruns (16/11/2026; código pronto; servidor aplicado em 16/11, sem homologação autenticada)
 
 - **Servidor** (`supabase/migrations/20261116120000_community_clubs_forums.sql`, depende das migrations de 13/10 e 12/11): tabelas
   `community_clubs`, `community_club_members`, `community_club_comments`, `community_threads`, `community_posts`,
@@ -149,6 +149,7 @@ A FASE 5b é a parte **local** disso, sem servidor: marcos de um livro, cartão-
   `CommunityThreadScreen` e `ContentReport` (rotas `/community/clubs`, `/community/club/[id]`, `/community/forums`, `/community/thread/[id]`).
 - **Moderação**: denúncia de comentário, tópico ou resposta grava em `community_content_reports` (não legível pelo cliente); tratamento
   manual via service role até existir fila no Admin. Clube público continua fora até haver fila, termos de conduta e canal legal.
-- **Para aplicar** (só com autorização do dono): mesmo caminho de 12/11, editor SQL do painel com o arquivo conferido por SHA-256; depois
-  catálogo (6 tabelas com RLS, 0 grants, funções só `authenticated`) e sonda REST anônima (RPCs 401). Até lá o app avisa que a rede de leitores
-  ainda não está disponível no servidor. Testes: `test-community-clubs-schema` (PGlite, contas A/B/C/anon) e `test-community-clubs` (telas simuladas).
+- **Servidor**: aplicada em 16/11/2026 pelo editor SQL do painel, conferida por SHA-256, catálogo e sonda REST anônima (evidência no log do
+  PROJECT_CONTEXT). Fora do ledger `supabase_migrations.schema_migrations`, como as de 12/11: tratar como já existente, sem `db push`.
+  Falta conferir com duas contas reais (criar clube, entrar pelo código, marcar marco, comentar, tópico com spoiler, denúncia).
+  Testes: `test-community-clubs-schema` (PGlite, contas A/B/C/anon) e `test-community-clubs` (telas simuladas).
