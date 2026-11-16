@@ -51,6 +51,11 @@ export interface EpubPageViewerProps {
   pageSurfaceImage?: string;
   /** Virada de página já resolvida com o reduzir movimento do sistema (Fase D). Ausente = deslizar. */
   pageTurn?: "none" | "slide" | "flip";
+  /** Rolagem contínua (Fase E): o livro numa coluna vertical. Ausente = páginas. */
+  readingFlow?: "paged" | "scroll";
+  /** Na rolagem, toque sem arrastar e pressionar e segurar chegam do documento (não há zonas de toque por cima). */
+  onDocumentTap?: () => void;
+  onDocumentLongPress?: (x: number, y: number) => void;
   onPageInfo: (info: EpubPageInfo) => void;
   studyRequest?: ReaderStudyRequest | null;
   onStudyResult?: (result: ReaderStudyResult) => void;

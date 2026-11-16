@@ -27,6 +27,9 @@ export function EpubPageViewer({
   backgroundColor,
   pageSurfaceImage = "none",
   pageTurn = "slide",
+  readingFlow = "paged",
+  onDocumentTap,
+  onDocumentLongPress,
   onPageInfo,
   studyRequest,
   onStudyResult,
@@ -34,6 +37,8 @@ export function EpubPageViewer({
 }: EpubPageViewerProps) {
   const webView = useRef<WebView>(null);
   const callback = useRef(onPageInfo);
+  const documentGestures = useRef({ onDocumentTap, onDocumentLongPress });
+  documentGestures.current = { onDocumentTap, onDocumentLongPress };
   const searchCallback = useRef(onSearchResult);
   const studyCallback = useRef(onStudyResult);
   useEffect(() => { studyCallback.current = onStudyResult; }, [onStudyResult]);
@@ -142,9 +147,16 @@ export function EpubPageViewer({
     webView.current?.injectJavaScript(`window.updateMotion && window.updateMotion(${payload}); true;`);
   }, [loaded, pageTurn]);
 
+  // Páginas ↔ Rolagem: o documento troca o layout e volta ao mesmo trecho (sem recarregar).
+  useEffect(() => {
+    if (!loaded) return;
+    const payload = JSON.stringify({ type: "updateFlow", flow: readingFlow });
+    webView.current?.injectJavaScript(`window.updateFlow && window.updateFlow(${payload}); true;`);
+  }, [loaded, readingFlow]);
+
   const handleMessage = (event: WebViewMessageEvent) => {
     try {
-      const info = JSON.parse(event.nativeEvent.data) as EpubPageInfo & { type?: string; message?: string; found?: boolean };
+      const info = JSON.parse(event.nativeEvent.data) as EpubPageInfo & { type?: string; message?: string; found?: boolean; x?: number; y?: number };
       if (info?.type === "navigationDiagnostic") {
         const record = info as unknown as Record<string, unknown>;
         readerNavigationDiagnostic(record.origin as ReaderNavigationOrigin, record);
@@ -157,6 +169,10 @@ export function EpubPageViewer({
         callback.current(info);
       } else if (info?.type === "study") {
         studyCallback.current?.(info as unknown as ReaderStudyResult);
+      } else if (info?.type === "tap") {
+        documentGestures.current.onDocumentTap?.();
+      } else if (info?.type === "longPress" && typeof info.x === "number" && typeof info.y === "number") {
+        documentGestures.current.onDocumentLongPress?.(info.x, info.y);
       } else if (info?.type === "searchResult") {
         searchCallback.current?.(Boolean(info.found));
       }

@@ -80,8 +80,8 @@ function load(file){if(cache.has(file))return cache.get(file);const exports={};c
   await send('Page.setDocumentContent',{frameId:frameTree.frame.id,html});
   await evaluate(`new Promise(resolve=>{function step(){if(messages.some(m=>m.type==='page'&&m.layoutReady))return resolve();requestAnimationFrame(step);}step();})`);
  }
- const beforePage=await evaluate(`Math.min(30,messages.filter(m=>m.type==='page').at(-1).totalPages-2)`);assert.ok(beforePage>1);
- const before=await evaluate(`window.goToPage(${beforePage});window.readerStudy({type:'studyCapture',id:1});messages.at(-1)`);
+ let beforePage=await evaluate(`Math.min(30,messages.filter(m=>m.type==='page').at(-1).totalPages-2)`);assert.ok(beforePage>1);
+ let before=await evaluate(`window.goToPage(${beforePage});window.readerStudy({type:'studyCapture',id:1});messages.at(-1)`);
  assert.equal(before.status,'captured');assert.ok(before.anchor.start>=0);
  if(!baseline){
   // Paper texture (16/11/2026): updateSurface only paints the viewport background. No page message, same page, same anchor;
@@ -149,7 +149,40 @@ function load(file){if(cache.has(file))return cache.get(file);const exports={};c
   await send('Emulation.setEmulatedMedia',{features:[{name:'prefers-reduced-motion',value:'reduce'}]});
   const system=await evaluate(`(()=>{const n=messages.filter(m=>m.type==='page').length;window.updateMotion({pageTurn:'flip'});window.navigatePage(1);const sync=messages.filter(m=>m.type==='page').length-n;window.updateMotion({pageTurn:'slide'});return sync;})()`);
   await send('Emulation.setEmulatedMedia',{features:[]});
-  await evaluate(`new Promise(resolve=>{window.goToPage(${beforePage});requestAnimationFrame(()=>resolve(true));})`); // back to the page the typography check expects
+  // Continuous scroll (phase E, 16/11/2026): Páginas → Rolagem keeps the trecho on top, the reader's scroll is reported once when it
+  // stops, "next" moves one screen, typography keeps the top trecho, Rolagem → Páginas shows the same trecho, taps and long press
+  // come from the document (no touch zones over a scrolling page).
+  const flow=await evaluate(`(async()=>{const sleep=ms=>new Promise(r=>setTimeout(r,ms)),pages=()=>messages.filter(m=>m.type==='page'),v=document.getElementById('reader-viewport');
+   const capture=id=>{window.readerStudy({type:'studyCapture',id});return messages.filter(m=>m.type==='study'&&m.id===id).at(-1).anchor;};
+   window.readerStudy({type:'studySelection',id:39,enabled:false}); // the app releases the selection when the pop-up closes
+   window.goToPage(20);await sleep(120);const a0=capture(40);
+   window.updateFlow({flow:'scroll'});await sleep(500);const entered=pages().at(-1),top=capture(41);
+   let n=pages().length;v.scrollTop+=900;await sleep(600);const scrolled=pages().slice(n);
+   const before=v.scrollTop;window.navigatePage(1);await sleep(50);const step=v.scrollTop-before,stepPage=pages().at(-1);
+   const b0=capture(42);window.updateTypography(${JSON.stringify({...options,fontSize:22})});await sleep(800);const b1=capture(43);
+   window.updateTypography(${JSON.stringify(options)});await sleep(800);const b2=capture(44);
+   n=messages.length;const r=v.getBoundingClientRect(),x=r.left+r.width/2,y=r.top+r.height/2,fire=(t)=>v.dispatchEvent(new PointerEvent(t,{bubbles:true,clientX:x,clientY:y}));
+   fire('pointerdown');fire('pointerup');const tap=messages.slice(n).filter(m=>m.type==='tap').length;
+   fire('pointerdown');await sleep(650);fire('pointerup');const long=messages.slice(n).filter(m=>m.type==='longPress').at(-1);const tapsAfterLong=messages.slice(n).filter(m=>m.type==='tap').length;
+   window.updateFlow({flow:'paged'});await sleep(500);const back=pages().at(-1),c=capture(45);
+   return {a0,entered:{origin:entered.origin,anchor:entered.readingAnchor&&entered.readingAnchor.start,total:entered.totalPages},top:top.start,
+    scrolled:scrolled.map(m=>({origin:m.origin,page:m.pageNumber,anchor:m.readingAnchor&&m.readingAnchor.start})),scrollTop:v.scrollTop,H:v.clientHeight,step,stepOrigin:stepPage.origin,
+    b0:b0.start,b1:b1.start,b2:b2.start,tap,long:long&&{x:Math.round(long.x),y:Math.round(long.y)},x:Math.round(x),y:Math.round(y),tapsAfterLong,back:{origin:back.origin,anchor:back.readingAnchor&&back.readingAnchor.start},c:c.start,transform:document.getElementById('reader-content').style.transform};})()`);
+  assert.equal(flow.entered.origin,'SETTINGS_LAYOUT');assert.equal(flow.entered.anchor,flow.a0.start,'Páginas → Rolagem keeps the saved trecho');
+  assert.ok(Math.abs(flow.top-flow.a0.start)<120,'the trecho is at the top of the screen: '+JSON.stringify({top:flow.top,a0:flow.a0.start}));
+  assert.equal(flow.scrolled.length,1,'one report when the reader stops scrolling: '+JSON.stringify(flow.scrolled));assert.equal(flow.scrolled[0].origin,'SCROLL');
+  assert.ok(flow.scrolled[0].anchor>flow.a0.start,'the new top trecho is further in the book');
+  assert.ok(flow.step>flow.H*0.8&&flow.step<=flow.H,'next moves about one screen: '+flow.step);assert.equal(flow.stepOrigin,'NEXT_PAGE');
+  assert.ok(Math.abs(flow.b1-flow.b0)<120&&Math.abs(flow.b2-flow.b0)<120,'typography keeps the top trecho: '+JSON.stringify([flow.b0,flow.b1,flow.b2]));
+  assert.equal(flow.tap,1,'tap from the document');assert.deepEqual(flow.long,{x:flow.x,y:flow.y},'long press from the document');assert.equal(flow.tapsAfterLong,1,'a long press is not a tap');
+  assert.equal(flow.back.origin,'SETTINGS_LAYOUT');assert.ok(flow.c<=flow.b2&&flow.b2-flow.c<3000,'Rolagem → Páginas shows the same trecho: '+JSON.stringify({c:flow.c,b2:flow.b2}));
+  console.log('PASS continuous scroll on the actual document: same trecho both ways, one report per reader scroll, next = one screen, typography keeps the trecho, tap and long press from the document',JSON.stringify({a0:flow.a0.start,top:flow.top,scrolled:flow.scrolled,step:flow.step,b:[flow.b0,flow.b1,flow.b2],c:flow.c}));
+  // Back to the trecho the typography check expects. By the trecho, not the page number: the scroll pass loaded images that were
+  // offscreen in the paged layout, which can move later pages (the app follows the anchor, so readers are not affected).
+  await evaluate(`new Promise(resolve=>{window.readerStudy({type:'studyNavigate',id:98,anchor:${JSON.stringify(before.anchor)}});requestAnimationFrame(()=>requestAnimationFrame(()=>resolve(true)));})`);
+  // The typography check measures the trecho at the top of the current page: take it again where the reader now is.
+  beforePage=await evaluate(`messages.filter(m=>m.type==='page').at(-1).pageNumber`);
+  before=await evaluate(`(()=>{window.goToPage(${beforePage});window.readerStudy({type:'studyCapture',id:97});return messages.filter(m=>m.type==='study'&&m.id===97).at(-1);})()`);assert.equal(before.status,'captured');
   assert.deepEqual(turns.none,{sync:1,page:11},'Sem animação turns at once');
   assert.equal(turns.slideSync,0,'Deslizar animates (not instant) without reduce motion');assert.ok(turns.slideMs>=150,'slide lasts its transition: '+turns.slideMs);
   assert.equal(turns.flipMid.messages,0,'Folhear does not confirm the page mid-turn');assert.match(turns.flipMid.transform,/rotateY/);

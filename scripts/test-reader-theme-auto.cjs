@@ -54,6 +54,10 @@ const flush = () => act(async () => { for (let i = 0; i < 5; i++) await Promise.
   assert.equal(value.pageTurn, 'slide');
   await act(async () => value.setPageTurn('flip')); await flush(); assert.equal(writes.at(-1).pageTurn, 'flip');
   await act(async () => value.setPageTurn('curl')); await flush(); assert.equal(value.pageTurn, 'flip', 'unknown page turn ignored');
+  // Reading flow (16/11/2026): pages by default, saved with the reading settings, unknown values ignored.
+  assert.equal(value.readingFlow, 'paged');
+  await act(async () => value.setReadingFlow('scroll')); await flush(); assert.equal(writes.at(-1).readingFlow, 'scroll');
+  await act(async () => value.setReadingFlow('sideways')); await flush(); assert.equal(value.readingFlow, 'scroll', 'unknown flow ignored');
   await act(async () => tree.unmount());
   console.log('PASS reader theme auto: rule (off/unknown/dark/light), off by default, chosen theme saved and restored, app dark → book dark, explicit choice turns it off, rule shared with PDF; app palette changes only the controls accent; paper texture saved and validated.');
 })().catch(e => { console.error(e); process.exitCode = 1; });

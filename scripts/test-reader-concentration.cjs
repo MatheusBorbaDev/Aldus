@@ -27,6 +27,7 @@ function load(file, overrides = {}) {
     if (name === '@/src/domain/reader/readerThemeAuto') return load('src/domain/reader/readerThemeAuto.ts'); // pure module, real code
     if (name === '@/src/domain/reader/paperTexture') return load('src/domain/reader/paperTexture.ts'); // pure module, real code
     if (name === '@/src/domain/reader/pageTurn') return load('src/domain/reader/pageTurn.ts'); // pure module, real code
+    if (name === '@/src/domain/reader/pdfScroll') return load('src/domain/reader/pdfScroll.ts'); // pure module, real code
     if (name === '@/src/presentation/contexts/AppThemeContext') return { useResolvedAppTheme: () => null, useAppPaletteName: () => null };
     throw Error('Uncontrolled dependency: ' + name);
   }, result);

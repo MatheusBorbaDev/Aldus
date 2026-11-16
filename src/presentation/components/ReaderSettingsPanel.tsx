@@ -377,6 +377,16 @@ export function ReaderSettingsPanel({
                 </Field>
               ) : null}
               {!isOriginalPdf ? (
+                <Field label="Leitura" palette={palette}>
+                  <SegmentedControl
+                    options={PDF_FLOWS.map((item, index) => ({ label: item.label, value: index }))}
+                    selectedValue={settings.readingFlow === "scroll" ? 1 : 0}
+                    palette={palette}
+                    onSelect={(value) => settings.setReadingFlow?.(PDF_FLOWS[Number(value)]?.value ?? "paged")}
+                  />
+                </Field>
+              ) : null}
+              {!isOriginalPdf && settings.readingFlow !== "scroll" ? (
                 <Field label="Virar página" palette={palette}>
                   <SegmentedControl
                     options={PAGE_TURNS.map((turn, index) => ({ label: turn.label, value: index }))}

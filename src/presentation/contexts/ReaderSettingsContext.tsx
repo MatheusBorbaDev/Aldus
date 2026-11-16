@@ -5,6 +5,7 @@ import { resolveReaderTheme } from "@/src/domain/reader/readerThemeAuto";
 import { useAppPaletteName, useResolvedAppTheme } from "@/src/presentation/contexts/AppThemeContext";
 import { isPaperTexture, PaperTexture } from "@/src/domain/reader/paperTexture";
 import { isPageTurn, PageTurn } from "@/src/domain/reader/pageTurn";
+import { isPdfFlow } from "@/src/domain/reader/pdfScroll";
 import { ReaderFont, ReaderMargin, ReaderTheme } from "@/src/domain/types/reader";
 import { fontFamilies, marginSizes, readerChromePalette, readerThemes, ReaderPalette } from "@/src/theme/tokens";
 
@@ -36,6 +37,9 @@ interface ReaderSettingsValue {
   /** Virada de página (EPUB e Leitura Livre). Padrão: deslizar, como sempre foi. */
   pageTurn: PageTurn;
   setPageTurn: (value: PageTurn) => void;
+  /** EPUB e Leitura Livre: páginas ou rolagem contínua (Fase E). Padrão: páginas. */
+  readingFlow: "paged" | "scroll";
+  setReadingFlow: (value: "paged" | "scroll") => void;
   palette: ReaderPalette;
   fontFamily: string;
   marginSize: number;
@@ -77,6 +81,7 @@ export function ReaderSettingsProvider({ children }: PropsWithChildren) {
   const [alignment, setAlignment] = useState<"left" | "justify">("left");
   const [paperTexture, setPaperTexture] = useState<PaperTexture>("none");
   const [pageTurn, setPageTurn] = useState<PageTurn>("slide");
+  const [readingFlow, setReadingFlow] = useState<"paged" | "scroll">("paged");
   const appTheme = useResolvedAppTheme();
   const appPalette = useAppPaletteName();
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -109,6 +114,7 @@ export function ReaderSettingsProvider({ children }: PropsWithChildren) {
           alignment: "left" | "justify";
           paperTexture: PaperTexture;
           pageTurn: PageTurn;
+          readingFlow: "paged" | "scroll";
         }>;
 
         if (parsed.theme && parsed.theme in readerThemes) setTheme(parsed.theme);
@@ -125,6 +131,7 @@ export function ReaderSettingsProvider({ children }: PropsWithChildren) {
         if (parsed.alignment === "left" || parsed.alignment === "justify") setAlignment(parsed.alignment);
         if (isPaperTexture(parsed.paperTexture)) setPaperTexture(parsed.paperTexture);
         if (isPageTurn(parsed.pageTurn)) setPageTurn(parsed.pageTurn);
+        if (isPdfFlow(parsed.readingFlow)) setReadingFlow(parsed.readingFlow);
       } catch {
         // Ignore invalid persisted settings and keep defaults.
       } finally {
@@ -157,8 +164,9 @@ export function ReaderSettingsProvider({ children }: PropsWithChildren) {
       alignment,
       paperTexture,
       pageTurn,
+      readingFlow,
     })));
-  }, [alignment, brightness, paperTexture, pageTurn, followAppTheme, font, fontSize, hideReadingCounts, lineHeight, margin, maxWidth, paragraphSpacing, ready, theme, trackSave, useSystemBrightness]);
+  }, [alignment, brightness, paperTexture, pageTurn, readingFlow, followAppTheme, font, fontSize, hideReadingCounts, lineHeight, margin, maxWidth, paragraphSpacing, ready, theme, trackSave, useSystemBrightness]);
 
   const value = useMemo<ReaderSettingsValue>(() => {
     const resolveTheme = <T extends ReaderTheme>(selected: T) => resolveReaderTheme(selected, followAppTheme, appTheme);
@@ -184,6 +192,8 @@ export function ReaderSettingsProvider({ children }: PropsWithChildren) {
     setPaperTexture: (value) => { if (isPaperTexture(value)) setPaperTexture(value); },
     pageTurn,
     setPageTurn: (value) => { if (isPageTurn(value)) setPageTurn(value); },
+    readingFlow,
+    setReadingFlow: (value) => { if (isPdfFlow(value)) setReadingFlow(value); },
     palette: readerChromePalette(readerThemes[effective], appPalette),
     fontFamily: fontFamilies[font],
     marginSize: marginSizes[margin],
@@ -200,7 +210,7 @@ export function ReaderSettingsProvider({ children }: PropsWithChildren) {
     setHideReadingCounts,
     saveError,
   };
-  }, [alignment, appPalette, appTheme, brightness, pageTurn, paperTexture, followAppTheme, font, fontSize, hideReadingCounts, lineHeight, margin, maxWidth, paragraphSpacing, saveError, theme, useSystemBrightness]);
+  }, [alignment, appPalette, appTheme, brightness, pageTurn, paperTexture, readingFlow, followAppTheme, font, fontSize, hideReadingCounts, lineHeight, margin, maxWidth, paragraphSpacing, saveError, theme, useSystemBrightness]);
 
   return <ReaderSettingsContext.Provider value={value}>{children}</ReaderSettingsContext.Provider>;
 }

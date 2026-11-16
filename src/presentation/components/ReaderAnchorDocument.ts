@@ -71,6 +71,7 @@ export function readerAnchorDocumentScript(): string {
     for(var s=0;s<sections.length;s++) {
       var section=sections[s], bounds=section.getBoundingClientRect();
       if (bounds.right<=0 || bounds.left>=width) continue;
+      if (isScrollFlow() && (bounds.bottom<=0 || bounds.top>=height)) continue;
       var model=studyText(section);
       for(var n=0;n<model.nodes.length;n++) {
         var entry=model.nodes[n];if(!entry.node.textContent.trim()) continue;
@@ -78,7 +79,7 @@ export function readerAnchorDocumentScript(): string {
         var visible=Array.from(full.getClientRects()).some(function(r){return r.right>0 && r.left<width && r.bottom>0 && r.top<height;});
         if(!visible) continue;
         var low=0,high=entry.node.length;
-        while(low<high){var mid=Math.floor((low+high)/2),r=document.createRange();r.setStart(entry.node,mid);r.setEnd(entry.node,mid+1);var rect=r.getBoundingClientRect();if(rect.right<=0)low=mid+1;else high=mid;}
+        while(low<high){var mid=Math.floor((low+high)/2),r=document.createRange();r.setStart(entry.node,mid);r.setEnd(entry.node,mid+1);var rect=r.getBoundingClientRect();if(isScrollFlow()?rect.bottom<=0:rect.right<=0)low=mid+1;else high=mid;}
         var start=entry.start+low;
         while(start<model.text.length && !model.text[start].trim())start++;
         var quote=model.text.slice(start,start+160);if(!quote.trim())continue;
@@ -125,7 +126,8 @@ export function readerAnchorDocumentScript(): string {
       if(resolved.status==='missing'||resolved.status==='ambiguous'){studyReply(request,resolved);return;}
       var range=studyRange(model,resolved.start,resolved.end);
       if(!range){studyReply(request,{status:'missing'});return;}
-      var rect=range.getClientRects()[0],page=Math.floor((rect.left+(currentPage-1)*getPageWidth())/getPageWidth())+1;
+      var rect=range.getClientRects()[0],page=pageForRect(rect);
+      if(isScrollFlow())scrollTargetTop=topForRect(rect);
       studyReply(request,{status:resolved.status,pageNumber:page});window.goToPage(page);
     }catch(error){studyReply(request,{status:'error',message:error.message});}
   };

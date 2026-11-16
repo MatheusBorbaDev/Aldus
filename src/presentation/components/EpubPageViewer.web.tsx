@@ -26,6 +26,9 @@ function EpubPageViewerComponent({
   backgroundColor,
   pageSurfaceImage = "none",
   pageTurn = "slide",
+  readingFlow = "paged",
+  onDocumentTap,
+  onDocumentLongPress,
   onPageInfo,
   studyRequest,
   onStudyResult,
@@ -33,6 +36,8 @@ function EpubPageViewerComponent({
 }: EpubPageViewerProps) {
   const frame = useRef<HTMLIFrameElement>(null);
   const firstPageReported = useRef(false);
+  const documentGestures = useRef({ onDocumentTap, onDocumentLongPress });
+  documentGestures.current = { onDocumentTap, onDocumentLongPress };
   const callback = useRef(onPageInfo);
   const searchCallback = useRef(onSearchResult);
   const studyCallback = useRef(onStudyResult);
@@ -106,6 +111,8 @@ function EpubPageViewerComponent({
           type?: string;
           message?: string;
           found?: boolean;
+          x?: number;
+          y?: number;
         };
         if (info?.type === "navigationDiagnostic") {
           const record = info as unknown as Record<string, unknown>;
@@ -140,6 +147,10 @@ function EpubPageViewerComponent({
           }
         } else if (info?.type === "study") {
           studyCallback.current?.(info as unknown as ReaderStudyResult);
+        } else if (info?.type === "tap") {
+          documentGestures.current.onDocumentTap?.();
+        } else if (info?.type === "longPress" && typeof info.x === "number" && typeof info.y === "number") {
+          documentGestures.current.onDocumentLongPress?.(info.x, info.y);
         } else if (info?.type === "searchResult") {
           console.log(`[FORENSIC:EpubPageViewer:message] t=${performance.timeOrigin + performance.now()} searchResult found=${Boolean(info.found)}`);
           searchCallback.current?.(Boolean(info.found));
@@ -217,6 +228,11 @@ function EpubPageViewerComponent({
     frame.current?.contentWindow?.postMessage({ type: "updateMotion", pageTurn }, "*");
   }, [pageTurn]);
 
+  // Páginas ↔ Rolagem: o documento troca o layout e volta ao mesmo trecho (sem recarregar).
+  useEffect(() => {
+    frame.current?.contentWindow?.postMessage({ type: "updateFlow", flow: readingFlow }, "*");
+  }, [readingFlow]);
+
   const attachFrame = useCallback((element: HTMLIFrameElement | null) => {
     frame.current = element;
     console.log(`[FORENSIC:EpubPageViewer:iframe-ref] t=${performance.timeOrigin + performance.now()} ${element ? "attached" : "detached"}`);
@@ -253,6 +269,7 @@ function EpubPageViewerComponent({
       );
       frame.current?.contentWindow?.postMessage({ type: "updateSurface", backgroundImage: pageSurfaceImage }, "*");
       frame.current?.contentWindow?.postMessage({ type: "updateMotion", pageTurn }, "*");
+      frame.current?.contentWindow?.postMessage({ type: "updateFlow", flow: readingFlow }, "*");
     } catch {
       /* Ignore frame access error */
     }

@@ -7,7 +7,7 @@ const { act, create } = require('../.expo/auth-test-tools/node_modules/react-tes
 global.IS_REACT_ACT_ENVIRONMENT = true;
 const palette = { background: '#fafafa', text: '#222', secondaryText: '#555', accent: '#174', onAccent: '#fefefe', separator: '#ddd', panel: '#eee' };
 const changes = []; const settings = { palette, saveError: null, hideReadingCounts: false, theme: 'paper', font: 'serif', fontSize: 20, lineHeight: 1.5, paragraphSpacing: .8, marginSize: 24, maxWidth: 900, brightness: 80, useSystemBrightness: true };
-for (const key of ['HideReadingCounts', 'Theme', 'Font', 'FontSize', 'LineHeight', 'ParagraphSpacing', 'Margin', 'MaxWidth', 'Brightness', 'UseSystemBrightness', 'PaperTexture', 'PageTurn']) settings['set' + key] = value => changes.push([key, value]);
+for (const key of ['HideReadingCounts', 'Theme', 'Font', 'FontSize', 'LineHeight', 'ParagraphSpacing', 'Margin', 'MaxWidth', 'Brightness', 'UseSystemBrightness', 'PaperTexture', 'PageTurn', 'ReadingFlow']) settings['set' + key] = value => changes.push([key, value]);
 const themesMap = Object.fromEntries(['light', 'paper', 'sepia', 'dark', 'black'].map(k => [k, palette]));
 const output = {}; const source = fs.readFileSync('src/presentation/components/ReaderSettingsPanel.tsx', 'utf8');
 new Function('require', 'exports', ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX } }).outputText)(name => {
@@ -49,6 +49,9 @@ new Function('require', 'exports', ts.transpileModule(source, { compilerOptions:
   assert.equal(byLabel('Deslizar').props.accessibilityState.selected, true);
   await act(async () => byLabel('Folhear').props.onPress()); assert.deepEqual(changes.at(-1), ['PageTurn', 'flip']);
   await act(async () => byLabel('Sem animação').props.onPress()); assert.deepEqual(changes.at(-1), ['PageTurn', 'none']);
+  // Continuous scroll (16/11/2026): Página a página by default; choosing Rolagem contínua writes only that preference.
+  assert.equal(byLabel('Página a página').props.accessibilityState.selected, true);
+  await act(async () => byLabel('Rolagem contínua').props.onPress()); assert.deepEqual(changes.at(-1), ['ReadingFlow', 'scroll']);
   changes.length = 0;
   // Quick controls.
   await act(async () => slider.props.onValueChange(24)); assert.deepEqual(changes, [['FontSize', 24]]);

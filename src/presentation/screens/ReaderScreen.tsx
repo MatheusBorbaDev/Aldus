@@ -658,6 +658,7 @@ export function ReaderScreen({ bookId }: Props) {
         theme: pdfTheme(pdfReaderSettings.theme),
         pageSurfaceImage: paperTextureCss(settings.paperTexture ?? "none", activePalette.background),
         pageTurn,
+        readingFlow: settings.readingFlow ?? "paged",
       }
     : {
         fontSize: settings.fontSize,
@@ -672,6 +673,7 @@ export function ReaderScreen({ bookId }: Props) {
         theme: settings.theme,
         pageSurfaceImage: paperTextureCss(settings.paperTexture ?? "none", activePalette.background),
         pageTurn,
+        readingFlow: settings.readingFlow ?? "paged",
       };
 
   const pageNumber = isPdf && !isReflowPdf

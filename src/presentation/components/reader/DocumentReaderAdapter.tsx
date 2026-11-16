@@ -47,6 +47,7 @@ export interface DocumentReaderAdapterProps {
     /** `background-image` da página (textura de papel) calculado para o fundo ativo; ausente = sem textura. */
     pageSurfaceImage?: string;
     pageTurn?: "none" | "slide" | "flip";
+    readingFlow?: "paged" | "scroll";
   };
   onPdfTotalPages: (count: number) => void;
   onEpubPageInfo: (info: EpubPageInfo) => void;
@@ -196,6 +197,9 @@ export function DocumentReaderAdapter({
             backgroundColor={settings.palette.background}
             pageSurfaceImage={settings.pageSurfaceImage}
             pageTurn={settings.pageTurn}
+            readingFlow={settings.readingFlow}
+            onDocumentTap={onToggleControls}
+            onDocumentLongPress={onLongPressText}
             onPageInfo={onEpubPageInfo}
             studyRequest={studyRequest}
             onStudyResult={onStudyResult}
@@ -210,7 +214,7 @@ export function DocumentReaderAdapter({
       )}
 
       {/* Unified touch zones overlay: Left 30% prev, Center 40% toggle, Right 30% next */}
-      {!studySelecting && !panelOpen && !(isPdf && pdfReadingMode === "original" && pdfFlow === "scroll") ? <ReadingTouchZones
+      {!studySelecting && !panelOpen && !(isPdf && pdfReadingMode === "original" && pdfFlow === "scroll") && !((isEpub || (isPdf && pdfReadingMode === "reflow")) && settings.readingFlow === "scroll") ? <ReadingTouchZones
         onPreviousPage={onPreviousPage}
         onNextPage={onNextPage}
         onToggleControls={onToggleControls}

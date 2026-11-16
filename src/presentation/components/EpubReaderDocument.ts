@@ -119,6 +119,20 @@ export function createEpubReaderDocument(chapters: StoredChapter[], options: Rea
   #reader-content.is-transitioning.turn-instant {
     transition: none;
   }
+  /* Rolagem contínua (Fase E, 16/11/2026): o livro vira uma coluna vertical; as "páginas" passam a ser telas virtuais. */
+  html.reader-scroll #reader-viewport {
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    touch-action: pan-y !important;
+  }
+  html.reader-scroll #reader-content {
+    column-width: auto !important;
+    columns: auto !important;
+    height: auto !important;
+    min-height: 100% !important;
+    transform: none !important;
+    transition: none !important;
+  }
   .epub-chapter {
     width: 100% !important;
     max-width: 100% !important;
@@ -290,6 +304,7 @@ export function createEpubReaderDocument(chapters: StoredChapter[], options: Rea
   var typographyLogicalAnchor = null;
   var anchorRestoreStatus = null, restorePositionGeneration = 0;
   var activeOperationId = 0, activeOrigin = 'RESTORE';
+  var flowMode = "paged", scrollTargetTop = null, scrollSuppressUntil = 0, scrollSettleTimer = 0;
   var navigationDiagnostics = ${process.env.EXPO_PUBLIC_READER_NAVIGATION_DIAGNOSTICS === "1" ? "true" : "false"};
   function navigationDiagnostic(origin, requestedPage) {
     if (!navigationDiagnostics) return;
@@ -309,6 +324,21 @@ export function createEpubReaderDocument(chapters: StoredChapter[], options: Rea
 
   function getPageHeight() {
     return viewport && viewport.clientHeight || document.documentElement.clientHeight || window.innerHeight || 640;
+  }
+
+  function isScrollFlow() { return flowMode === "scroll"; }
+  function scrollPageFor(top) { return Math.floor((top + 1) / Math.max(1, getPageHeight())) + 1; }
+  // Página de um retângulo do texto: coluna no modo página, tela virtual no modo rolagem.
+  function pageForRect(rect) {
+    if (isScrollFlow()) return Math.floor((rect.top + viewport.scrollTop) / Math.max(1, getPageHeight())) + 1;
+    var w = getPageWidth(); return Math.floor((rect.left + (currentPage - 1) * w) / w) + 1;
+  }
+  // Na rolagem, o trecho da âncora vai para o topo da tela (sem deriva ao alternar os modos).
+  function topForRect(rect) { return Math.max(0, rect.top + viewport.scrollTop - 8); }
+  function postReader(message) {
+    var text = JSON.stringify(message);
+    if (window.ReactNativeWebView && window.ReactNativeWebView.postMessage) window.ReactNativeWebView.postMessage(text);
+    if (window.parent && window.parent !== window) window.parent.postMessage(text, "*");
   }
 
   function syncPageDimensions() {
@@ -343,6 +373,7 @@ export function createEpubReaderDocument(chapters: StoredChapter[], options: Rea
   }
 
   function calculateTotalPages() {
+    if (content && isScrollFlow()) return Math.max(1, Math.ceil((content.scrollHeight - 2) / Math.max(1, getPageHeight())));
     var width = getPageWidth();
     if (!content || width <= 0) return 1;
     var left = content.getBoundingClientRect().left;
@@ -376,13 +407,15 @@ export function createEpubReaderDocument(chapters: StoredChapter[], options: Rea
     var chapterLocations = [];
     chapters.forEach(function(section, index) {
       var rect = section.getBoundingClientRect();
-      var startPage = Math.max(1, Math.min(totalPages, Math.floor(Math.max(0, rect.left + offset) / width) + 1));
+      var startPage = isScrollFlow()
+        ? Math.max(1, Math.min(totalPages, Math.floor(Math.max(0, rect.top + viewport.scrollTop) / Math.max(1, getPageHeight())) + 1))
+        : Math.max(1, Math.min(totalPages, Math.floor(Math.max(0, rect.left + offset) / width) + 1));
       chapterLocations.push({
         chapterIndex: index,
         pageNumber: startPage,
         title: section.getAttribute("data-chapter-title") || ""
       });
-      if (rect.left <= width * 0.5) {
+      if (isScrollFlow() ? rect.top <= getPageHeight() * 0.3 : rect.left <= width * 0.5) {
         currentChapterIndex = index;
         currentChapterTitle = section.getAttribute("data-chapter-title") || "";
       }
@@ -461,6 +494,19 @@ export function createEpubReaderDocument(chapters: StoredChapter[], options: Rea
     console.log('[FORENSIC:iframe:goToPage] t=' + (performance.timeOrigin + performance.now()) + ' requested=' + page + ' actual=' + requestedPage + ' totalPages=' + totalPages + ' currentPage=' + currentPage + ' targetPage=' + targetPage + ' width=' + getPageWidth() + ' scrollWidth=' + content.scrollWidth + ' stack=' + (new Error().stack || '').replace(/\\n/g, ' | '));
     if (isAnimating) {
       deferredPage = { page: requestedPage, operationId: operationId, origin: origin };
+      return;
+    }
+    if (isScrollFlow()) {
+      if (typeof operationId === 'number') activeOperationId = operationId;
+      if (origin) activeOrigin = origin;
+      scrollSuppressUntil = Date.now() + 300;
+      if (scrollTargetTop !== null) { viewport.scrollTop = scrollTargetTop; scrollTargetTop = null; }
+      // Recalcular o layout não move a leitura; navegação explícita vai ao topo da tela pedida.
+      else if (origin !== 'LAYOUT_RECALC' && origin !== 'SETTINGS_LAYOUT') viewport.scrollTop = (requestedPage - 1) * getPageHeight();
+      currentPage = Math.max(1, Math.min(totalPages, scrollPageFor(viewport.scrollTop)));
+      targetPage = currentPage; transitionDirection = 0;
+      navigationDiagnostic(activeOrigin, page);
+      sendPageState();
       return;
     }
     if (typeof operationId === 'number') activeOperationId = operationId;
@@ -558,6 +604,12 @@ export function createEpubReaderDocument(chapters: StoredChapter[], options: Rea
       deferredPage = { page: Math.max(1, Math.min(totalPages, base + direction)), operationId: operationId, origin: origin };
       return;
     }
+    if (isScrollFlow()) {
+      totalPages = calculateTotalPages();
+      scrollTargetTop = Math.max(0, viewport.scrollTop + direction * Math.max(40, getPageHeight() - 32));
+      window.goToPage(scrollPageFor(scrollTargetTop), operationId, origin || (direction > 0 ? 'NEXT_PAGE' : 'PREVIOUS_PAGE'));
+      return;
+    }
     totalPages = calculateTotalPages();
     transitionDirection = direction;
     targetPage = Math.max(1, Math.min(totalPages, currentPage + transitionDirection));
@@ -603,7 +655,8 @@ export function createEpubReaderDocument(chapters: StoredChapter[], options: Rea
     if (found) {
       var selection = window.getSelection();
       var rect = selection && selection.rangeCount ? selection.getRangeAt(0).getBoundingClientRect() : null;
-      var page = rect ? Math.floor(Math.max(0, rect.left + (currentPage - 1) * getPageWidth()) / getPageWidth()) + 1 : currentPage;
+      var page = rect ? Math.max(1, pageForRect(rect)) : currentPage;
+      if (rect && isScrollFlow()) scrollTargetTop = topForRect(rect);
       window.goToPage(page);
     }
     var result = JSON.stringify({ type: "searchResult", found: found });
@@ -698,7 +751,7 @@ export function createEpubReaderDocument(chapters: StoredChapter[], options: Rea
           var model = section && studyText(section);
           var range = model && studyRange(model, typographyAnchor.start, typographyAnchor.start + 1);
           var rect = range && range.getClientRects()[0];
-          if (rect) pageToPreserve = Math.floor((rect.left + (currentPage - 1) * getPageWidth()) / getPageWidth()) + 1;
+          if (rect) { pageToPreserve = pageForRect(rect); if (isScrollFlow()) scrollTargetTop = topForRect(rect); }
         }
         typographyAnchor = null;
         if (restorationPending) {
@@ -727,7 +780,7 @@ export function createEpubReaderDocument(chapters: StoredChapter[], options: Rea
           anchorRestoreStatus = resolved ? resolved.status : 'missing';
           if (resolved && (resolved.status === 'exact' || resolved.status === 'relocated')) {
             var range = studyRange(model, resolved.start, resolved.start + 1), rect = range && range.getClientRects()[0];
-            if (rect) { page = Math.floor((rect.left + (currentPage - 1) * getPageWidth()) / getPageWidth()) + 1; restored = Object.assign({}, a, { start: resolved.start, end: resolved.end }); }
+            if (rect) { page = pageForRect(rect); if (isScrollFlow()) scrollTargetTop = topForRect(rect); restored = Object.assign({}, a, { start: resolved.start, end: resolved.end }); }
             else anchorRestoreStatus = 'missing';
           }
         } catch (error) { anchorRestoreStatus = 'missing'; }
@@ -737,6 +790,69 @@ export function createEpubReaderDocument(chapters: StoredChapter[], options: Rea
     }
     applyPosition();
   };
+
+  // Alternar Páginas ↔ Rolagem: guarda o trecho do topo, troca o layout e volta ao mesmo trecho (âncora mantida).
+  window.updateFlow = function(options) {
+    var next = options && options.flow === "scroll" ? "scroll" : "paged";
+    if (next === flowMode) return;
+    if (isAnimating || typographyPending || !initialLayoutReady) { requestAnimationFrame(function() { window.updateFlow(options); }); return; }
+    var anchor = typographyLogicalAnchor;
+    if (!anchor) { try { anchor = studyVisibleAnchor(); } catch (error) { anchor = null; } }
+    flowMode = next;
+    content.classList.remove("is-transitioning");
+    document.documentElement.classList.toggle("reader-scroll", next === "scroll");
+    // Volta ao modo página medindo a partir da primeira coluna: sem a rolagem e sem o deslocamento antigo.
+    if (next === "paged") { viewport.scrollTop = 0; content.style.transform = "translateX(0px)"; currentPage = 1; }
+    requestAnimationFrame(function() { requestAnimationFrame(function() {
+      syncPageDimensions(); totalPages = calculateTotalPages();
+      var page = currentPage;
+      if (anchor) {
+        try {
+          var section = Array.from(content.querySelectorAll(".epub-chapter")).find(function(s) { return s.getAttribute("data-chapter-id") === anchor.chapterId; });
+          var model = section && studyText(section), range = model && studyRange(model, anchor.start, anchor.start + 1), rect = range && range.getClientRects()[0];
+          if (rect) { if (next === "paged") currentPage = 1; page = pageForRect(rect); if (next === "scroll") scrollTargetTop = topForRect(rect); }
+        } catch (error) { /* Sem âncora: posição numérica. */ }
+      }
+      typographyLogicalAnchor = anchor;
+      window.goToPage(page, undefined, "SETTINGS_LAYOUT");
+    }); });
+  };
+
+  viewport.addEventListener("scroll", function() {
+    if (!isScrollFlow() || Date.now() < scrollSuppressUntil) return;
+    clearTimeout(scrollSettleTimer);
+    scrollSettleTimer = setTimeout(function() {
+      if (!isScrollFlow() || typographyPending || restorationPending) return;
+      // A posição é a do leitor: nova âncora do topo, gravada só quando a rolagem para.
+      typographyLogicalAnchor = null; anchorRestoreStatus = null; ++restorePositionGeneration;
+      activeOrigin = "SCROLL";
+      totalPages = calculateTotalPages();
+      currentPage = Math.max(1, Math.min(totalPages, scrollPageFor(viewport.scrollTop))); targetPage = currentPage;
+      sendPageState();
+    }, 200);
+  }, { passive: true });
+  // Na rolagem não há zonas de toque por cima: toque sem arrastar mostra os controles; pressionar e segurar abre o grifo.
+  var pressStart = null, pressTimer = 0;
+  viewport.addEventListener("pointerdown", function(event) {
+    if (!isScrollFlow()) return;
+    pressStart = { x: event.clientX, y: event.clientY, top: viewport.scrollTop, long: false };
+    clearTimeout(pressTimer);
+    pressTimer = setTimeout(function() {
+      if (!pressStart || Math.abs(viewport.scrollTop - pressStart.top) > 8) return;
+      pressStart.long = true; postReader({ type: "longPress", x: pressStart.x, y: pressStart.y });
+    }, 500);
+  });
+  viewport.addEventListener("pointermove", function(event) {
+    if (pressStart && Math.abs(event.clientX - pressStart.x) + Math.abs(event.clientY - pressStart.y) > 10) clearTimeout(pressTimer);
+  });
+  viewport.addEventListener("pointerup", function(event) {
+    clearTimeout(pressTimer);
+    if (!pressStart || !isScrollFlow()) { pressStart = null; return; }
+    var moved = Math.abs(event.clientX - pressStart.x) + Math.abs(event.clientY - pressStart.y) + Math.abs(viewport.scrollTop - pressStart.top), wasLong = pressStart.long;
+    pressStart = null;
+    if (!wasLong && moved < 10 && !window.__studySelectionRequest) postReader({ type: "tap" });
+  });
+  viewport.addEventListener("pointercancel", function() { clearTimeout(pressTimer); pressStart = null; });
 
   function handleMessage(event) {
     var data = event.data;
@@ -770,6 +886,8 @@ export function createEpubReaderDocument(chapters: StoredChapter[], options: Rea
       window.updateSurface(data);
     } else if (data.type === "updateMotion") {
       window.updateMotion(data);
+    } else if (data.type === "updateFlow") {
+      window.updateFlow(data);
     }
   }
 
