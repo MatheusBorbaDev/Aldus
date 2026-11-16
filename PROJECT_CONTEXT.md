@@ -406,6 +406,9 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
 - VALIDADO (local): typecheck; `test:critical` 130/130; `test:reader:{browser,epub,reflow,study,settings}` PASS (cópia fiel ao texto visível, nenhuma
   camada sobrando, voltar também dobra); matriz de 125 layouts do painel PASS. Quadros da dobra e da textura capturados no Chrome.
 - NÃO TESTADO: Redmi (fluidez da dobra, textura na tela, rolagem). Precisa de APK novo.
+- Retorno do dono no APK `4e7ddbe`: "a animação ficou toda travada". Causa: a dobra recalculava `clip-path` e degradês por quadro sobre a página
+  inteira (repintura a 60 fps). `841ae54`: mesma dobra só com transformações (contêiner girado recorta, verso espelhado, sombra em faixa fixa) em
+  quadros-chave da Web Animations API (compositor). Trace no Chrome, uma virada: 132 Paint antes, 9 agora (só na montagem). Redmi NÃO TESTADO.
 
 ### 16/11/2026 — Leitura e compartilhamento, Fase E (fatias 2 e 3): rolagem contínua no EPUB e na Leitura Livre (Claude)
 - Dono: "Seguir para EPUB". `0c31cf2`: Ajustes de leitura → Página → "Leitura" (Página a página · Rolagem contínua) para EPUB e Leitura Livre.

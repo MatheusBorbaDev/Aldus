@@ -153,3 +153,6 @@ Ordem sugerida: B1 → B2 → A1 → A2 → C → A3 → D → A4.
 - **Textura**: o ruído `fractalNoise` tem opacidade perto de 0,5; sem a tabela `feFuncA` vira um tom liso. Intensidade por tema limitada
   pelo contraste do texto (`paperTextureCss(texture, background, text)`).
 - **Passar página**: uma escolha global na primeira tela do painel (`readingFlow`), também para o PDF Original (que usa página única na rolagem).
+- **Dobra sem repintura** (`841ae54`, depois do retorno "travada" no Redmi): nada de `clip-path`/degradê por quadro. `curlBox` cria contêineres
+  girados pela linha da dobra (recorte = borda do contêiner, conteúdo contra-girado); o verso é a página espelhada (`scale(-1,1)`); sombra e borda são
+  faixas fixas. 30 quadros-chave para `element.animate` (compositor); `requestAnimationFrame` só como reserva. Medir com trace: Paint por virada.
