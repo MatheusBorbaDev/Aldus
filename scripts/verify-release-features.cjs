@@ -35,6 +35,7 @@ const FEATURES = [
   { id: 'import-reattach', pedido: 'Acervo etapa 2: reanexar o mesmo arquivo', markers: ['Livro restaurado'] },
   // Estudo
   { id: 'study-flashcard-from-highlight', pedido: 'Onda A1: flashcard a partir do grifo', markers: ['Criar flashcard deste grifo'] },
+  { id: 'study-pinned', pedido: 'FASE 3 A1: fixar trechos', markers: ['Fixar trecho', 'Desafixar trecho', 'Fixado · '] },
   { id: 'study-history', pedido: 'Onda A4: histórico de revisão', markers: ['Seu histórico de revisão'] },
   { id: 'study-reminder', pedido: 'Onda C2: lembrete de revisão', markers: ['Lembrete diário'], androidMarkers: ['Lembrete de revisão'] },
   // Comunidade (rede social)

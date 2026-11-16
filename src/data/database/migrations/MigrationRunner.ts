@@ -25,6 +25,9 @@ const migrations: Migration[] = [{ version: 1, statements: [
   "CREATE INDEX books_owner_idx ON books(owner_user_id, is_deleted);"
 ]}, { version: 5, statements: [
   "CREATE TABLE library_sync_state (user_id TEXT PRIMARY KEY NOT NULL, state_json TEXT NOT NULL);"
+]}, { version: 6, statements: [
+  // Trechos fixados (FASE 3); grifos existentes ficam não fixados.
+  "ALTER TABLE highlights ADD COLUMN pinned INTEGER NOT NULL DEFAULT 0;"
 ]}];
 
 export async function runMigrations(database: SQLiteDatabase): Promise<void> {

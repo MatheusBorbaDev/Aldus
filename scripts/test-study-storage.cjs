@@ -23,7 +23,7 @@ function repository(file, database) {
 (async () => {
   const database = new DatabaseSync(':memory:');
   database.exec(`CREATE TABLE bookmarks (id TEXT PRIMARY KEY, book_id TEXT NOT NULL, chapter_id TEXT NOT NULL, cfi_position TEXT, text_preview TEXT NOT NULL, note TEXT, created_at INTEGER NOT NULL);
-    CREATE TABLE highlights (id TEXT PRIMARY KEY, book_id TEXT NOT NULL, chapter_id TEXT NOT NULL, start_cfi TEXT NOT NULL, end_cfi TEXT NOT NULL, highlighted_text TEXT NOT NULL, color_label TEXT NOT NULL, created_at INTEGER NOT NULL);`);
+    CREATE TABLE highlights (id TEXT PRIMARY KEY, book_id TEXT NOT NULL, chapter_id TEXT NOT NULL, start_cfi TEXT NOT NULL, end_cfi TEXT NOT NULL, highlighted_text TEXT NOT NULL, color_label TEXT NOT NULL, created_at INTEGER NOT NULL, pinned INTEGER NOT NULL DEFAULT 0);`);
   const bookmark = { id: 'local', bookId: 'book', chapterId: 'chapter', cfiPosition: null, textPreview: 'Trecho', note: 'Local', createdAt: 1 };
   const highlight = { id: 'local', bookId: 'book', chapterId: 'chapter', startCfi: 'anchor', endCfi: 'anchor', highlightedText: 'Trecho', colorLabel: 'blue', createdAt: 1 };
   for (const [table, file, value] of [
@@ -47,6 +47,19 @@ function repository(file, database) {
     await repo.remove('new');
     assert.equal(await repo.findById('new'), null);
     console.log(`PASS SQLite ${table}: CRUD, import, idempotence, conflict rollback, injected partial-write rollback, invalid batch, empty batch.`);
+  }
+  { // FASE 3: trecho fixado ida e volta; grifo antigo (sem a marca) vale como não fixado. Coluna igual à migration 6.
+    assert.match(fs.readFileSync('src/data/database/migrations/MigrationRunner.ts', 'utf8'), /version: 6, statements: \[[\s\S]*ALTER TABLE highlights ADD COLUMN pinned INTEGER NOT NULL DEFAULT 0;/);
+    const repo = repository('src/data/repositories/SqliteHighlightRepository.ts', database);
+    await repo.save({ ...highlight, id: 'pinned-one', pinned: true });
+    assert.equal((await repo.findById('pinned-one')).pinned, true);
+    assert.equal((await repo.findById('local')).pinned, false, 'grifo antigo vale como não fixado');
+    await repo.save({ ...(await repo.findById('pinned-one')), pinned: false });
+    assert.equal((await repo.findById('pinned-one')).pinned, false);
+    assert.deepEqual(await repo.importPreservingExisting('book', [{ ...highlight, id: 'imported-pinned', pinned: true }]), { imported: 1, skipped: 0 });
+    assert.equal((await repo.findById('imported-pinned')).pinned, true);
+    assert.ok((await repo.listByBookId('book')).every(item => typeof item.pinned === 'boolean'));
+    console.log('PASS SQLite highlights: trecho fixado ida e volta, importação e grifo antigo não fixado.');
   }
   database.close();
   // No IndexedDB in Node: strict study APIs must fail without claiming persistence.

@@ -77,7 +77,7 @@ export class LibraryLocalReplica {
         const common = { id: entry.id, bookId: entry.bookId, chapterId: text('chapterId')!, createdAt: p.createdAt };
         if(entry.kind==='bookmark') await this.bookmarks.save({...common,cfiPosition:text('cfiPosition',true),textPreview:text('textPreview')!,note:text('note',true)});
         else { if(!['yellow','green','blue','pink','purple'].includes(p.colorLabel))throw new Error('Cor de grifo inválida.');
-          await this.highlights.save({...common,startCfi:text('startCfi')!,endCfi:text('endCfi')!,highlightedText:text('highlightedText')!,colorLabel:p.colorLabel}); }
+          await this.highlights.save({...common,startCfi:text('startCfi')!,endCfi:text('endCfi')!,highlightedText:text('highlightedText')!,colorLabel:p.colorLabel,pinned:p.pinned===true}); }
       }
     } else if (entry.kind === 'organization') {
       if(entry.deleted)return;
