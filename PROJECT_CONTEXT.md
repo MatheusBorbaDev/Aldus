@@ -132,6 +132,11 @@ Persistência (legado mantido, não renomear `kindle-*`/`@kindle/*`): Native SQL
   `expo-notifications`) e filtro VIEW `content://` PDF/EPUB; o `*/*` é a consulta OPEN_DOCUMENT já existente. `apksigner`: v2, certificado
   `fac61745…033b9c` (o do Redmi) — não é o Beta privado. dex com `expo/modules/speech`, `expo/modules/notifications`; bundle Hermes com textos
   das ondas A–D; 34 livros. **NÃO instalado**: o Redmi segue com `ae98991`.
+- **APK de ensaio do HEAD `4e7ddbe` (16/11, com os ajustes do teste no Redmi: dobra de página, textura visível, Passar página, marca fixa)**:
+  `device-rehearsal`, árvore limpa, Gradle 1 min 8 s (log `.expo/apk-4e7ddbe-build.log`); checagem obrigatória PASS (35 recursos, acervo em domínio
+  público, manifesto). `artifacts/apk/Aldus-4e7ddbe-device-rehearsal.apk`, 162.155.437 bytes, SHA-256 `1bb26d6c…13ee6568`; `com.aldus.reader`
+  1.0.0-beta.2/code 3, 4 ABIs, sem debuggable, v2 com `fac61745…033b9c` (o do Redmi). Bundle Hermes com `curlToPage`, `curlPageRange`, "Passar
+  página" (UTF-16) e `feFuncA`. **NÃO instalado**. Substitui o `268d62d` para o teste no aparelho.
 - **APK de ensaio do HEAD `268d62d` (16/11, Fases A–E, pedido do dono "Compilar APK")**: `npm run build:apk:local` com `device-rehearsal`, árvore
   limpa, Gradle 2 min 38 s (log `.expo/apk-268d62d-build.log`); checagem obrigatória PASS (35 recursos no bundle, só acervo em domínio público,
   manifesto conforme). `artifacts/apk/Aldus-268d62d-device-rehearsal.apk` (ignorado), 162.175.737 bytes, SHA-256 `039dd512…111b5d16`. `aapt`:
