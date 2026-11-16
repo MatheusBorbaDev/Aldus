@@ -236,6 +236,18 @@ export const thirdPartyPackages: ThirdPartyPackageNotice[] = [
     "groupId": "mit-223b647ce074"
   },
   {
+    "name": "expo-sharing",
+    "version": "57.0.26",
+    "license": "MIT",
+    "repository": "https://github.com/expo/expo",
+    "copyright": [
+      "Copyright (c) 2015-present 650 Industries, Inc. (aka Expo)",
+      "The above copyright notice and this permission notice shall be included in all",
+      "AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER"
+    ],
+    "groupId": "mit-223b647ce074"
+  },
+  {
     "name": "expo-speech",
     "version": "57.0.3",
     "license": "MIT",
@@ -541,6 +553,7 @@ export const thirdPartyNoticeGroups: ThirdPartyNoticeGroup[] = [
       "expo-network@57.0.3",
       "expo-notifications@57.0.25",
       "expo-sensors@57.0.3",
+      "expo-sharing@57.0.26",
       "expo-speech@57.0.3",
       "expo-sqlite@57.0.4"
     ],
