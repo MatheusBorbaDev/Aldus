@@ -66,6 +66,35 @@ const load = require('./community-test-loader.cjs')({
   storage.setItem = async () => undefined;
   await act(async () => themeValue.setMode('light')); await flush();
   assert.equal(themeValue.saveError, null);
+  assert.equal(themeValue.paletteName, 'classic', 'a failed read keeps the Clássico palette');
+  assert.ok(!storage.writes.some(([key]) => key === theme.APP_PALETTE_STORAGE_KEY), 'a failed read never writes the default palette');
+  await act(async () => tree.unmount());
+
+  // 3b. App palette (Clássico / Moderno, 16/11/2026): device preference under its own key, written only on an explicit choice.
+  const { appPalettes } = load('src/theme/tokens.ts');
+  storage.writes = []; storage.getItem = async key => key === theme.APP_PALETTE_STORAGE_KEY ? 'petroleum' : 'dark';
+  tree = await mount(theme.AppThemeProvider, ProbeTheme); await flush();
+  assert.equal(themeValue.paletteName, 'petroleum');
+  assert.deepEqual(themeValue.palette, appPalettes.petroleum.dark, 'stored palette and stored dark mode combine');
+  assert.ok(!storage.writes.some(([key]) => key === theme.APP_PALETTE_STORAGE_KEY), 'reading the palette does not rewrite it');
+  await act(async () => themeValue.setPaletteName('ink')); await flush();
+  assert.deepEqual(storage.writes.at(-1), [theme.APP_PALETTE_STORAGE_KEY, 'ink']);
+  assert.deepEqual(themeValue.palette, appPalettes.ink.dark);
+  storage.setItem = async key => { if (key === theme.APP_PALETTE_STORAGE_KEY) throw Error('quota'); };
+  await act(async () => themeValue.setPaletteName('classic')); await flush();
+  assert.equal(themeValue.saveError, theme.APP_THEME_SAVE_ERROR, 'failed palette save is exposed');
+  assert.equal(themeValue.paletteName, 'classic', 'the palette still applies in memory');
+  storage.setItem = async () => undefined;
+  await act(async () => themeValue.setPaletteName('petroleum')); await flush();
+  assert.equal(themeValue.saveError, null);
+  await act(async () => themeValue.setPaletteName('neon')); await flush();
+  assert.equal(themeValue.paletteName, 'petroleum', 'unknown palette names are ignored');
+  await act(async () => tree.unmount());
+  storage.writes = []; storage.getItem = async key => key === theme.APP_PALETTE_STORAGE_KEY ? 'corrupted' : 'light';
+  tree = await mount(theme.AppThemeProvider, ProbeTheme); await flush();
+  assert.equal(themeValue.paletteName, 'classic', 'an unreadable palette value falls back to Clássico');
+  assert.ok(!storage.writes.some(([key]) => key === theme.APP_PALETTE_STORAGE_KEY), 'and is not overwritten');
+  assert.equal(theme.useAppPaletteName.length, 0);
   await act(async () => tree.unmount());
 
   // 4. PDF settings (ReaderScreen is not mountable here: static contract).
@@ -76,5 +105,5 @@ const load = require('./community-test-loader.cjs')({
   assert.match(panel, /const saveError = pdfSettings \? pdfSettingsSaveError : settings\.saveError;/);
   assert.match(panel, /appearance && saveError \? <View accessibilityRole="alert"/);
   assert.match(fs.readFileSync('app/preferences.tsx', 'utf8'), /saveError \? <Text accessibilityRole="alert"/);
-  console.log('PASS preference persistence: latest-write tracker; reader settings and app theme report failed saves, clear on success, keep values in memory, never overwrite stored values after a failed read; PDF settings save tracked and shown in the panel (static).');
+  console.log('PASS preference persistence: latest-write tracker; reader settings and app theme and palette report failed saves, clear on success, keep values in memory, never overwrite stored values after a failed read; PDF settings save tracked and shown in the panel (static).');
 })().catch(error => { console.error(error); process.exitCode = 1; });

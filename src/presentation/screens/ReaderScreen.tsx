@@ -66,7 +66,8 @@ import {
   PdfReadingMode,
   PdfReflowDocument,
 } from "@/src/domain/types/pdfReader";
-import { fontFamilies, pdfReaderThemes } from "@/src/theme/tokens";
+import { fontFamilies, pdfReaderThemes, readerChromePalette } from "@/src/theme/tokens";
+import { useAppPaletteName } from "@/src/presentation/contexts/AppThemeContext";
 import { appDependencies } from "@/src/presentation/services/dependencies";
 import { LibraryBook, StoredChapter } from "@/src/domain/entities/LibraryBook";
 import {
@@ -600,10 +601,11 @@ export function ReaderScreen({ bookId }: Props) {
   });
 
   const totalPages = estimateTotalPages(totalCharacters, charactersPerPage);
+  const appPaletteName = useAppPaletteName();
   // "Automático" também vale para o PDF; o tema salvo do PDF não muda.
   const pdfTheme = (selected: PdfReaderTheme) => (settings.resolveTheme ? settings.resolveTheme(selected) : selected) as PdfReaderTheme;
   const activePalette = isPdf && pdfReaderSettings
-    ? pdfReaderThemes[pdfTheme(pdfReaderSettings.theme)]
+    ? readerChromePalette(pdfReaderThemes[pdfTheme(pdfReaderSettings.theme)], appPaletteName)
     : settings.palette;
   const documentBrightnessFactor = Platform.OS === "web" ? Math.max(0.35, Math.min(1, settings.brightness / 100)) : 1;
   const activeReaderSettings = isReflowPdf && pdfReaderSettings

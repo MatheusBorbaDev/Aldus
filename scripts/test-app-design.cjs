@@ -1,6 +1,6 @@
 // Actual app palette plus the five book themes (BUG 16). Does not prove physical displays.
 const assert = require('node:assert/strict');
-const { appThemeTokens, readerThemes, pdfReaderThemes } = require('./community-test-loader.cjs')()('src/theme/tokens.ts');
+const { appThemeTokens, appPalettes, appPaletteOptions, isAppPaletteName, readerChromePalette, readerThemes, pdfReaderThemes } = require('./community-test-loader.cjs')()('src/theme/tokens.ts');
 const luminance = hex => {
   const rgb = hex.slice(1).match(/../g).map(part => parseInt(part, 16) / 255)
     .map(value => value <= .04045 ? value / 12.92 : ((value + .055) / 1.055) ** 2.4);
@@ -10,7 +10,14 @@ const contrast = (a, b) => {
   const values = [luminance(a), luminance(b)].sort((a, b) => b - a);
   return (values[0] + .05) / (values[1] + .05);
 };
-for (const [mode, palette] of Object.entries(appThemeTokens)) {
+// Clássico + Moderno (Petróleo, Azul-tinta), pedido de 16/11/2026: every palette, light and dark, meets the same contract.
+assert.deepEqual(Object.keys(appPalettes).sort(), ['classic', 'ink', 'petroleum']);
+assert.equal(appPalettes.classic, appThemeTokens, 'Clássico is the original palette, unchanged');
+assert.deepEqual(appPaletteOptions.map(o => o.value), ['classic', 'petroleum', 'ink']);
+assert.ok(isAppPaletteName('ink') && !isAppPaletteName('dark') && !isAppPaletteName(null));
+for (const [name, variants] of Object.entries(appPalettes)) for (const [variant, palette] of Object.entries(variants)) {
+  const mode = `${name}/${variant}`;
+  assert.deepEqual(Object.keys(palette).sort(), Object.keys(appThemeTokens.light).sort(), `${mode}: same token set as the original`);
   for (const surface of ['background', 'surface', 'surfaceSecondary', 'panel', 'input']) {
     for (const ink of ['text', 'secondaryText', 'accent']) {
       assert(contrast(palette[ink], palette[surface]) >= 4.5, `${mode}: ${ink}/${surface} must meet normal text contrast`);
@@ -34,5 +41,15 @@ for (const [name, theme] of Object.entries(readerThemes)) {
   assert(contrast(theme.onAccent, theme.accent) >= 4.5, `reader ${name}: onAccent/accent selected control text`);
   assert.deepEqual(pdfReaderThemes[name], theme, `reader ${name}: PDF themes stay equal to EPUB themes`);
 }
+// Reader controls follow the app palette accent only when it keeps 4.5:1 on the book page and panel; book text/background never change.
+for (const name of Object.keys(appPalettes)) for (const [theme, palette] of Object.entries(readerThemes)) {
+  const chrome = readerChromePalette(palette, name);
+  for (const key of ['background', 'text', 'secondaryText', 'separator', 'panel']) assert.equal(chrome[key], palette[key], `${name}/${theme}: ${key} is the book's own`);
+  for (const surface of ['background', 'panel']) assert(contrast(chrome.accent, chrome[surface]) >= 4.5, `${name}/${theme}: accent/${surface}`);
+  assert(contrast(chrome.onAccent, chrome.accent) >= 4.5, `${name}/${theme}: onAccent/accent`);
+  if (name === 'classic') assert.equal(chrome, palette, 'Clássico keeps the book theme as is');
+  else assert.equal(chrome.accent, appPalettes[name][['dark', 'black'].includes(theme) ? 'dark' : 'light'].accent, `${name}/${theme}: uses the palette accent`);
+}
+assert.equal(readerChromePalette(readerThemes.light, null), readerThemes.light, 'outside the app theme provider the book theme is unchanged');
 console.log('PASS reader themes: 5 book themes meet 4.5:1 for text/secondary/accent on page and panel, and onAccent on accent.');
-console.log('PASS actual light/dark app palette: body, secondary/link text and primary action ink, selected chip, danger/success >= 4.5:1; focus >= 3:1. Does not prove physical display or disabled controls.');
+console.log('PASS 3 app palettes (Clássico, Moderno Petróleo, Moderno Azul-tinta) x light/dark and Reader controls per palette: body, secondary/link text and primary action ink, selected chip, danger/success >= 4.5:1; focus >= 3:1. Does not prove physical display or disabled controls.');

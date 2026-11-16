@@ -17,7 +17,7 @@ function load(file, overrides = {}) {
     if (name === 'react') return React;
     if (name === 'react/jsx-runtime') return require('../.expo/auth-test-tools/node_modules/react/jsx-runtime');
     if (name === '@react-native-async-storage/async-storage') return storage;
-    if (name.endsWith('/tokens')) return { readerThemes: { paper: palette, sepia: palette }, fontFamilies: { serif: 'serif' }, marginSizes: { medium: 20, large: 40 } };
+    if (name.endsWith('/tokens')) return { readerThemes: { paper: palette, sepia: palette }, fontFamilies: { serif: 'serif' }, marginSizes: { medium: 20, large: 40 }, readerChromePalette: reader => reader };
     if (name === 'react-native') return { View: 'View', Text: 'Text', Pressable: 'Pressable', Platform: { OS: 'android' }, StyleSheet: { create: x => x } };
     if (name === '@react-native-community/slider') return { __esModule: true, default: 'Slider' };
     if (name === '@expo/vector-icons') return { Ionicons: 'Icon' };
@@ -25,7 +25,7 @@ function load(file, overrides = {}) {
     if (name.endsWith('/readerNavigationDiagnostics')) return { readerNavigationDiagnostic() {} };
     if (name === '@/src/core/utils/latestWrite') return load('src/core/utils/latestWrite.ts'); // pure module, real code
     if (name === '@/src/domain/reader/readerThemeAuto') return load('src/domain/reader/readerThemeAuto.ts'); // pure module, real code
-    if (name === '@/src/presentation/contexts/AppThemeContext') return { useResolvedAppTheme: () => null };
+    if (name === '@/src/presentation/contexts/AppThemeContext') return { useResolvedAppTheme: () => null, useAppPaletteName: () => null };
     throw Error('Uncontrolled dependency: ' + name);
   }, result);
   return result;

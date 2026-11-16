@@ -4,12 +4,12 @@ const assert = require('node:assert/strict');
 const React = require('../.expo/auth-test-tools/node_modules/react');
 const { act, create } = require('../.expo/auth-test-tools/node_modules/react-test-renderer');
 global.IS_REACT_ACT_ENVIRONMENT = true;
-let appTheme = 'light'; const writes = []; let stored = null;
+let appTheme = 'light', appPalette = null; const writes = []; let stored = null;
 const storage = { getItem: async () => stored, setItem: async (_key, value) => { writes.push(JSON.parse(value)); } };
 const load = require('./community-test-loader.cjs')({
   react: React, 'react/jsx-runtime': require('../.expo/auth-test-tools/node_modules/react/jsx-runtime'),
   '@react-native-async-storage/async-storage': { default: storage, ...storage },
-  '@/src/presentation/contexts/AppThemeContext': { useResolvedAppTheme: () => appTheme },
+  '@/src/presentation/contexts/AppThemeContext': { useResolvedAppTheme: () => appTheme, useAppPaletteName: () => appPalette },
 });
 const { resolveReaderTheme } = load('src/domain/reader/readerThemeAuto.ts');
 // Rule.
@@ -35,6 +35,12 @@ const flush = () => act(async () => { for (let i = 0; i < 5; i++) await Promise.
   stored = JSON.stringify({ theme: 'light', followAppTheme: true }); appTheme = 'dark';
   await act(async () => tree.unmount()); await act(async () => { tree = create(React.createElement(ReaderSettingsProvider, null, React.createElement(Probe))); }); await flush();
   assert.equal(value.followAppTheme, true, 'saved preference is restored'); assert.equal(value.theme, 'dark');
+  // App palette (16/11/2026): Reader controls take the palette accent; the book page keeps its own colors.
+  const tokens = load('src/theme/tokens.ts'), before = value.palette; appPalette = 'petroleum';
+  await act(async () => tree.update(React.createElement(ReaderSettingsProvider, null, React.createElement(Probe)))); await flush();
+  assert.equal(value.palette.accent, tokens.appPalettes.petroleum.dark.accent, 'dark book theme takes the dark palette accent');
+  for (const key of ['background', 'text', 'secondaryText', 'panel']) assert.equal(value.palette[key], before[key], `book ${key} unchanged`);
+  assert.equal(value.theme, 'dark', 'the palette does not change the book theme');
   await act(async () => tree.unmount());
-  console.log('PASS reader theme auto: rule (off/unknown/dark/light), off by default, chosen theme saved and restored, app dark → book dark, explicit choice turns it off, rule shared with PDF.');
+  console.log('PASS reader theme auto: rule (off/unknown/dark/light), off by default, chosen theme saved and restored, app dark → book dark, explicit choice turns it off, rule shared with PDF; app palette changes only the controls accent.');
 })().catch(e => { console.error(e); process.exitCode = 1; });

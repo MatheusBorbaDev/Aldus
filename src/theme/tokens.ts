@@ -75,6 +75,53 @@ export const appThemeTokens: Record<"light" | "dark", AppThemePalette> = {
   },
 };
 
+/**
+ * Paletas do app (pedido do dono em 16/11/2026: "Clássico" e duas "Moderno"). Cada uma tem claro e escuro, com o mesmo
+ * contrato de contraste de `appThemeTokens` (`scripts/test-app-design.cjs`). O Clássico é `appThemeTokens`, sem mudança.
+ */
+export type AppPaletteName = "classic" | "petroleum" | "ink";
+
+const modernLight = { danger: "#B42318", onDanger: "#FFFFFF", success: "#2E6B4A", overlay: "rgba(17, 22, 24, 0.55)" };
+const modernDark = { danger: "#F4A39A", success: "#8FD3A8", overlay: "rgba(8, 12, 14, 0.7)" };
+
+export const appPalettes: Record<AppPaletteName, Record<"light" | "dark", AppThemePalette>> = {
+  classic: appThemeTokens,
+  petroleum: {
+    light: {
+      ...modernLight, background: "#F4F7F6", surface: "#FFFFFF", surfaceSecondary: "#E6EEEC", text: "#13221F", textSecondary: "#4B5D58",
+      secondaryText: "#4B5D58", separator: "#D3DEDA", border: "#D3DEDA", accent: "#0F6E66", onAccent: "#FFFFFF", accentSoft: "#DDEFEB",
+      focus: "#0F6E66", card: "#FFFFFF", input: "#FFFFFF", tabBar: "#F9FBFA", panel: "#FFFFFF",
+    },
+    dark: {
+      ...modernDark, background: "#0E1513", surface: "#16201D", surfaceSecondary: "#1F2B27", text: "#EAF2EF", textSecondary: "#A6B8B2",
+      secondaryText: "#A6B8B2", separator: "#2C3B36", border: "#2C3B36", accent: "#5FD0BF", onAccent: "#0E1513", accentSoft: "#173A34",
+      onDanger: "#0E1513", focus: "#5FD0BF", card: "#1F2B27", input: "#121B18", tabBar: "#121A17", panel: "#16201D",
+    },
+  },
+  ink: {
+    light: {
+      ...modernLight, background: "#F5F7FA", surface: "#FFFFFF", surfaceSecondary: "#E9EDF3", text: "#172033", textSecondary: "#4A5568",
+      secondaryText: "#4A5568", separator: "#D5DCE5", border: "#D5DCE5", accent: "#2F55C4", onAccent: "#FFFFFF", accentSoft: "#E3EAFB",
+      focus: "#2F55C4", card: "#FFFFFF", input: "#FFFFFF", tabBar: "#FAFBFD", panel: "#FFFFFF",
+    },
+    dark: {
+      ...modernDark, background: "#0F141C", surface: "#18202B", surfaceSecondary: "#222C39", text: "#EEF2F7", textSecondary: "#A9B4C2",
+      secondaryText: "#A9B4C2", separator: "#2E3A4A", border: "#2E3A4A", accent: "#8EB0FF", onAccent: "#0F141C", accentSoft: "#1E2C4A",
+      onDanger: "#0F141C", focus: "#8EB0FF", card: "#222C39", input: "#141B25", tabBar: "#131922", panel: "#18202B",
+    },
+  },
+};
+
+export const appPaletteOptions: ReadonlyArray<{ value: AppPaletteName; label: string; description: string }> = [
+  { value: "classic", label: "Clássico", description: "Creme e terracota, o visual original do Aldus." },
+  { value: "petroleum", label: "Moderno · Petróleo", description: "Verde-azulado profundo, calmo e atual." },
+  { value: "ink", label: "Moderno · Azul-tinta", description: "Fundo frio e azul-tinta, mais nítido." },
+];
+
+export function isAppPaletteName(value: unknown): value is AppPaletteName {
+  return value === "classic" || value === "petroleum" || value === "ink";
+}
+
 export function resolveAppThemeName(mode: AppThemeMode, systemScheme?: "light" | "dark" | null) {
   if (mode === "system") {
     return systemScheme === "dark" ? "dark" : "light";
@@ -98,6 +145,31 @@ export const readerThemes = {
 export const pdfReaderThemes: Record<PdfReaderTheme, ReaderPalette> = {
   ...readerThemes,
 };
+
+/**
+ * Controles do Reader (botões, painéis, seleção) seguem a paleta do app; o tema do livro (fundo e texto) não muda.
+ * Usa o destaque claro ou escuro da paleta conforme o fundo do livro; se não tiver AA (4,5:1) sobre o fundo e o
+ * painel do livro, mantém o destaque do próprio tema. O documento do livro não recebe `accent`.
+ */
+export function readerChromePalette(reader: ReaderPalette, paletteName: AppPaletteName | null | undefined): ReaderPalette {
+  if (!paletteName || paletteName === "classic") return reader;
+  const variants = appPalettes[paletteName];
+  const candidate = relativeLuminance(reader.background) < 0.2 ? variants.dark : variants.light;
+  const fits = contrastRatio(candidate.accent, reader.background) >= 4.5 && contrastRatio(candidate.accent, reader.panel) >= 4.5
+    && contrastRatio(candidate.onAccent, candidate.accent) >= 4.5;
+  return fits ? { ...reader, accent: candidate.accent, onAccent: candidate.onAccent } : reader;
+}
+
+function relativeLuminance(hex: string) {
+  const channels = (hex.replace("#", "").match(/../g) ?? ["00", "00", "00"]).map(value => parseInt(value, 16) / 255)
+    .map(value => value <= 0.03928 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4);
+  return 0.2126 * channels[0] + 0.7152 * channels[1] + 0.0722 * channels[2];
+}
+
+export function contrastRatio(a: string, b: string) {
+  const [high, low] = [relativeLuminance(a), relativeLuminance(b)].sort((x, y) => y - x);
+  return (high + 0.05) / (low + 0.05);
+}
 
 export const fontFamilies: Record<ReaderFont, string> = { serif: "Georgia", sans: "System", dyslexic: "Verdana" };
 export const marginSizes: Record<ReaderMargin, number> = { small: 18, medium: 30, large: 46 };

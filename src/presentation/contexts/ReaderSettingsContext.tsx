@@ -2,9 +2,9 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { PropsWithChildren, createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { latestWriteTracker } from "@/src/core/utils/latestWrite";
 import { resolveReaderTheme } from "@/src/domain/reader/readerThemeAuto";
-import { useResolvedAppTheme } from "@/src/presentation/contexts/AppThemeContext";
+import { useAppPaletteName, useResolvedAppTheme } from "@/src/presentation/contexts/AppThemeContext";
 import { ReaderFont, ReaderMargin, ReaderTheme } from "@/src/domain/types/reader";
-import { fontFamilies, marginSizes, readerThemes, ReaderPalette } from "@/src/theme/tokens";
+import { fontFamilies, marginSizes, readerChromePalette, readerThemes, ReaderPalette } from "@/src/theme/tokens";
 
 interface ReaderSettingsValue {
   /** Tema efetivo do livro (já considera "Automático"). */
@@ -68,6 +68,7 @@ export function ReaderSettingsProvider({ children }: PropsWithChildren) {
   const [followAppTheme, setFollowAppTheme] = useState(false);
   const [alignment, setAlignment] = useState<"left" | "justify">("left");
   const appTheme = useResolvedAppTheme();
+  const appPalette = useAppPaletteName();
   const [saveError, setSaveError] = useState<string | null>(null);
   const trackSave = useMemo(() => latestWriteTracker(failed => setSaveError(failed ? READER_SETTINGS_SAVE_ERROR : null)), []);
   // Leitura falhou: os padrões em memória não podem sobrescrever os ajustes salvos; só uma mudança do leitor grava (onda 5).
@@ -163,7 +164,7 @@ export function ReaderSettingsProvider({ children }: PropsWithChildren) {
     hideReadingCounts,
     alignment,
     setAlignment,
-    palette: readerThemes[effective],
+    palette: readerChromePalette(readerThemes[effective], appPalette),
     fontFamily: fontFamilies[font],
     marginSize: marginSizes[margin],
     // Escolher um tema é uma decisão explícita: desliga o "Automático" para o tema escolhido valer.
@@ -179,7 +180,7 @@ export function ReaderSettingsProvider({ children }: PropsWithChildren) {
     setHideReadingCounts,
     saveError,
   };
-  }, [alignment, appTheme, brightness, followAppTheme, font, fontSize, hideReadingCounts, lineHeight, margin, maxWidth, paragraphSpacing, saveError, theme, useSystemBrightness]);
+  }, [alignment, appPalette, appTheme, brightness, followAppTheme, font, fontSize, hideReadingCounts, lineHeight, margin, maxWidth, paragraphSpacing, saveError, theme, useSystemBrightness]);
 
   return <ReaderSettingsContext.Provider value={value}>{children}</ReaderSettingsContext.Provider>;
 }
