@@ -542,7 +542,11 @@ e 7f50a90^:DIAGNOSTICO_BUGS_APK.md. Não restaurar esses arquivos como contexto.
 
 ## BUG 12 — Configuração e snapshot Sources persistidos ainda são do dispositivo
 
-- Prioridade: ALTA. Status: PARCIAL / ABERTO.
+- Prioridade: ALTA. Status: **RESOLVIDO NO CÓDIGO** (conferido em 16/11/2026); Android NÃO TESTADO.
+- 16/11/2026: o registro abaixo estava desatualizado. `10d6d24` (16/10) deu `ownerId` a cada fonte em `UserSourceRepository`: só aparecem
+  as fontes da conta atual; as antigas (sem dono) ficam fora até a pessoa vinculá-las por ato explícito (`adoptLegacy`, tela Fontes), sem
+  inferir dono nem apagar catálogos. `node scripts/test-source-ownership.cjs` PASS (adoção explícita, isolamento A/B/sair, A → B → A tardio).
+  Falta: conferir no aparelho com fontes criadas antes da correção.
 - Causa CONFIRMADA: UserSourceRepository usa chave global kindle-reader.user-sources.v1,
   e snapshots/vínculos não têm owner. Outra conta no mesmo dispositivo pode ver metadados
   locais da fonte. Não implica acesso a bytes privados Drive sem nova autorização.

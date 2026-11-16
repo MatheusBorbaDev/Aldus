@@ -129,3 +129,26 @@ A FASE 5b é a parte **local** disso, sem servidor: marcos de um livro, cartão-
   existentes, sem `db push`. Falta: conferir com duas contas reais (publicar, pedir para seguir, aceitar, bloquear, denunciar), publicar o
   app com o código novo e aprovar o texto de privacidade sobre o perfil publicado.
 - **Próximo** (§13.1): clubes por convite e comentários ancorados em marco; moderação (fila de denúncias, termos de conduta) antes de clube público.
+
+### 13.3 Etapa 3 — clubes e fóruns (16/11/2026; código pronto; migration NÃO aplicada no Supabase)
+
+- **Servidor** (`supabase/migrations/20261116120000_community_clubs_forums.sql`, depende das migrations de 13/10 e 12/11): tabelas
+  `community_clubs`, `community_club_members`, `community_club_comments`, `community_threads`, `community_posts`,
+  `community_content_reports`, com RLS ligado e **nenhum grant**: tudo por RPC `security definer` que responde só sobre quem chama
+  (`community_create_club`, `join_club`, `leave_club`, `delete_club`, `list_my_clubs`, `club_detail`, `set_club_milestone`,
+  `add_club_comment`, `list_club_comments`, `remove_club_comment`, `remove_club_member`, `regenerate_invite`, `create_thread`,
+  `list_threads`, `thread_detail`, `add_post`, `remove_thread`, `remove_post`, `report_content`). Erros `community:<motivo>`
+  (`text`, `milestone`, `owner`, `report`, `limit`, `target`, `query`). Limites contra abuso: 20 clubes por dono, 50 membros por clube, 30 comentários e 60 respostas por hora, 10 tópicos e 20 denúncias por dia.
+- **Regras**: clube só por código de convite (gerar outro invalida o antigo); 2 a 12 marcos definidos por quem cria; cada membro marca até
+  onde leu (só "marco N", nunca porcentagem ou tempo); comentário só sobre marco já alcançado e visível só a quem chegou nele; sair apaga a
+  marcação e a participação (o dono não sai: exclui o clube); o dono remove membros e comentários e pode excluir o clube. Fóruns: tópicos e respostas de quem está na conta, com
+  marcação de spoiler escondida até o toque; o autor remove o que escreveu. Sem contagens de
+  membros, respostas ou curtidas; sem feed global; nenhum arquivo de livro passa pelo servidor (aviso de DRM no clube e no convite).
+- **App**: `src/community/domain/clubs.ts` (tipos, validação do contrato, marcos, código de convite), `SupabaseCommunityGateway`
+  (implementa `CommunityClubsGateway`), telas `CommunityClubsScreen`, `CommunityClubScreen`, `CommunityForumsScreen`,
+  `CommunityThreadScreen` e `ContentReport` (rotas `/community/clubs`, `/community/club/[id]`, `/community/forums`, `/community/thread/[id]`).
+- **Moderação**: denúncia de comentário, tópico ou resposta grava em `community_content_reports` (não legível pelo cliente); tratamento
+  manual via service role até existir fila no Admin. Clube público continua fora até haver fila, termos de conduta e canal legal.
+- **Para aplicar** (só com autorização do dono): mesmo caminho de 12/11, editor SQL do painel com o arquivo conferido por SHA-256; depois
+  catálogo (6 tabelas com RLS, 0 grants, funções só `authenticated`) e sonda REST anônima (RPCs 401). Até lá o app avisa que a rede de leitores
+  ainda não está disponível no servidor. Testes: `test-community-clubs-schema` (PGlite, contas A/B/C/anon) e `test-community-clubs` (telas simuladas).

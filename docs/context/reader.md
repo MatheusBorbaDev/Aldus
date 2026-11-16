@@ -58,7 +58,10 @@ reader.motionCues.enabled, processamento em memória e overlay pointerEvents=non
 Reflow. Hidratação/foco/foreground/permissão controlam sessão e cleanup; não simular sensor
 indisponível. Amostras não mudam documento/progresso. Eficácia anti-enjoo não foi demonstrada.
 
-## Plano de mercado — FASE 3 (planejamento, 11/11/2026; nada implementado nesta seção)
+## Plano de mercado — FASE 3 (planejamento, 11/11/2026)
+
+**16/11/2026**: A1, A2, B1, B2 e C implementados (C compartilha texto: a imagem exigiria `react-native-view-shot`, não aprovado). A2 abre o
+livro, não a âncora (o Reader só recebe `bookId` pela rota). A3, A4, B3 e D seguem só planejados. Ver log do PROJECT_CONTEXT.
 
 Tamanho: **P** ≤ 1 dia, um commit; **M** 2–4 dias, 2–4 commits com teste; **G** > 1 semana ou exige aparelho/servidor/dependência nova.
 Regras herdadas: números só medidos e ocultáveis; sem streak punitivo, ranking ou comparação; dizer o que é só Android; nada que

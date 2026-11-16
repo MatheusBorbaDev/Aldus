@@ -132,6 +132,8 @@ Persistência (legado mantido, não renomear `kindle-*`/`@kindle/*`): Native SQL
   `expo-notifications`) e filtro VIEW `content://` PDF/EPUB; o `*/*` é a consulta OPEN_DOCUMENT já existente. `apksigner`: v2, certificado
   `fac61745…033b9c` (o do Redmi) — não é o Beta privado. dex com `expo/modules/speech`, `expo/modules/notifications`; bundle Hermes com textos
   das ondas A–D; 34 livros. **NÃO instalado**: o Redmi segue com `ae98991`.
+- **Pendências antes do APK (16/11, `98a8ead`…`3cd2d9a`)**: typecheck PASS; `test:critical` **124/124**; `export:web` PASS; lista de entrega
+  `--source`/`--dist` PASS com 28 recursos. Migration de clubes/fóruns só local. APK não compilado (aguarda pedido).
 - **Segurança (15/11, `e71b31d`, `64ad127`, `68b18cd`)**: typecheck PASS; `test:critical` **117/117**; `export:web` PASS; Chromium PASS: `test:reader:
   {epub,reflow,pdf,study,markings,settings}:web`, `test:reader:browser`, `test:library:web`, `test:marketing:web`; checagem ad hoc no Chromium
   (script injetado bloqueado pela CSP). `processReleaseMainManifest` sem SYSTEM_ALERT_WINDOW. `test:legal:browser` BLOQUEADO (porta 9333).
@@ -244,7 +246,7 @@ Legenda: **IVER** = implementado e verificado (suíte/execução citada); **ISVS
 | PDF Reflow | IVER (Web) / Android PARC | `PdfReflowProcessor.*`, `PdfReflowDocumentBuilder.ts`, cache SQLite/IndexedDB; `test-pdf-reflow`, `test-reflow-*` (critical), `test:reader:reflow:web`. BUG 06: livro grande lento (584 págs ≈3m32 no Redmi, observação pontual). |
 | Bug EPUB/Reflow "center reset" | RESOLVIDO (usuário confirmou em 06/11). Reflow: causa confirmada e corrigida; EPUB: nunca reproduzido em teste | `ReaderScreen.tsx` ≈L1043-1052; `test-reader-screen.cjs` (10 toggles, mocks) e `test-reader-browser.cjs`. Registrado em BUGS_ATUAIS.md como resolvido. |
 | Bug restauração de progresso (era Reflow 1↔11) | Causa CONFIRMADA; handshake implementado; validação PARC | `ReaderScreen.tsx` L128/L769-822; sem teste Chromium dedicado de reabertura Reflow com total mudando; Redmi validou EPUB. |
-| Marcações (grifos/marcadores) | IVER (Web) / físico PENDENTE | `StudyPanelControls.tsx`, `Study{Bookmarks,Highlights}.ts`; `test-study-storage`, `test:reader:markings:web`, `test:reader:study:web`. Seleção por toque no Android não homologada. |
+| Marcações (grifos/marcadores) | IVER (Web) / físico PENDENTE | `StudyPanelControls.tsx`, `Study{Bookmarks,Highlights}.ts`; fixar trechos e "Todas as anotações" (16/11, `test-pinned-highlights`, `test-all-annotations`); `test-study-storage`, `test:reader:markings:web`, `test:reader:study:web`. Seleção por toque no Android não homologada. |
 | Biblioteca/organização/lote | IVER (local) | `library.tsx`, `OrganizeLibrarySelection.ts`; `test:library:*` (bulk, web, 1000 livros). |
 | Importação EPUB/PDF + OCR | IVER (local); BUG 01 VALIDADO FÍSICO (Amêndoas); OCR Android ISVS | `LocalBookImportService.ts`, `src/data/epub/*`, `modules/aldus-pdf-ocr`; `test-book-import`, `test-epub-*`, `test-pdf-ocr`. |
 | Flashcards, Estudo (4 respostas, SRS, sessões) | IVER (local); sem aparelho | `src/domain/study/flashcard{Scoring,Srs}.ts`, `components/flashcards/*`, `flashcardStorage.*`; `test-flashcard-{scoring,sessions,storage,ui}`, `test-flashcards` (critical). Pontuação +10/+5/−5/−10 é a **proposta do usuário já adotada no código**. |
@@ -254,8 +256,8 @@ Legenda: **IVER** = implementado e verificado (suíte/execução citada); **ISVS
 | Brilho / motion cues | ISVS | Web: luminosidade em `ReaderScreen.tsx`; Native: `expo-brightness` + restauração; `test-motion-*` fora do npm. Brilho/permissões físicos pendentes; eficácia anti-enjoo não demonstrada. |
 | Auth (email, Google PKCE, username) | IVER (local) / remoto ISVS | `auth*.ts`, `AuthContext.tsx`; `test-auth*` (critical). BUG 08 (cadastro/recovery reais) e BUG 09 (`username-login` não implantado) BLOQUEADOS externamente. |
 | Library Sync (outbox/CAS/tombstone/RLS) | IVER (local/PGlite) / remoto ISVS | `src/data/library/*`, migrations `*library*`; `test:library:*`, `test:library:rls`. BUG 02: QA autenticado remoto pendente; BUG 11 deploy incremental pendente. |
-| Sources / Drive | Sources IVER (local); Drive ISVS | `src/data/sources/*`, `src/data/drive/*`, `modules/aldus-drive-auth`; `test:source-catalog`, `test:drive`. BUG 03 (Drive real Android) e BUG 12 (Sources device-scoped) abertos. |
-| Community | PARC (local v0.1 + Etapa 2 no código e no servidor; sem homologação com sessões reais) | `LocalCommunityRepository`; Pessoas/Leitor + `SupabaseCommunityGateway` (12/11); `test-community-*`. Migrations `202610130001_community_foundation.sql` e `20261112120000_community_social_graph.sql` **aplicadas no Supabase em 12/11** pelo editor SQL do painel (não constam no ledger `supabase_migrations`). Falta APK/deploy com o código e teste com duas contas reais. |
+| Sources / Drive | Sources IVER (local); Drive ISVS | `src/data/sources/*`, `src/data/drive/*`, `modules/aldus-drive-auth`; `test:source-catalog`, `test:drive`. BUG 03 (Drive real Android) aberto; BUG 12 resolvido no código (`10d6d24`, `test-source-ownership`), Android não testado. |
+| Community | PARC (local v0.1 + Etapa 2 no código e no servidor; Etapa 3 clubes/fóruns só no código; sem homologação com sessões reais) | `LocalCommunityRepository`; Pessoas/Leitor + `SupabaseCommunityGateway` (12/11); `test-community-*`. Migrations `202610130001_community_foundation.sql` e `20261112120000_community_social_graph.sql` **aplicadas no Supabase em 12/11** pelo editor SQL do painel (não constam no ledger `supabase_migrations`). Clubes/Fóruns (16/11): `20261116120000_community_clubs_forums.sql` **não aplicada**; `test-community-clubs{,-schema}`. Falta APK/deploy com o código e teste com duas contas reais. |
 | SaaS/planos/cotas e Admin | IVER (local) / remoto ISVS | `src/domain/saas`, `src/admin`, migrations `20261015*`; `test:saas*`, `test:admin*`. Deploy/OWNER só por registro; login/TOTP real pendente. |
 | Landing Web e legal | IVER (local/Chromium) | `src/marketing`, `src/legal`; `test:marketing*`, `test:legal*`. Deploy Vercel não reconferido. |
 | Android (build/APK/módulos) | PARC | `android/`, `scripts/build-apk-local.mjs`; APK `00b6e4d`/`53b4e32` (privados, ignorados). Homologação física BLOQUEADA (Redmi ausente), APK do HEAD inexistente. |
@@ -324,20 +326,21 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
    `debug.keystore` versionado, CSP do app Web. Precisa de APK e deploy novos para valer.
    **Community, Etapa 2 (12/11)**: código pronto e as duas migrations **aplicadas no Supabase** com autorização do usuário. Falta: homologar com
    duas contas reais (publicar, pedir, aceitar, bloquear, denunciar), instalar o APK `99ce32d` (já tem a tela Pessoas) e publicar o Web,
-   aprovar o texto de privacidade sobre o perfil publicado e decidir se as migrations entram no ledger. Depois: clubes por convite e comentários
-   por marco (§13.1), moderação antes de qualquer clube público.
+   aprovar o texto de privacidade sobre o perfil publicado e decidir se as migrations entram no ledger.
+   **Clubes e Fóruns (16/11)**: código pronto; aplicar `20261116120000_community_clubs_forums.sql` exige autorização do dono (mesmo caminho
+   do painel com SHA-256); depois homologar com duas contas. Denúncias de conteúdo ficam só no servidor (sem painel no Admin ainda).
    **Plano de mercado (11/11)**: FASES 0–5 concluídas (3 e 5a só planejamento: `docs/context/reader.md` e `community-estudo.md` §13.1; 4 em
-   `docs/mockups/certo-errado/`). Pendentes do usuário: texto da política de dados sobre sessões e marcos; entrevistas da FASE 4; escolher itens da FASE 3.
+   `docs/mockups/certo-errado/`). FASE 3 implementada em 16/11 (A1, A2, B1, B2, C em texto); A3, A4, B3 e D seguem só planejados. Pendentes do usuário: texto da política de
+   dados sobre sessões, marcos e diário; entrevistas da FASE 4.
    **Melhorias (11/11)**: Ondas A–D concluídas (C precisa de APK novo para valer no aparelho); Maestro não adotado (ver log D); rolagem contínua avaliada e adiada (segundo sistema de posição; ver log). Dependem do usuário: acervo, Play/Firebase, Redmi, Literata.
    acervo: 33 protegidos removidos do pacote em 11/11 (ver item Acervo); fixtures de teste só com domínio público.
    Candidatos de bundle (sem decisão): pdfjs-dist duplicado no entry, reanimated só para motion cues, `react-native-render-html` em `ChapterRenderer`.
-   BUG 17 e BUG 20 corrigidos no código na Onda B (11/11; Android não testado). Botão OCR do Reflow (`PdfReflowProcessor.native.tsx`) ainda com
-   terracota fixa `#B65F42` + branco (4,46:1), fora do tema.
+   BUG 17 e BUG 20 corrigidos no código na Onda B (11/11; Android não testado). Botão OCR do Reflow segue o tema desde `98a8ead` (16/11).
 3. **Backend remoto não comprovado**: Library Sync/Battle/Admin/SaaS (BUG 02, 11), `username-login` (BUG 09), cadastro/recovery (BUG 08),
    Drive real (BUG 03). Nada disto é verificável pelo código. BUG 11: o ledger remoto lista `library_active_account_fences` (16/10;
    conferido em 12/11), então a migration está aplicada; falta a homologação com contas reais A/B/desativada.
 4. **Geração de flashcards por livro** é só local determinística (pergunta fixa): não vender como IA; IA exige decisão do usuário (§5).
-5. **Sources device-scoped** (BUG 12) e snapshot/config sem isolamento por conta.
+5. **Sources por conta** (BUG 12): resolvido no código; falta conferir no Android a adoção de fontes antigas.
 6. **Dependências** com avisos sem upgrade compatível (BUG 13; não rebaixar Expo/RN, sem `audit fix --force`).
 7. Limites conhecidos: atomicidade do lote entre abas Web independentes não comprovada; Reflow grande lento e consome memória (BUG 06);
    Community com backend aplicado em 12/11, sem homologação autenticada (ver item Community, Etapa 2); `FORENSIC` logs (≈50) atrás da flag `epubCenterResetDiagnostics`.
@@ -359,6 +362,20 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
 - **IA externa:** não enviar livros/trechos a serviço de IA sem pedido e consentimento explícito do usuário final.
 
 ## 10. Log (mais recente primeiro; máx. 5 entradas, resto → docs/context/historico/)
+
+### 16/11/2026 — Pendências antes do APK: OCR, FASE 3 e Clubes/Fóruns (Claude)
+- Pedido: "antes de compilar, verifique se possuem outras pendências de implementação"; à lista, o dono respondeu "Todos, inclusive o G do
+  clubes e fóruns". BUG 12 (fontes por conta) já estava resolvido no código desde `10d6d24` (`ownerId`, adoção explícita); só o registro estava velho.
+- `98a8ead` botão e painel de OCR do Reflow seguem o tema (contraste AA). `54b1849` fixar trechos (`highlights.pinned`, schema SQLite v6, Sync
+  envia o campo; ausente = não fixado). `2a3d8fd` "Todas as anotações" (menu ⋯ da Biblioteca; tocar abre o livro, sem navegar à âncora).
+  `68d4f09` Diário de leitura (só sessões medidas, números ocultáveis, sem dias seguidos) e CSV no padrão Goodreads (só campos com dado real).
+  `da43e57` cartão de foco: compartilha **texto** (imagem exigiria dependência nova, não adicionada).
+- `ff25abc` migration `20261116120000_community_clubs_forums.sql` (**só local, não aplicada**): clubes por convite com marcos, comentários
+  ancorados em marco e visíveis só até o marco de cada um, fóruns com aviso de spoiler, denúncias de conteúdo, limites contra abuso, tudo por RPC.
+  `3cd2d9a` telas Clubes, Clube, Fóruns e Tópico; denúncia abre sem motivo escolhido; aviso de DRM. Sem contagens de membros ou curtidas.
+- VALIDADO (local): typecheck; `test:critical` 124/124 (novas `pinned-highlights`, `all-annotations`, `reading-diary`, `focus-card`,
+  `community-clubs-schema` em PGlite, `community-clubs`); `verify-release-features --source` e `--dist` com 28 recursos; `export:web`; diff-check.
+- NÃO TESTADO: Supabase real (até aplicar, Clubes/Fóruns avisam que a rede ainda não está disponível no servidor), Android, navegador para as telas novas.
 
 ### 16/11/2026 — Aba Comunidade e lista de entrega obrigatória (Claude)
 - Dono: "na última compilação não veio a rede social" e "garanta que o app estará exatamente do jeito que solicitei". Diagnóstico: o APK
@@ -416,20 +433,6 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
   follows/blocks/reports e RPCs 401, escrita direta 401. Nenhum dado existente alterado. **Não feito**: registro no ledger, homologação com sessões
   reais A/B (não há contas de teste autorizadas), deploy do frontend.
 
-### 11/11/2026 — Acervo (etapas 1–3) e plano de mercado, FASES 3–5 (Claude)
-- Pedido: "pode iniciar a implementação de todas as fases" (sem parar entre fases). Acervo: o usuário escolheu **reanexar ao importar** em vez da
-  migração automática em duas versões. `51f69f0` cherry-pick da etapa 1 (`11cf66c`): conflitos resolvidos mantendo a decisão da onda 2 (o export
-  não copia livros para `dist`; só confere declaração e SHA-256) e as fixtures em domínio público. `44cf826` etapa 2: importar o MESMO arquivo
-  (SHA-256 do legado) restaura o livro da conta (mesmo ID, progresso, notas), sem vínculo com o pacote, e o Sync o envia à nuvem privada;
-  réplica de outro aparelho deixa de apontar para o arquivo embutido e espera `remotePath`. `809cfac` etapa 3: 33 arquivos fora de
-  `assets/Livros` (`dist` 110→16 MB); o export recusa título legado de volta. Nova suíte `legacy-reattach`.
-- `53b2ac5` FASE 3 e `1e7583c` FASE 5a: só planejamento (P/M/G). `d5b8767` FASE 4: mockup estático Certo/Errado (CF/88 art. 5º, dados
-  fictícios) e roteiro de 10 perguntas (sucesso: 6/10 querem testar, 3/10 pré-pagariam; só intenção, sem cobrança).
-- `80d2c88` FASE 5b: "Marcos de leitura" (2/3/4/6, prazo opcional), "marco N de M" no rodapé (oculto com as contagens), cronograma só em
-  texto com aviso de DRM; local por conta. Nova suíte `reading-milestones`.
-- Limites: sessões (FASE 2) e marcos são só locais; a política de dados ainda não os cita (texto a aprovar). Reanexar exige o mesmo arquivo
-  (outra edição vira livro novo). NÃO TESTADO: Android, upload real à nuvem privada, `Share` nativo.
-
 ### 06/11/2026 — Entradas anteriores
 - Fechamento UX/UI e Onboarding 1: ver `docs/context/historico/2026-11-06-ux-fechamento-e-onboarding-1.md`.
 - Onboarding 2 (auditoria e reescrita do contexto): ver `docs/context/historico/2026-11-06-onboarding-2.md`.
@@ -456,3 +459,4 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
 - Melhorias, Onda D (11/11): ver `docs/context/historico/2026-11-11-melhorias-onda-d.md`.
 - Plano de mercado, FASES 0 e 1 (11/11): ver `docs/context/historico/2026-11-11-plano-mercado-fases-0-1.md`.
 - Plano de mercado, FASE 2 (11/11): ver `docs/context/historico/2026-11-11-plano-mercado-fase-2.md`.
+- Acervo (etapas 1–3) e plano de mercado, FASES 3–5 (11/11): ver `docs/context/historico/2026-11-11-acervo-e-plano-mercado-fases-3-5.md`.
