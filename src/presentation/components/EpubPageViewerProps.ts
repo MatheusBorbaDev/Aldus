@@ -3,7 +3,9 @@ import { TextReadingAnchor } from "@/src/domain/types/readingAnchor";
 import { Highlight } from "@/src/domain/repositories/HighlightRepository";
 import { ReaderNavigationOrigin } from "@/src/utils/readerNavigationDiagnostics";
 
-export interface ReaderStudyRequest { id: number; type: "studyCapture" | "studyNavigate" | "studySelection"; anchor?: TextReadingAnchor; enabled?: boolean }
+/** `studySelectAt`: pressionar e segurar em (x, y) do documento seleciona a palavra; `studyAdjust`: aumenta/diminui o trecho pelas pontas ou pega a frase. */
+export type ReaderStudyAdjust = "growStart" | "growEnd" | "shrinkStart" | "shrinkEnd" | "sentence";
+export interface ReaderStudyRequest { id: number; type: "studyCapture" | "studyNavigate" | "studySelection" | "studySelectAt" | "studyAdjust"; anchor?: TextReadingAnchor; enabled?: boolean; x?: number; y?: number; op?: ReaderStudyAdjust }
 export interface ReaderStudyResult { id: number; type: "study"; status: "captured" | "exact" | "relocated" | "ambiguous" | "missing" | "error" | "rendered" | "unsupported"; anchor?: TextReadingAnchor; pageNumber?: number; message?: string; missing?: number; ambiguous?: number }
 
 export interface EpubPageInfo {

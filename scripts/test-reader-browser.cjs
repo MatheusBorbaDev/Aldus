@@ -96,6 +96,37 @@ function load(file){if(cache.has(file))return cache.get(file);const exports={};c
   assert.equal(surface.pageMessages,0,'texture does not relayout or move the page');assert.deepEqual(surface.violations,[],'no CSP violation');
   assert.equal(surface.after.status,'captured');assert.equal(surface.after.anchor.start,before.anchor.start,'same anchor after the texture');
   console.log('PASS paper texture on the actual document: data: SVG + edge gradient applied, external URL refused, no page message, anchor unchanged, no CSP violation');
+  // Highlight selection (phase B, 16/11/2026). Android selection handles change the selection without a pointerup in the
+  // document: the capture must still arrive once the selection settles. Press-and-hold selects the word under the finger, and
+  // the trecho can be adjusted word by word or to the sentence, all without moving the page.
+  const selection=await evaluate(`(async()=>{const start=messages.length,study=id=>messages.slice(start).filter(m=>m.type==='study'&&m.id===id);const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+   const width=document.getElementById('reader-viewport').getBoundingClientRect().width;
+   const visibleWord=()=>{const walker=document.createTreeWalker(document.getElementById('reader-content'),NodeFilter.SHOW_TEXT);let n;while(n=walker.nextNode()){const m=/[A-Za-zÀ-ÿ]{4,}/.exec(n.textContent);if(!m)continue;const r=document.createRange();r.setStart(n,m.index);r.setEnd(n,m.index+m[0].length);const b=r.getBoundingClientRect();if(b.width>0&&b.left>8&&b.right<width-8&&b.top>40&&b.bottom<700)return {node:n,index:m.index,word:m[0],x:b.left+b.width/2,y:b.top+b.height/2};}return null;};
+   const w=visibleWord();if(!w)throw Error('no visible word');
+   window.readerStudy({type:'studySelection',id:10,enabled:true});
+   const handle=document.createRange();handle.setStart(w.node,w.index);handle.setEnd(w.node,Math.min(w.node.length,w.index+w.word.length+12));
+   window.getSelection().removeAllRanges();window.getSelection().addRange(handle);const dragged=window.getSelection().toString().trim();
+   await sleep(1000);const settled=study(10);
+   window.readerStudy({type:'studySelection',id:11,enabled:false});const cleared=window.getSelection().isCollapsed||window.getSelection().rangeCount===0;
+   window.readerStudy({type:'studySelectAt',id:12,x:w.x,y:w.y});const word=study(12).at(-1);const shown=window.getSelection().toString();
+   window.readerStudy({type:'studyAdjust',id:13,anchor:word.anchor,op:'growEnd'});const grown=study(13).at(-1);
+   window.readerStudy({type:'studyAdjust',id:14,anchor:grown.anchor,op:'shrinkEnd'});const shrunk=study(14).at(-1);
+   window.readerStudy({type:'studyAdjust',id:15,anchor:word.anchor,op:'shrinkStart'});const single=study(15).at(-1);
+   window.readerStudy({type:'studyAdjust',id:16,anchor:word.anchor,op:'sentence'});const sentence=study(16).at(-1);
+   window.readerStudy({type:'studySelectAt',id:17,x:2,y:2});const outside=study(17).at(-1);
+   await sleep(800);
+   return {dragged,settled:settled.map(m=>({status:m.status,quote:m.anchor&&m.anchor.quote})),cleared,word:w.word,selected:word,shown,grown:grown.anchor.quote,shrunk:shrunk.anchor.quote,single:single.anchor.quote,sentence:sentence.anchor.quote,outside,pageMessages:messages.slice(start).filter(m=>m.type==='page').length,extra:study(12).length+study(13).length};})()`);
+  assert.equal(selection.settled.length,1,'one capture once the selection settles, without pointerup: '+JSON.stringify(selection.settled));
+  assert.equal(selection.settled[0].status,'captured');assert.equal(selection.settled[0].quote,selection.dragged,'captured quote is the trimmed selection');
+  assert.equal(selection.cleared,true,'disabling selection mode clears the selection');
+  assert.equal(selection.selected.status,'captured');assert.equal(selection.selected.anchor.quote,selection.word,'press-and-hold selects the whole word');
+  assert.equal(selection.shown,selection.word,'the word is shown selected in the document');
+  assert.ok(selection.grown.startsWith(selection.word)&&selection.grown.split(/\s+/).length===2,'growEnd adds the next word: '+selection.grown);
+  assert.equal(selection.shrunk,selection.word,'shrinkEnd returns to the word');assert.equal(selection.single,selection.word,'a single word does not shrink to nothing');
+  assert.ok(selection.sentence.includes(selection.word)&&selection.sentence.length>selection.word.length,'sentence widens around the word');
+  assert.equal(selection.outside.status,'error');assert.match(selection.outside.message,/Pressione sobre uma palavra/);
+  assert.equal(selection.pageMessages,0,'selection never moves the page');assert.equal(selection.extra,2,'programmatic selections do not echo extra captures');
+  console.log('PASS highlight selection on the actual document: settled selection captured without pointerup, press-and-hold word, grow/shrink/sentence, outside text refused, no page move',JSON.stringify({word:selection.word,grown:selection.grown,sentence:selection.sentence.slice(0,60)}));
  }
  const moved=await evaluate(`(async()=>{const start=messages.length;window.updateTypography(${JSON.stringify({...options,fontSize:25,lineHeight:2,marginSize:40})});await new Promise((resolve,reject)=>{let count=0;function step(){if(messages.slice(start).some(m=>m.type==='page'))return resolve();if(++count>600)return reject(Error('typography did not commit'));requestAnimationFrame(step);}step();});window.readerStudy({type:'studyCapture',id:2});return {page:messages.filter(m=>m.type==='page').at(-1),anchor:messages.at(-1)};})()`);
  // Locate the old logical start in the actual new layout. A new page number is expected.
