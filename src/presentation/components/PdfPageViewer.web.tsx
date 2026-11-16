@@ -3,11 +3,22 @@ import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import type { PDFDocumentProxy, PDFDocumentLoadingTask } from "pdfjs-dist";
 import { loadPdfJs } from "./pdfjsRuntime.web";
 import { PdfPageViewerProps } from "@/src/presentation/components/PdfPageViewerProps";
+import { PDF_SCROLL_SOURCE } from "@/src/domain/reader/pdfScroll";
+
+type Scroller = { goTo: (page: number) => void; current: () => number; destroy: () => void };
+let scrollerFactory: ((options: Record<string, unknown>) => Promise<Scroller>) | null = null;
+// Mesma fonte literal da WebView do Android; constante do próprio app.
+const loadScroller = () => scrollerFactory ??= new Function(`${PDF_SCROLL_SOURCE}; return createPdfScroller;`)() as (options: Record<string, unknown>) => Promise<Scroller>;
 
 type PdfPage = Awaited<ReturnType<PDFDocumentProxy["getPage"]>>;
 
-export function PdfPageViewer({ uri, pageNumber, pageMode, fitMode, zoom, rotation, onTotalPages }: PdfPageViewerProps) {
+export function PdfPageViewer({ uri, pageNumber, pageMode, fitMode, zoom, rotation, onTotalPages, flow = "paged", onScrollPage, onTap }: PdfPageViewerProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const scroller = useRef<Scroller | null>(null);
+  const scrollCallbacks = useRef({ onScrollPage, onTap });
+  scrollCallbacks.current = { onScrollPage, onTap };
+  const scrolling = flow === "scroll";
   const totalPagesCallback = useRef(onTotalPages);
   const [document, setDocument] = useState<PDFDocumentProxy | null>(null);
   const [viewport, setViewport] = useState({ width: 0, height: 0 });
@@ -59,9 +70,29 @@ export function PdfPageViewer({ uri, pageNumber, pageMode, fitMode, zoom, rotati
     };
   }, [uri, pageMode]);
 
+  // Rolagem contínua: páginas empilhadas na largura, desenhadas perto da área visível (controlador literal compartilhado).
+  useEffect(() => {
+    const container = scrollRef.current;
+    if (!scrolling || !document || !container) return;
+    let active = true;
+    setLoading(true);
+    void loadScroller()({ container, pdf: document, page: pageNumber, zoom, rotation,
+      onPage: (page: number, offset: number) => scrollCallbacks.current.onScrollPage?.(page, offset),
+      onTap: () => scrollCallbacks.current.onTap?.(),
+      onError: () => { if (active) setFailed(true); } })
+      .then(created => { if (!active) { created.destroy(); return; } scroller.current = created; setLoading(false); })
+      .catch(() => { if (active) { setFailed(true); setLoading(false); } });
+    return () => { active = false; scroller.current?.destroy(); scroller.current = null; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- pageNumber só posiciona; mudanças vão pelo goTo abaixo.
+  }, [scrolling, document, zoom, rotation]);
+
+  useEffect(() => {
+    if (scrolling && scroller.current && scroller.current.current() !== pageNumber) scroller.current.goTo(pageNumber);
+  }, [scrolling, pageNumber]);
+
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!document || !canvas || !viewport.width || !viewport.height) return;
+    if (scrolling || !document || !canvas || !viewport.width || !viewport.height) return;
 
     let active = true;
     let renderTask: ReturnType<PdfPage["render"]> | null = null;
@@ -123,7 +154,7 @@ export function PdfPageViewer({ uri, pageNumber, pageMode, fitMode, zoom, rotati
       active = false;
       renderTask?.cancel();
     };
-  }, [document, pageNumber, pageMode, fitMode, zoom, rotation, viewport]);
+  }, [scrolling, document, pageNumber, pageMode, fitMode, zoom, rotation, viewport]);
 
   return (
     <View
@@ -135,7 +166,7 @@ export function PdfPageViewer({ uri, pageNumber, pageMode, fitMode, zoom, rotati
         })
       }
     >
-      <canvas ref={canvasRef} style={canvasStyle} />
+      {scrolling ? <div ref={scrollRef} data-pdf-flow="scroll" style={scrollStyle} /> : <canvas ref={canvasRef} style={canvasStyle} />}
       {loading && !failed ? (
         <View style={styles.status}>
           <ActivityIndicator size="large" color="#315D56" />
@@ -185,3 +216,4 @@ const canvasStyle: React.CSSProperties = {
   boxShadow: "0px 4px 16px rgba(0, 0, 0, 0.18)",
   borderRadius: "2px",
 };
+const scrollStyle: React.CSSProperties = { position: "absolute", top: 0, left: 0, right: 0, bottom: 0, overflowY: "auto", overflowX: "hidden" };

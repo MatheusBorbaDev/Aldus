@@ -21,6 +21,9 @@ export interface DocumentReaderAdapterProps {
   pdfFitMode: PdfFitMode;
   pdfZoom: number;
   pdfRotation: number;
+  /** Rolagem contínua do PDF Original: sem zonas de toque; o toque do documento mostra os controles. */
+  pdfFlow?: "paged" | "scroll";
+  onPdfScrollPage?: (pageNumber: number) => void;
   pdfReadingMode: PdfReadingMode;
   pdfReflowChapters: StoredChapter[];
   searchTerm: string;
@@ -75,6 +78,8 @@ export function DocumentReaderAdapter({
   pdfFitMode,
   pdfZoom,
   pdfRotation,
+  pdfFlow = "paged",
+  onPdfScrollPage,
   pdfReadingMode,
   pdfReflowChapters,
   searchTerm,
@@ -163,6 +168,9 @@ export function DocumentReaderAdapter({
             zoom={pdfZoom}
             rotation={pdfRotation}
             onTotalPages={onPdfTotalPages}
+            flow={pdfFlow}
+            onScrollPage={onPdfScrollPage}
+            onTap={onToggleControls}
           />
         </View>
       ) : isEpub || (isPdf && pdfReadingMode === "reflow") ? (
@@ -202,7 +210,7 @@ export function DocumentReaderAdapter({
       )}
 
       {/* Unified touch zones overlay: Left 30% prev, Center 40% toggle, Right 30% next */}
-      {!studySelecting && !panelOpen ? <ReadingTouchZones
+      {!studySelecting && !panelOpen && !(isPdf && pdfReadingMode === "original" && pdfFlow === "scroll") ? <ReadingTouchZones
         onPreviousPage={onPreviousPage}
         onNextPage={onNextPage}
         onToggleControls={onToggleControls}

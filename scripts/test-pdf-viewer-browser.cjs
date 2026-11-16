@@ -11,7 +11,7 @@ function pdfFixture(){
 (async()=>{
  const out=path.resolve('.expo/no-device-pdf-viewer');fs.mkdirSync(out,{recursive:true});
  const esbuild=require('../.expo/reader-matrix-tools/node_modules/esbuild');
- const entry=`import React from'react';import{createRoot}from'react-dom/client';import{PdfPageViewer}from'./src/presentation/components/PdfPageViewer.web';window.fixture={totals:[],state:null};function App(){const[s,set]=React.useState({uri:'/fixture.pdf',pageNumber:3,pageMode:'single',fitMode:'page',zoom:1,rotation:0,open:false,generation:0});window.fixture.state=s;window.fixture.configure=p=>set(v=>({...v,...p}));return <div style={{display:'flex',height:'100%',width:'100%',position:'relative'}}><PdfPageViewer key={s.generation} {...s} onTotalPages={n=>window.fixture.totals.push(n)}/>{s.open&&<div role="dialog" style={{position:'absolute',top:10,right:10,background:'#eee',padding:15}}>Painel controlado do ensaio</div>}</div>}createRoot(document.getElementById('root')).render(<App/>);`;
+ const entry=`import React from'react';import{createRoot}from'react-dom/client';import{PdfPageViewer}from'./src/presentation/components/PdfPageViewer.web';window.fixture={totals:[],state:null,scrolls:[],taps:0};function App(){const[s,set]=React.useState({uri:'/fixture.pdf',pageNumber:3,pageMode:'single',fitMode:'page',zoom:1,rotation:0,open:false,generation:0});window.fixture.state=s;window.fixture.configure=p=>set(v=>({...v,...p}));return <div style={{display:'flex',height:'100%',width:'100%',position:'relative'}}><PdfPageViewer key={s.generation} {...s} onTotalPages={n=>window.fixture.totals.push(n)} onScrollPage={(p,o)=>window.fixture.scrolls.push([p,Math.round(o*100)/100])} onTap={()=>window.fixture.taps++}/>{s.open&&<div role="dialog" style={{position:'absolute',top:10,right:10,background:'#eee',padding:15}}>Painel controlado do ensaio</div>}</div>}createRoot(document.getElementById('root')).render(<App/>);`;
  await esbuild.build({stdin:{contents:entry,resolveDir:process.cwd(),sourcefile:'pdf-browser-fixture.jsx',loader:'jsx'},outfile:path.join(out,'fixture.js'),bundle:true,platform:'browser',format:'esm',jsx:'automatic',alias:{'react-native':'react-native-web'},define:{'process.env.NODE_ENV':'"production"','__DEV__':'false'}});
  await esbuild.build({entryPoints:['src/presentation/components/pdfjs.worker.ts'],outfile:path.join(out,'pdfjs.worker.ts'),bundle:true,platform:'browser',format:'iife'});
  const pdf=pdfFixture(),requests=[],timers=new Set();
@@ -52,6 +52,27 @@ function pdfFixture(){
  await command('Network.emulateNetworkConditions',{offline:true,latency:0,downloadThroughput:0,uploadThroughput:0});await configure({pageNumber:4});await configure({pageNumber:3});assert.equal(await image(),baseline);cases.push('already-loaded PDF navigation offline');await command('Network.emulateNetworkConditions',{offline:false,latency:0,downloadThroughput:-1,uploadThroughput:-1});
  await evaluate("window.fixture.configure({uri:'/missing.pdf'})");await until("document.body.innerText.includes('Não foi possível abrir este PDF.')",'Friendly error');await configure({uri:'/fixture.pdf'});assert.equal(await image(),baseline);cases.push('unavailable file and recovery');
  await evaluate("window.fixture.configure({uri:'/slow.pdf'})");for(let n=0;n<100&&!requests.includes('/slow.pdf');n++)await wait(30);assert(requests.includes('/slow.pdf'));await configure({uri:'/fixture.pdf'});const totals=await evaluate('window.fixture.totals.length');await wait(2200);assert.equal(await evaluate('window.fixture.totals.length'),totals);assert.equal(await image(),baseline);cases.push('cancelled load and late response');
+ // Continuous scroll (phase E, 16/11/2026): stacked pages at page 3, report only when the reader scrolls (no echo of the app's own
+ // navigation), tap without drag toggles controls, a drag is not a tap, and paged mode comes back unchanged.
+ await evaluate("window.fixture.configure({flow:'scroll',pageNumber:3})");
+ await until("document.querySelectorAll('[data-pdf-page]').length===4 && document.querySelector('[data-pdf-page=\"3\"] canvas').width>0",'Stacked pages with page 3 drawn');
+ await wait(600);
+ const scroll=await evaluate(`(async()=>{const c=document.querySelector('[data-pdf-flow="scroll"]'),slot=n=>document.querySelector('[data-pdf-page="'+n+'"]'),sleep=ms=>new Promise(r=>setTimeout(r,ms)),out={};
+  out.atThree=Math.abs(c.scrollTop-(slot(3).offsetTop-12))<=2;out.echo=window.fixture.scrolls.length;out.single=!document.querySelector('canvas:not([data-pdf-page] canvas)');
+  c.scrollTop=slot(2).offsetTop+5;await sleep(600);out.reported=window.fixture.scrolls.at(-1);
+  out.width=Math.round(slot(2).getBoundingClientRect().width);out.viewport=innerWidth;
+  const r=c.getBoundingClientRect(),x=r.left+r.width/2,y=r.top+200,fire=(type,yy)=>c.dispatchEvent(new PointerEvent(type,{bubbles:true,clientX:x,clientY:yy}));
+  fire('pointerdown',y);fire('pointerup',y);out.taps=window.fixture.taps;
+  fire('pointerdown',y);c.scrollTop+=120;fire('pointerup',y-120);out.tapsAfterDrag=window.fixture.taps;await sleep(600);
+  return out;})()`);
+ assert.equal(scroll.atThree,true,'opens at page 3');assert.equal(scroll.echo,0,'its own initial position is not reported back');assert.equal(scroll.single,true,'no paged canvas in scroll mode');
+ assert.deepEqual(scroll.reported?.[0],2,'scrolling up to page 2 reports page 2 '+JSON.stringify(scroll.reported));assert.ok(scroll.width>=scroll.viewport-24,'pages fill the width');
+ assert.equal(scroll.taps,1,'tap without drag');assert.equal(scroll.tapsAfterDrag,1,'a drag is not a tap');
+ const reports=await evaluate('window.fixture.scrolls.length');await evaluate("window.fixture.configure({pageNumber:4})");await wait(900);
+ assert.equal(await evaluate(`(()=>{const c=document.querySelector('[data-pdf-flow="scroll"]');return Math.abs(c.scrollTop-Math.min(document.querySelector('[data-pdf-page="4"]').offsetTop-12,c.scrollHeight-c.clientHeight))<=2})()`),true,'app navigation scrolls to page 4 (or the end, it is the last page)');
+ assert.equal(await evaluate('window.fixture.scrolls.length'),reports,'app navigation is not echoed back');
+ await evaluate("window.fixture.configure({flow:'paged',pageNumber:3})");await until(ready+" && !document.querySelector('[data-pdf-flow]')",'Paged mode back');assert.equal(await image(),baseline);
+ cases.push('continuous scroll: stacked pages, report on reader scroll only, tap vs drag, back to paged unchanged');
  fs.writeFileSync(path.join(out,'pdf-original-page3.png'),Buffer.from((await command('Page.captureScreenshot',{format:'png'})).data,'base64'));assert.deepEqual(errors,[]);
  fs.writeFileSync(path.join(out,'results.json'),JSON.stringify({scope:'Actual PdfPageViewer, PDF.js worker and generated four-page PDF on loopback. Controlled props and parent overlay; no native PDF, ReaderScreen preference persistence or physical device proof.',cases,canvasSHA256:crypto.createHash('sha256').update(baseline).digest('hex'),externalRequestsBlocked:blocked,errors},null,2));console.log('PASS actual PDF.js viewer: '+cases.join(', '));
  }finally{ws?.close();chrome.kill();for(const timer of timers)clearTimeout(timer);server.closeAllConnections();await new Promise(r=>server.close(r))}

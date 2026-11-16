@@ -5,8 +5,11 @@ import { PDFDocument } from "pdf-lib";
 import * as FileSystem from "expo-file-system/legacy";
 import { PdfPageViewerProps } from "@/src/presentation/components/PdfPageViewerProps";
 import { allowReaderNavigation, READER_BASE_URL } from "@/src/domain/reader/readerNavigationPolicy";
+import { PDF_SCROLL_SOURCE } from "@/src/domain/reader/pdfScroll";
 
-export function PdfPageViewer({ uri, pageNumber, pageMode, fitMode, zoom, rotation, onTotalPages }: PdfPageViewerProps) {
+export function PdfPageViewer({ uri, pageNumber, pageMode, fitMode, zoom, rotation, onTotalPages, flow = "paged", onScrollPage, onTap }: PdfPageViewerProps) {
+  const scrollCallbacks = useRef({ onScrollPage, onTap });
+  scrollCallbacks.current = { onScrollPage, onTap };
   const webView = useRef<WebView>(null);
   const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState(false);
@@ -82,6 +85,11 @@ export function PdfPageViewer({ uri, pageNumber, pageMode, fitMode, zoom, rotati
     }
   }, [pageNumber, pageMode, fitMode, zoom, rotation, pdfBase64]);
 
+  // Rolagem contínua: troca o modo sem recarregar o PDF.
+  useEffect(() => {
+    if (pdfBase64) webView.current?.injectJavaScript(`window.applyFlow && window.applyFlow(${JSON.stringify(flow)}); true;`);
+  }, [flow, pdfBase64]);
+
   const source = useMemo(
     () => ({ html: getPdfViewerHtml(), baseUrl: READER_BASE_URL }),
     []
@@ -90,10 +98,10 @@ export function PdfPageViewer({ uri, pageNumber, pageMode, fitMode, zoom, rotati
   const handleWebViewLoaded = useCallback(() => {
     if (pdfBase64) {
       webView.current?.injectJavaScript(
-        `window.loadBase64 && window.loadBase64(${JSON.stringify(pdfBase64)}, ${pageNumber}, ${JSON.stringify(pageMode)}, ${JSON.stringify(fitMode)}, ${zoom}, ${rotation}); true;`
+        `window.loadBase64 && window.loadBase64(${JSON.stringify(pdfBase64)}, ${pageNumber}, ${JSON.stringify(pageMode)}, ${JSON.stringify(fitMode)}, ${zoom}, ${rotation}, ${JSON.stringify(flow)}); true;`
       );
     }
-  }, [pageNumber, pageMode, fitMode, zoom, rotation, pdfBase64]);
+  }, [pageNumber, pageMode, fitMode, zoom, rotation, pdfBase64, flow]);
 
   const handleMessage = (event: WebViewMessageEvent) => {
     try {
@@ -101,11 +109,16 @@ export function PdfPageViewer({ uri, pageNumber, pageMode, fitMode, zoom, rotati
         type?: string;
         totalPages?: number;
         pageNumber?: number;
+        offset?: number;
         message?: string;
       };
 
       if (data.type === "totalPages" && typeof data.totalPages === "number") {
         totalPagesCallback.current(data.totalPages);
+      } else if (data.type === "scrollPage" && typeof data.pageNumber === "number") {
+        scrollCallbacks.current.onScrollPage?.(data.pageNumber, typeof data.offset === "number" ? data.offset : 0);
+      } else if (data.type === "tap") {
+        scrollCallbacks.current.onTap?.();
       } else if (data.type === "rendered") {
         setLoading(false);
       } else if (data.type === "error") {
@@ -213,6 +226,7 @@ function getPdfViewerHtml(): string {
     var currentFitMode = "page";
     var currentZoom = 1;
     var currentRotation = 0;
+    var currentFlow = "paged", scroller = null, scrollerBuilding = false;
 
     function post(msg) {
       if (window.ReactNativeWebView && window.ReactNativeWebView.postMessage) {
@@ -228,6 +242,7 @@ function getPdfViewerHtml(): string {
       var isDouble = pageMode === "double";
       var pageNum = isDouble ? Math.ceil(logicalPageNum / 2) : logicalPageNum;
       var isRightHalf = isDouble && logicalPageNum % 2 === 0;
+      if (scroller) { currentPageNum = logicalPageNum; if (scroller.current() !== logicalPageNum) scroller.goTo(logicalPageNum); return; }
       if (!pdfDoc) {
         currentPageNum = logicalPageNum;
         currentPageMode = pageMode;
@@ -285,8 +300,30 @@ function getPdfViewerHtml(): string {
 
     window.renderPage = renderPage;
 
-    function loadBase64(base64Data, initialPage, pageMode, fitMode, zoom, rotation) {
+${PDF_SCROLL_SOURCE}
+    function applyFlow(flow) {
+      currentFlow = flow === "scroll" ? "scroll" : "paged";
+      if (!pdfDoc) return;
+      var canvas = document.getElementById("pdf-canvas"), container = document.getElementById("container");
+      if (currentFlow === "paged") {
+        if (scroller) { scroller.destroy(); scroller = null; }
+        document.body.style.touchAction = ""; canvas.style.display = "block"; container.style.alignItems = "center";
+        renderPage(currentPageNum, currentPageMode, currentFitMode, currentZoom, currentRotation); return;
+      }
+      if (scroller || scrollerBuilding) return;
+      scrollerBuilding = true; canvas.style.display = "none"; container.style.alignItems = "flex-start"; document.body.style.touchAction = "pan-y";
+      createPdfScroller({ container: container, pdf: pdfDoc, page: currentPageNum, zoom: currentZoom, rotation: currentRotation,
+        onPage: function (page, offset) { currentPageNum = page; post({ type: "scrollPage", pageNumber: page, offset: offset }); },
+        onTap: function () { post({ type: "tap" }); },
+        onError: function (message) { post({ type: "error", message: message }); }
+      }).then(function (created) { scrollerBuilding = false; if (currentFlow !== "scroll") { created.destroy(); return; } scroller = created; post({ type: "rendered", pageNumber: currentPageNum }); })
+        .catch(function (error) { scrollerBuilding = false; post({ type: "error", message: error.message }); });
+    }
+    window.applyFlow = applyFlow;
+
+    function loadBase64(base64Data, initialPage, pageMode, fitMode, zoom, rotation, flow) {
       try {
+        currentFlow = flow === "scroll" ? "scroll" : "paged";
         currentPageNum = Math.max(1, Number(initialPage) || currentPageNum);
         currentPageMode = pageMode || "single";
         currentFitMode = fitMode || "page";
@@ -310,7 +347,7 @@ function getPdfViewerHtml(): string {
           }).promise.then(function(pdf) {
             pdfDoc = pdf;
             post({ type: "totalPages", totalPages: pdf.numPages * (currentPageMode === "double" ? 2 : 1) });
-            renderPage(currentPageNum, currentPageMode, currentFitMode, currentZoom, currentRotation);
+            if (currentFlow === "scroll") applyFlow("scroll"); else renderPage(currentPageNum, currentPageMode, currentFitMode, currentZoom, currentRotation);
           }).catch(function(err) {
             post({ type: "error", message: err.message });
           });
@@ -325,7 +362,7 @@ function getPdfViewerHtml(): string {
     window.loadBase64 = loadBase64;
 
     window.addEventListener("resize", function() {
-      if (pdfDoc) renderPage(currentPageNum, currentPageMode, currentFitMode, currentZoom, currentRotation);
+      if (pdfDoc && !scroller) renderPage(currentPageNum, currentPageMode, currentFitMode, currentZoom, currentRotation);
     });
   </script>
 </body>

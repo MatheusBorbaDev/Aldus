@@ -115,6 +115,8 @@ export interface PdfReaderSettings {
   margin: number;
   maxWidth: number;
   alignment: PdfTextAlignment;
+  /** PDF Original: página a página ou rolagem contínua (Fase E, 16/11/2026). Local do aparelho, não sincroniza. */
+  flow?: "paged" | "scroll";
   originalProgress: number | null;
   reflowProgress: number | null;
 }

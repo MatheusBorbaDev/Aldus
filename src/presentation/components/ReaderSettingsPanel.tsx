@@ -12,6 +12,7 @@ import { readerUiDiagnostic } from "@/src/utils/readerUiDiagnostics";
 import { FOCUS_GOAL_MINUTES } from "@/src/domain/reader/readingSession";
 import { PAPER_TEXTURES } from "@/src/domain/reader/paperTexture";
 import { PAGE_TURNS } from "@/src/domain/reader/pageTurn";
+import { PDF_FLOWS } from "@/src/domain/reader/pdfScroll";
 
 /**
  * Ajustes de leitura (redesenho, etapa 1). Folha baixa: o texto continua visível atrás para o leitor ver o efeito.
@@ -410,7 +411,13 @@ export function ReaderSettingsPanel({
                 </Field>
               ) : (
                 <>
-                  <Field label="Ajuste" palette={palette}>
+                  <Field label="Leitura" palette={palette}>
+                    <View style={styles.segmented}>
+                      {PDF_FLOWS.map(item => <Segment key={item.value} label={item.label} selected={(pdfSettings.flow === "scroll" ? "scroll" : "paged") === item.value} onPress={() => updatePdfSettings(item.value === "scroll" ? { flow: "scroll", layout: "single" } : { flow: "paged" })} palette={palette} />)}
+                    </View>
+                  </Field>
+                  {pdfSettings.flow === "scroll" ? <Text style={[styles.hint, { color: palette.secondaryText }]}>As páginas ficam uma embaixo da outra, na largura da tela. Toque na página para mostrar os controles.</Text> : null}
+                  {pdfSettings.flow !== "scroll" ? <><Field label="Ajuste" palette={palette}>
                     <View style={styles.segmented}>
                       <Segment label="À página" selected={pdfSettings.fitMode === "page"} onPress={() => updatePdfSettings({ fitMode: "page", zoom: 1 })} palette={palette} />
                       <Segment label="À largura" selected={pdfSettings.fitMode === "width"} onPress={() => updatePdfSettings({ fitMode: "width", zoom: 1 })} palette={palette} />
@@ -421,7 +428,7 @@ export function ReaderSettingsPanel({
                       <Segment label="Única" selected={pdfSettings.layout === "single"} onPress={() => updatePdfSettings({ layout: "single" })} palette={palette} />
                       <Segment label="Dupla" selected={pdfSettings.layout === "double"} onPress={() => updatePdfSettings({ layout: "double", rotation: 0 })} palette={palette} />
                     </View>
-                  </Field>
+                  </Field></> : null}
                   <View style={styles.row}>
                     {pdfSettings.layout === "single" ? <ActionButton label={`Girar (${pdfSettings.rotation}°)`} onPress={() => updatePdfSettings({ rotation: (pdfSettings.rotation + 90) % 360 })} palette={palette} /> : null}
                     {onToggleFullscreen ? <ActionButton label="Tela cheia" onPress={onToggleFullscreen} palette={palette} /> : null}

@@ -21,6 +21,7 @@ new Function('require', 'exports', ts.transpileModule(source, { compilerOptions:
   if (name.includes('MotionCuesControl')) return { MotionCuesControl: 'Motion' };
   if (name.includes('readerUiDiagnostics')) return { readerUiDiagnostic() {} };
   if (name.includes('reader/readingSession')) return { FOCUS_GOAL_MINUTES: [10, 15, 25, 45] };
+  if (name.includes('reader/pdfScroll')) return { PDF_FLOWS: [{ value: 'paged', label: 'Página a página' }, { value: 'scroll', label: 'Rolagem contínua' }] };
   if (name.includes('reader/pageTurn')) return { PAGE_TURNS: [{ value: 'none', label: 'Sem animação' }, { value: 'slide', label: 'Deslizar' }, { value: 'flip', label: 'Folhear' }] };
   if (name.includes('reader/paperTexture')) return { PAPER_TEXTURES: [{ value: 'none', label: 'Sem textura' }, { value: 'paper', label: 'Papel' }, { value: 'aged', label: 'Papel envelhecido' }] };
   if (name.includes('/tokens')) return { pdfReaderThemes: themesMap, readerThemes: themesMap, fontFamilies: { serif: 'Georgia', sans: 'System', dyslexic: 'Verdana' } };

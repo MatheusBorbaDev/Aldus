@@ -1050,6 +1050,8 @@ export function ReaderScreen({ bookId }: Props) {
         pdfFitMode={pdfReaderSettings?.fitMode ?? "page"}
         pdfZoom={pdfReaderSettings?.zoom ?? 1}
         pdfRotation={pdfReaderSettings?.rotation ?? 0}
+        pdfFlow={pdfReaderSettings?.flow === "scroll" ? "scroll" : "paged"}
+        onPdfScrollPage={page => { if (pdfTotalPages > 0 && page !== pdfPage) handleProgress(pdfTotalPages > 1 ? (page - 1) / (pdfTotalPages - 1) : 0); }}
         pdfReadingMode={pdfReadingMode}
         pdfReflowChapters={pdfReflowChapters}
         searchTerm={isEpub || isReflowPdf ? bookSearchTerm : ""}
