@@ -8,6 +8,7 @@ import { assessTextExtractionQuality, isClearlyCorruptedTextExtraction, CORRUPT_
 import { createPdfOcrPlanAsync, createReflowDerivation } from "@/src/data/local/pdfOcrPolicy";
 import { PdfReflowProgress, PdfReflowProcessorProps, reflowProgressLabel } from "@/src/presentation/components/PdfReflowProcessorProps";
 import { createReflowOperation } from "./reflowOperation";
+import { appThemeTokens } from "@/src/theme/tokens";
 
 interface PdfTextItem {
   str: string;
@@ -142,7 +143,7 @@ export function PdfReflowProcessor({ uri, onProgress, onComplete, onError, onCan
           </>
         ) : (
           <>
-            <ActivityIndicator size="large" color="#B65F42" />
+            <ActivityIndicator size="large" color={appThemeTokens.dark.accent} />
             <Text style={styles.title}>Preparando leitura livre</Text>
             <Text style={styles.description}>{reflowProgressLabel(progress)}</Text>
             <Pressable accessibilityRole="button" onPress={() => cancel.current()} style={styles.cancel}>

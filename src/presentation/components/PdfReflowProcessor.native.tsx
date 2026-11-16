@@ -12,6 +12,10 @@ import { createReflowOperation } from "./reflowOperation";
 import { reflowDiagnostic } from "@/src/utils/reflowDiagnostics";
 import { newLibraryId } from "@/src/domain/entities/libraryId";
 import { allowReaderNavigation, READER_BASE_URL } from "@/src/domain/reader/readerNavigationPolicy";
+import { appThemeTokens } from "@/src/theme/tokens";
+
+// O painel do OCR fica sempre sobre um véu escuro: usa o par destaque/texto do tema escuro do app (7,66:1; antes #B65F42 + branco, 4,46:1).
+const OCR_ACCENT = appThemeTokens.dark.accent, OCR_ON_ACCENT = appThemeTokens.dark.onAccent;
 
 export function PdfReflowProcessor({ uri, onProgress, onComplete, onError, onCancel }: PdfReflowProcessorProps) {
   const webView = useRef<WebView>(null);
@@ -256,7 +260,7 @@ export function PdfReflowProcessor({ uri, onProgress, onComplete, onError, onCan
           </>
         ) : (
           <>
-            <ActivityIndicator size="large" color="#B65F42" />
+            <ActivityIndicator size="large" color={OCR_ACCENT} />
             <Text style={styles.title}>{processingState === "OCR_PROCESSING" ? "Reconhecendo texto" : "Preparando leitura livre"}</Text>
             <Text style={styles.description}>{reflowProgressLabel(progress)}</Text>
             <Pressable accessibilityRole="button" onPress={cancel} style={styles.cancel}>
@@ -408,6 +412,6 @@ const styles = StyleSheet.create({
   description: { color: "#D4C5A9", fontSize: 14, textAlign: "center" },
   cancel: { marginTop: 8, paddingVertical: 10, paddingHorizontal: 18 },
   cancelText: { color: "#F3E5C8", fontSize: 14, fontWeight: "600" },
-  primaryAction: { marginTop: 10, borderRadius: 8, backgroundColor: "#B65F42", paddingVertical: 12, paddingHorizontal: 20 },
-  primaryActionText: { color: "#FFFFFF", fontSize: 15, fontWeight: "700" },
+  primaryAction: { marginTop: 10, borderRadius: 8, backgroundColor: OCR_ACCENT, paddingVertical: 12, paddingHorizontal: 20, minHeight: 44, justifyContent: "center" },
+  primaryActionText: { color: OCR_ON_ACCENT, fontSize: 15, fontWeight: "700" },
 });

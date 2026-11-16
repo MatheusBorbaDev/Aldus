@@ -90,4 +90,20 @@ assert.equal(cacheRecord.processorVersion, 12);
 assert.equal(quality.isValidatedReflowDocument(cacheRecord.document), true);
 assert.equal(quality.isValidatedReflowDocument({ ...ocrDocument, derivation: { ...ocrDocument.derivation, ocrEngineVersion: undefined } }), false);
 
-console.log('OCR A-J PASS: text, scan, corrupt, mixed, blank, small, large, cancel, insufficient and versioned cache; Portuguese accents/order/hyphenation PASS');
+// Painel do OCR: cores do tema escuro do app (antes terracota fixa #B65F42 + branco, 4,46:1, abaixo de AA) e alvo de 44 px.
+{
+  const fs = require('node:fs');
+  const native = fs.readFileSync('src/presentation/components/PdfReflowProcessor.native.tsx', 'utf8');
+  const web = fs.readFileSync('src/presentation/components/PdfReflowProcessor.web.tsx', 'utf8');
+  for (const source of [native, web]) assert.ok(!/color[=:]\s*\{?\s*["']#B65F42["']|backgroundColor:\s*"#B65F42"/.test(source), 'sem terracota fixa');
+  assert.match(native, /backgroundColor: OCR_ACCENT[^}]*minHeight: 44/);
+  assert.match(native, /primaryActionText: \{ color: OCR_ON_ACCENT/);
+  const tokens = fs.readFileSync('src/theme/tokens.ts', 'utf8');
+  const dark = tokens.slice(tokens.indexOf('  dark: {'));
+  const hex = key => dark.match(new RegExp(`\\b${key}: "(#[0-9A-Fa-f]{6})"`))[1];
+  const lum = h => { const c = [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16) / 255).map(v => v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4); return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]; };
+  const [a, b] = [lum(hex('accent')), lum(hex('onAccent'))].sort((x, y) => y - x);
+  assert.ok((a + 0.05) / (b + 0.05) >= 4.5, 'texto do botão do OCR com contraste AA');
+}
+
+console.log('OCR A-J PASS: text, scan, corrupt, mixed, blank, small, large, cancel, insufficient and versioned cache; Portuguese accents/order/hyphenation PASS; OCR panel uses dark app tokens (AA)');
