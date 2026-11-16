@@ -29,6 +29,8 @@ export function useReadingSession({ bookId, format, ready, page }: {
   const [focusGoal, setFocusGoal] = useState<number | null>(null);
   const [focusLeft, setFocusLeft] = useState<number | null>(null);
   const [summary, setSummary] = useState<string | null>(null);
+  // Última sessão de foco encerrada, para o cartão de foco (FASE 3, C). Só existe quando o resumo está ligado.
+  const [lastFocus, setLastFocus] = useState<ReadingSessionRecord | null>(null);
   const [summaryEnabled, setSummaryEnabled] = useState(true);
   const summaryEnabledRef = useRef(true);
 
@@ -88,7 +90,7 @@ export function useReadingSession({ bookId, format, ready, page }: {
 
   const finishFocus = useCallback((now: number) => {
     const value = persist(now);
-    if (value && summaryEnabledRef.current) setSummary(focusSummaryText(value));
+    if (value && summaryEnabledRef.current) { setSummary(focusSummaryText(value)); setLastFocus(value); }
     begin(now, null);
   }, [begin, persist]);
 
@@ -120,13 +122,13 @@ export function useReadingSession({ bookId, format, ready, page }: {
   const setFocusSummaryEnabled = useCallback((value: boolean) => {
     summaryEnabledRef.current = value;
     setSummaryEnabled(value);
-    if (!value) setSummary(null);
+    if (!value) { setSummary(null); setLastFocus(null); }
     void Promise.resolve().then(() => AsyncStorage.setItem(FOCUS_SUMMARY_KEY, value ? "true" : "false")).catch(() => undefined);
   }, []);
 
   return {
-    focusGoal, focusLeft, summary, summaryEnabled,
-    startFocus, endFocus, dismissSummary: () => setSummary(null), setFocusSummaryEnabled,
+    focusGoal, focusLeft, summary, summaryEnabled, lastFocus,
+    startFocus, endFocus, dismissSummary: () => setSummary(null), setFocusSummaryEnabled, clearLastFocus: () => setLastFocus(null),
   };
 }
 

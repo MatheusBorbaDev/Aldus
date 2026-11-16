@@ -10,6 +10,7 @@ import { useNativeReaderBrightness } from "@/src/presentation/hooks/useNativeRea
 import { useChapterTimeLeft } from "@/src/presentation/hooks/useChapterTimeLeft";
 import { openSystemDoNotDisturb, useReadingSession } from "@/src/presentation/hooks/useReadingSession";
 import { ReadingMilestonesModal } from "@/src/presentation/components/reader/ReadingMilestonesModal";
+import { FocusCardModal } from "@/src/presentation/components/reader/FocusCardModal";
 import { MilestonePlan, milestoneLabel, milestoneScheduleText } from "@/src/domain/reader/readingMilestones";
 import { libraryAccountScope } from "@/src/data/library/LibraryAccountScope";
 import { useReadAloud } from "@/src/presentation/hooks/useReadAloud";
@@ -645,6 +646,7 @@ export function ReaderScreen({ bookId }: Props) {
   // Marcos de leitura locais (FASE 5b): por conta e por livro, só neste aparelho; o rótulo some com as contagens.
   const [milestonePlan, setMilestonePlan] = useState<MilestonePlan | null>(null);
   const [milestonesVisible, setMilestonesVisible] = useState(false);
+  const [focusCardVisible, setFocusCardVisible] = useState(false);
   useEffect(() => {
     let active = true; setMilestonePlan(null);
     const userId = libraryAccountScope.userId;
@@ -1096,8 +1098,9 @@ export function ReaderScreen({ bookId }: Props) {
             transient={false}
             palette={activePalette}
             top={readerFeedbackTop(insets.top, controlsVisible && !studySelecting, headerHeight)}
-            actionAccessibilityLabel="Fechar resumo do foco"
-            onDismiss={readingSession.dismissSummary}
+            actionLabel={readingSession.lastFocus ? "Ver cartão" : "Fechar"}
+            actionAccessibilityLabel={readingSession.lastFocus ? "Ver cartão de foco" : "Fechar resumo do foco"}
+            onDismiss={() => { if (readingSession.lastFocus) setFocusCardVisible(true); readingSession.dismissSummary(); }}
           />
         ) : reflowFeedback ? (
           <ReaderFeedbackBanner
@@ -1109,6 +1112,15 @@ export function ReaderScreen({ bookId }: Props) {
             onLayout={event => readerUiDiagnostic("LAYOUT", "feedback", readerControlProps.diagnosticContext, event.nativeEvent.layout, { pointerEvents: "box-none", zIndex: 40 })}
           />
         ) : null}
+
+        {focusCardVisible && readingSession.lastFocus ? <FocusCardModal
+          record={readingSession.lastFocus}
+          title={bookTitle}
+          hideCounts={settings.hideReadingCounts}
+          palette={activePalette}
+          onShare={text => { void Share.share({ message: text }).catch(() => undefined); }}
+          onClose={() => { setFocusCardVisible(false); readingSession.clearLastFocus(); }}
+        /> : null}
 
         {milestonesVisible ? <ReadingMilestonesModal
           visible
