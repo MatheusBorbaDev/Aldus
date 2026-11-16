@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process";
-import { existsSync, statSync } from "node:fs";
+import { existsSync, rmSync, statSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { androidBuildCommand } from "./android-build-command.cjs";
@@ -25,6 +25,10 @@ if (!existsSync(wrapper)) {
   process.exit(1);
 }
 
+// O Gradle não apaga recursos de builds anteriores: livros removidos do projeto voltavam ao APK (11/11/2026). A pasta é saída
+// regenerável do bundle JS; apagá-la a cada build garante que o APK só leve o que está no código agora.
+rmSync(path.join(androidDir, "app/build/generated/res/react/release"), { recursive: true, force: true });
+
 const buildStarted = Date.now();
 const command = androidBuildCommand(wrapper);
 const result = spawnSync(
@@ -49,3 +53,10 @@ const apk = statSync(apkPath);
 console.log(`APK: ${apkPath}`);
 console.log(`Size: ${(apk.size / 1024 / 1024).toFixed(1)} MiB`);
 if (apk.mtimeMs < buildStarted) console.log("Gradle reused an up-to-date APK.");
+
+// Pedido do dono (16/11/2026): nenhum APK sai sem tudo o que foi pedido. A lista está em scripts/verify-release-features.cjs.
+const features = spawnSync(process.execPath, [path.join(projectRoot, "scripts/verify-release-features.cjs"), "--apk", apkPath], { stdio: "inherit" });
+if (features.status !== 0) {
+  console.error("APK gerado, mas INCOMPLETO: falta algum recurso pedido (lista acima). Não entregue este arquivo.");
+  process.exit(1);
+}
