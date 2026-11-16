@@ -101,19 +101,23 @@ function renderQuoteCard(ctx, spec, makeCanvas) {
     ctx.fillStyle = spec.accent; ctx.beginPath(); ctx.arc(M + 12, top + 16, 12, 0, Math.PI * 2); ctx.fill();
     ctx.fillStyle = spec.secondary; ctx.font = '600 34px ' + sans; ctx.textBaseline = 'middle'; ctx.fillText('ALDUS', M + 40, top + 17);
   }
-  top += Math.round(H * 0.06);
-  ctx.textBaseline = 'alphabetic'; ctx.fillStyle = spec.accent; ctx.font = '700 ' + Math.round(W * 0.2) + 'px ' + serif; ctx.fillText('“', M - 8, top + Math.round(W * 0.15));
-  top += Math.round(W * 0.17);
-  var footer = (spec.book ? 2 * 52 : 0) + (spec.author ? 48 : 0) + (spec.book || spec.author ? 60 : 0), bottom = H - M - footer;
-  var size = Math.round(W * 0.066), min = Math.round(W * 0.032), font = 'SIZE' + 'px ' + serif, lines, lineHeight;
-  for (;;) { lines = wrap(spec.quote, size, font, width); lineHeight = Math.round(size * 1.38); if (lines.length * lineHeight <= bottom - top || size <= min) break; size -= 2; }
-  if (lines.length * lineHeight > bottom - top) lines = clamp(lines, Math.max(1, Math.floor((bottom - top) / lineHeight)), size + 'px ' + serif, width);
+  // Bloco (aspas, trecho, título e autor) centralizado na altura livre; trecho curto ganha letra maior no formato alto.
+  var regionTop = top + Math.round(H * 0.05), regionBottom = H - M, markHeight = Math.round(W * 0.17);
+  var bookFont = '700 40px ' + serif, bookLines = spec.book ? clamp(wrap(spec.book, 40, '700 SIZEpx ' + serif, width), 2, bookFont, width) : [];
+  var footer = (spec.book || spec.author) ? 44 + 56 + bookLines.length * 52 + (spec.author ? 12 : 0) : 0;
+  var available = regionBottom - regionTop - markHeight - footer;
+  var size = Math.round(W * (H / W > 1.5 ? 0.082 : 0.07)), min = Math.round(W * 0.032), font = 'SIZE' + 'px ' + serif, lines, lineHeight;
+  for (;;) { lines = wrap(spec.quote, size, font, width); lineHeight = Math.round(size * 1.38); if (lines.length * lineHeight <= available || size <= min) break; size -= 2; }
+  if (lines.length * lineHeight > available) lines = clamp(lines, Math.max(1, Math.floor(available / lineHeight)), size + 'px ' + serif, width);
+  var block = markHeight + lines.length * lineHeight + footer, start = regionTop + Math.max(0, Math.round((regionBottom - regionTop - block) * 0.45));
+  ctx.textBaseline = 'alphabetic'; ctx.fillStyle = spec.accent; ctx.font = '700 ' + Math.round(W * 0.2) + 'px ' + serif; ctx.fillText('“', M - 8, start + Math.round(W * 0.15));
+  var quoteTop = start + markHeight;
   ctx.fillStyle = spec.text; ctx.font = size + 'px ' + serif;
-  for (var l = 0; l < lines.length; l++) ctx.fillText(lines[l], M, top + size + l * lineHeight);
-  var y = top + lines.length * lineHeight + 44;
+  for (var l = 0; l < lines.length; l++) ctx.fillText(lines[l], M, quoteTop + size + l * lineHeight);
+  var y = quoteTop + lines.length * lineHeight + 44;
   if (spec.book || spec.author) {
     ctx.fillStyle = spec.accent; ctx.fillRect(M, y, 72, 6); y += 56;
-    if (spec.book) { var bookFont = '700 40px ' + serif, bookLines = clamp(wrap(spec.book, 40, '700 SIZEpx ' + serif, width), 2, bookFont, width); ctx.fillStyle = spec.text; ctx.font = bookFont; for (var b = 0; b < bookLines.length; b++) { ctx.fillText(bookLines[b], M, y); y += 52; } }
+    if (spec.book) { ctx.fillStyle = spec.text; ctx.font = bookFont; for (var b = 0; b < bookLines.length; b++) { ctx.fillText(bookLines[b], M, y); y += 52; } }
     if (spec.author) { var authorFont = '34px ' + sans, authorLine = clamp(wrap(spec.author, 34, 'SIZEpx ' + sans, width), 1, authorFont, width)[0]; ctx.fillStyle = spec.secondary; ctx.font = authorFont; ctx.fillText(authorLine, M, y); }
   }
   return { fontSize: size, lines: lines };

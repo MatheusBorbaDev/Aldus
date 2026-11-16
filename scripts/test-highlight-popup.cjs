@@ -40,6 +40,9 @@ const anchor = { version: 1, kind: 'epub-text', chapterId: 'c1', start: 10, end:
   await act(async () => byLabel('Grifar em verde').props.onPress()); await act(async () => byLabel('Frase inteira').props.onPress());
   await act(async () => byLabel('Adicionar nota').props.onPress()); await act(async () => byLabel('Cancelar').props.onPress());
   assert.deepEqual(calls, [['color', 'green'], ['adjust', 'sentence'], ['note'], ['cancel']]);
+  await act(async () => tree.update(React.createElement(HighlightSelectionPopup, props({ onShare: () => calls.push(['share']) }))));
+  assert.deepEqual(buttons().slice(-3).map(b => b.props.accessibilityLabel), ['Adicionar nota', 'Compartilhar', 'Cancelar'], 'quote card entry (phase C)');
+  await act(async () => byLabel('Compartilhar').props.onPress()); assert.deepEqual(calls.at(-1), ['share']);
   await act(async () => tree.update(React.createElement(HighlightSelectionPopup, props({ busy: true }))));
   assert.ok(buttons().filter(b => b.props.accessibilityLabel !== 'Cancelar').every(b => b.props.disabled), 'busy disables saving and adjusting');
   assert.equal(byLabel('Cancelar').props.disabled, false, 'cancel always works');

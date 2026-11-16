@@ -18,6 +18,7 @@ import { htmlToSpeechText, speechStartOffset } from "@/src/domain/reader/speechT
 import { chapterLanguage } from "@/src/presentation/components/EpubReaderDocument";
 import { ReaderFeedbackBanner } from "@/src/presentation/components/reader/ReaderFeedbackBanner";
 import { HighlightSelectionPopup } from "@/src/presentation/components/reader/HighlightSelectionPopup";
+import { QuoteCardModal } from "@/src/presentation/components/reader/QuoteCardModal";
 import { createStudyHighlight } from "@/src/domain/usecases/StudyHighlights";
 import { studyColorNames } from "@/src/presentation/components/StudyPanelControls";
 import type { HighlightColor } from "@/src/domain/repositories/HighlightRepository";
@@ -112,13 +113,14 @@ export function ReaderScreen({ bookId }: Props) {
   // documento continua armada (as alças recapturam) e os toques de página ficam suspensos.
   const [selectionPopup, setSelectionPopup] = useState<{ anchor: TextReadingAnchor | null; error: string | null; busy: boolean } | null>(null);
   const [selectionNotice, setSelectionNotice] = useState<string | null>(null);
+  const [quoteCard, setQuoteCard] = useState<string | null>(null);
   const popupIntent = useRef(false);
   const [studyHighlights, setStudyHighlights] = useState<Highlight[]>([]);
   const [studyRenderFeedback, setStudyRenderFeedback] = useState<string | null>(null);
   const [studyStorageError, setStudyStorageError] = useState<string | null>(null);
   const reloadHighlights = useCallback(async () => { setStudyHighlights(await appDependencies.highlightRepository.listByBookId(bookId)); setStudyStorageError(null); }, [bookId]);
   useEffect(() => { let active = true; setStudyHighlights([]); appDependencies.highlightRepository.listByBookId(bookId).then(values => { if (active) { setStudyHighlights(values); setStudyStorageError(null); } }).catch(e => { if (active) setStudyStorageError(e.message); }); return () => { active = false; }; }, [bookId]);
-  useEffect(() => { popupIntent.current = false; setSelectionPopup(null); setSelectionNotice(null); }, [bookId]);
+  useEffect(() => { popupIntent.current = false; setSelectionPopup(null); setSelectionNotice(null); setQuoteCard(null); }, [bookId]);
   useEffect(() => { studySequence.current++; studySelectionIntent.current = false; setStudySelectionCaptured(false); setStudyAnchor(null); setStudyRequest(null); setStudyVisible(false); setStudySelecting(false); setStudyLoading(false); setStudyFeedback(null); setStudyRenderFeedback(null); }, [bookId]);
   const studySequence = useRef(0);
   const handleStudyResult = useCallback((result: ReaderStudyResult) => {
@@ -1122,7 +1124,9 @@ export function ReaderScreen({ bookId }: Props) {
         <MotionCuesOverlay color={activePalette.text} />
         {studySelecting ? <View style={{ position: "absolute", bottom: Math.max(insets.bottom, 12) + 64, left: 16, right: 16, zIndex: 30, backgroundColor: activePalette.panel, padding: 12, borderRadius: 8 }}><Text style={{ color: activePalette.text }}>{Platform.OS === "web" ? "Arraste sobre o texto. Solte para escolher a cor." : "Toque e segure uma palavra. Ajuste a seleção e solte para escolher a cor."}</Text>{studyFeedback ? <Text accessibilityRole="alert" style={{ color: activePalette.text }}>{studyFeedback}</Text> : null}<Pressable accessibilityRole="button" style={{ minHeight: 44, justifyContent: "center" }} onPress={() => { studySelectionIntent.current = false; setStudySelectionCaptured(false); setStudySelecting(false); setStudyVisible(true); setStudyRequest({ id: ++studySequence.current, type: "studySelection", enabled: false }); }}><Text style={{ color: activePalette.accent, paddingVertical: 10 }}>Cancelar seleção</Text></Pressable></View> : null}
         {selectionPopup ? <HighlightSelectionPopup quote={selectionPopup.anchor?.quote ?? null} error={selectionPopup.error} busy={selectionPopup.busy} palette={activePalette}
-          bottom={Math.max(insets.bottom, 12) + 12} onColor={color => void saveSelection(color)} onAdjust={adjustSelection} onNote={noteSelection} onCancel={closeSelectionPopup} /> : null}
+          bottom={Math.max(insets.bottom, 12) + 12} onColor={color => void saveSelection(color)} onAdjust={adjustSelection} onNote={noteSelection}
+          onShare={() => { if (selectionPopup.anchor) setQuoteCard(selectionPopup.anchor.quote); }} onCancel={closeSelectionPopup} /> : null}
+        {quoteCard !== null ? <QuoteCardModal quote={quoteCard} title={bookTitle} author={currentBook?.author ?? null} paletteName={appPaletteName ?? "classic"} palette={activePalette} onClose={() => setQuoteCard(null)} /> : null}
         {studyVisible && currentBook ? <StudyBookmarksPanel book={currentBook} capture={studyAnchor} chapterTitle={chapterTitle} loading={studyLoading} feedback={studyStorageError ?? studyFeedback ?? studyRenderFeedback}
           highlights={isEpub ? studyHighlights : undefined} onHighlightsSaved={reloadHighlights}
           selectionCaptured={studySelectionCaptured} onCaptureConsumed={() => { setStudySelectionCaptured(false); setStudyAnchor(null); }}

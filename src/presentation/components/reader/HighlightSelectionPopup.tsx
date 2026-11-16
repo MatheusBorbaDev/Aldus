@@ -16,7 +16,7 @@ const ADJUSTMENTS: ReadonlyArray<{ op: ReaderStudyAdjust; label: string }> = [
  * grifo na hora; o trecho pode ser ajustado palavra a palavra ou pela frase sem depender das alças do sistema; "Adicionar nota"
  * abre o painel completo com o trecho. Enquanto ele está aberto, os toques de virar página e mostrar controles ficam suspensos.
  */
-export function HighlightSelectionPopup({ quote, error, busy, palette, bottom, onColor, onAdjust, onNote, onCancel }: {
+export function HighlightSelectionPopup({ quote, error, busy, palette, bottom, onColor, onAdjust, onNote, onShare, onCancel }: {
   quote: string | null;
   error: string | null;
   busy: boolean;
@@ -25,6 +25,8 @@ export function HighlightSelectionPopup({ quote, error, busy, palette, bottom, o
   onColor: (color: HighlightColor) => void;
   onAdjust: (op: ReaderStudyAdjust) => void;
   onNote: () => void;
+  /** Card do trecho para Stories/X (Fase C). Ausente = sem o botão. */
+  onShare?: () => void;
   onCancel: () => void;
 }) {
   const colors = Object.keys(studyColorNames) as HighlightColor[];
@@ -46,6 +48,7 @@ export function HighlightSelectionPopup({ quote, error, busy, palette, bottom, o
       </> : null}
       <View style={styles.row}>
         {quote ? <Chip label="Adicionar nota" disabled={busy} palette={palette} onPress={onNote} strong /> : null}
+        {quote && onShare ? <Chip label="Compartilhar" disabled={busy} palette={palette} onPress={onShare} strong /> : null}
         <Chip label={quote ? "Cancelar" : "Fechar"} disabled={false} palette={palette} onPress={onCancel} />
       </View>
     </View>
