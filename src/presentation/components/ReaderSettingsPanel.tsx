@@ -11,6 +11,7 @@ import { PdfReaderTheme } from "@/src/domain/types/pdfReader";
 import { readerUiDiagnostic } from "@/src/utils/readerUiDiagnostics";
 import { FOCUS_GOAL_MINUTES } from "@/src/domain/reader/readingSession";
 import { PAPER_TEXTURES } from "@/src/domain/reader/paperTexture";
+import { PAGE_TURNS } from "@/src/domain/reader/pageTurn";
 
 /**
  * Ajustes de leitura (redesenho, etapa 1). Folha baixa: o texto continua visível atrás para o leitor ver o efeito.
@@ -371,6 +372,16 @@ export function ReaderSettingsPanel({
                     selectedValue={Math.max(0, PAPER_TEXTURES.findIndex(texture => texture.value === (settings.paperTexture ?? "none")))}
                     palette={palette}
                     onSelect={(value) => settings.setPaperTexture?.(PAPER_TEXTURES[Number(value)]?.value ?? "none")}
+                  />
+                </Field>
+              ) : null}
+              {!isOriginalPdf ? (
+                <Field label="Virar página" palette={palette}>
+                  <SegmentedControl
+                    options={PAGE_TURNS.map((turn, index) => ({ label: turn.label, value: index }))}
+                    selectedValue={Math.max(0, PAGE_TURNS.findIndex(turn => turn.value === (settings.pageTurn ?? "slide")))}
+                    palette={palette}
+                    onSelect={(value) => settings.setPageTurn?.(PAGE_TURNS[Number(value)]?.value ?? "slide")}
                   />
                 </Field>
               ) : null}

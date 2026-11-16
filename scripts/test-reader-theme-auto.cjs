@@ -50,6 +50,10 @@ const flush = () => act(async () => { for (let i = 0; i < 5; i++) await Promise.
   stored = JSON.stringify({ theme: 'sepia', paperTexture: 'linen' });
   await act(async () => tree.unmount()); await act(async () => { tree = create(React.createElement(ReaderSettingsProvider, null, React.createElement(Probe))); }); await flush();
   assert.equal(value.paperTexture, 'none', 'an unreadable stored texture falls back to none');
+  // Page turn (16/11/2026): Deslizar by default, saved with the reading settings, unknown values ignored.
+  assert.equal(value.pageTurn, 'slide');
+  await act(async () => value.setPageTurn('flip')); await flush(); assert.equal(writes.at(-1).pageTurn, 'flip');
+  await act(async () => value.setPageTurn('curl')); await flush(); assert.equal(value.pageTurn, 'flip', 'unknown page turn ignored');
   await act(async () => tree.unmount());
   console.log('PASS reader theme auto: rule (off/unknown/dark/light), off by default, chosen theme saved and restored, app dark → book dark, explicit choice turns it off, rule shared with PDF; app palette changes only the controls accent; paper texture saved and validated.');
 })().catch(e => { console.error(e); process.exitCode = 1; });

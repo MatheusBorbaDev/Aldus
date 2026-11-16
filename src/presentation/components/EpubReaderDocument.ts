@@ -116,6 +116,9 @@ export function createEpubReaderDocument(chapters: StoredChapter[], options: Rea
   #reader-content.is-transitioning {
     transition: transform 0.24s cubic-bezier(0.25, 1, 0.5, 1);
   }
+  #reader-content.is-transitioning.turn-instant {
+    transition: none;
+  }
   .epub-chapter {
     width: 100% !important;
     max-width: 100% !important;
@@ -502,6 +505,47 @@ export function createEpubReaderDocument(chapters: StoredChapter[], options: Rea
     if (event.target === content && event.propertyName === "transform") finishNavigation();
   });
 
+  // Virada de página (Fase D, 16/11/2026): "none" (instantânea), "slide" (o deslizar de sempre) e "flip" (a página gira como
+  // uma folha). Reduzir movimento (sistema ou app) força "none". A posição só é confirmada quando a virada termina.
+  var pageTurnMode = "slide", reduceMotionRequested = false, flipTimer = 0;
+  function effectivePageTurn() {
+    var systemReduce = false;
+    try { systemReduce = !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches); } catch (error) {}
+    return reduceMotionRequested || systemReduce ? "none" : pageTurnMode;
+  }
+  window.updateMotion = function(options) {
+    var mode = options && options.pageTurn;
+    pageTurnMode = mode === "none" || mode === "flip" ? mode : "slide";
+    reduceMotionRequested = !!(options && options.reduceMotion);
+  };
+  function flipToPage(width) {
+    var forward = targetPage > currentPage, phase = 0, half = forward ? -90 : 90;
+    document.body.style.perspective = "1800px";
+    viewport.style.transition = "transform 170ms ease-in, filter 170ms ease-in";
+    viewport.style.transformOrigin = forward ? "left center" : "right center";
+    function done() {
+      if (phase === 2) return; phase = 2; clearTimeout(flipTimer);
+      viewport.removeEventListener("transitionend", onEnd);
+      viewport.style.transition = ""; viewport.style.transform = ""; viewport.style.transformOrigin = ""; viewport.style.filter = "";
+      finishNavigation();
+    }
+    function swap() {
+      phase = 1;
+      content.style.transform = "translateX(-" + ((targetPage - 1) * width) + "px)";
+      viewport.style.transition = "none";
+      viewport.style.transformOrigin = forward ? "right center" : "left center";
+      viewport.style.transform = "rotateY(" + (-half) + "deg)";
+      void viewport.offsetWidth;
+      viewport.style.transition = "transform 190ms ease-out, filter 190ms ease-out";
+      viewport.style.transform = "rotateY(0deg)"; viewport.style.filter = "";
+    }
+    function onEnd(event) { if (event.target !== viewport || event.propertyName !== "transform") return; if (phase === 0) swap(); else done(); }
+    viewport.addEventListener("transitionend", onEnd);
+    // Sem transitionend (aba oculta, WebView pausada) a virada termina mesmo assim.
+    flipTimer = setTimeout(function() { if (phase === 0) swap(); done(); }, 700);
+    requestAnimationFrame(function() { viewport.style.transform = "rotateY(" + half + "deg)"; viewport.style.filter = "brightness(0.82)"; });
+  }
+
   window.navigatePage = function(direction, operationId, origin) {
     if (direction !== -1 && direction !== 1) return;
     typographyLogicalAnchor = null;
@@ -509,7 +553,9 @@ export function createEpubReaderDocument(chapters: StoredChapter[], options: Rea
     ++restorePositionGeneration;
     if (typographyPending) typographyAnchor = null;
     if (isAnimating) {
-      deferredPage = { page: Math.max(1, Math.min(totalPages, targetPage + direction)), operationId: operationId, origin: origin };
+      // Toques durante a virada se acumulam: três toques avançam três páginas.
+      var base = deferredPage ? deferredPage.page : targetPage;
+      deferredPage = { page: Math.max(1, Math.min(totalPages, base + direction)), operationId: operationId, origin: origin };
       return;
     }
     totalPages = calculateTotalPages();
@@ -526,6 +572,9 @@ export function createEpubReaderDocument(chapters: StoredChapter[], options: Rea
     }
 
     isAnimating = true;
+    var turn = effectivePageTurn();
+    if (turn === "flip") { flipToPage(getPageWidth()); return; }
+    content.classList.toggle("turn-instant", turn === "none");
     content.classList.add("is-transitioning");
     content.style.transform = "translateX(-" + ((targetPage - 1) * getPageWidth()) + "px)";
 
@@ -719,6 +768,8 @@ export function createEpubReaderDocument(chapters: StoredChapter[], options: Rea
       window.updateTypography(data);
     } else if (data.type === "updateSurface") {
       window.updateSurface(data);
+    } else if (data.type === "updateMotion") {
+      window.updateMotion(data);
     }
   }
 

@@ -22,6 +22,7 @@ const FEATURES = [
   { id: 'reader-paper-texture', pedido: '16/11: textura de papel nas páginas', markers: ['Textura do papel', 'Papel envelhecido', 'updateSurface'] },
   { id: 'reader-highlight-popup', pedido: '16/11: grifo por pressionar, pop-up e ajuste do trecho', markers: ['Palavra depois', 'Tirar a última', 'Frase inteira', 'studySelectAt', 'selectionchange'] },
   { id: 'reader-quote-card', pedido: '16/11: card de trecho para Stories e X (imagem, 400 caracteres)', markers: ['Compartilhar trecho', 'Compartilhar imagem', 'Stories 9:16', 'Mostrar a marca Aldus', 'renderQuoteCard'], androidMarkers: ['public.jpeg'] },
+  { id: 'reader-page-turn', pedido: '16/11: animação de virar página (Folhear) e Sem animação', markers: ['Virar página', 'Folhear', 'Sem animação', 'updateMotion', 'prefers-reduced-motion: reduce'] },
   { id: 'reader-panel', pedido: 'Redesenho 10/11: painel de ajustes reorganizado', markers: ['Ajustes de leitura', 'Mais ajustes: '] },
   { id: 'reader-theme-auto', pedido: 'Onda A3: tema automático', markers: ['Tema automático: seguir claro e escuro do app'] },
   { id: 'reader-justify', pedido: 'Onda B3: texto justificado', markers: ['Justificado'] },

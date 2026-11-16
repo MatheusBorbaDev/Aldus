@@ -25,6 +25,7 @@ function EpubPageViewerComponent({
   textColor,
   backgroundColor,
   pageSurfaceImage = "none",
+  pageTurn = "slide",
   onPageInfo,
   studyRequest,
   onStudyResult,
@@ -212,6 +213,10 @@ function EpubPageViewerComponent({
     frame.current?.contentWindow?.postMessage({ type: "updateSurface", backgroundImage: pageSurfaceImage }, "*");
   }, [pageSurfaceImage]);
 
+  useEffect(() => {
+    frame.current?.contentWindow?.postMessage({ type: "updateMotion", pageTurn }, "*");
+  }, [pageTurn]);
+
   const attachFrame = useCallback((element: HTMLIFrameElement | null) => {
     frame.current = element;
     console.log(`[FORENSIC:EpubPageViewer:iframe-ref] t=${performance.timeOrigin + performance.now()} ${element ? "attached" : "detached"}`);
@@ -247,6 +252,7 @@ function EpubPageViewerComponent({
         "*"
       );
       frame.current?.contentWindow?.postMessage({ type: "updateSurface", backgroundImage: pageSurfaceImage }, "*");
+      frame.current?.contentWindow?.postMessage({ type: "updateMotion", pageTurn }, "*");
     } catch {
       /* Ignore frame access error */
     }

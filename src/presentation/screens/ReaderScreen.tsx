@@ -74,6 +74,8 @@ import {
 } from "@/src/domain/types/pdfReader";
 import { fontFamilies, pdfReaderThemes, readerChromePalette } from "@/src/theme/tokens";
 import { paperTextureCss } from "@/src/domain/reader/paperTexture";
+import { effectivePageTurn } from "@/src/domain/reader/pageTurn";
+import { useReduceMotion } from "@/src/presentation/hooks/useReduceMotion";
 import { useAppPaletteName } from "@/src/presentation/contexts/AppThemeContext";
 import { appDependencies } from "@/src/presentation/services/dependencies";
 import { LibraryBook, StoredChapter } from "@/src/domain/entities/LibraryBook";
@@ -634,6 +636,8 @@ export function ReaderScreen({ bookId }: Props) {
 
   const totalPages = estimateTotalPages(totalCharacters, charactersPerPage);
   const appPaletteName = useAppPaletteName();
+  const reduceMotion = useReduceMotion();
+  const pageTurn = effectivePageTurn(settings.pageTurn ?? "slide", reduceMotion);
   // "Automático" também vale para o PDF; o tema salvo do PDF não muda.
   const pdfTheme = (selected: PdfReaderTheme) => (settings.resolveTheme ? settings.resolveTheme(selected) : selected) as PdfReaderTheme;
   const activePalette = isPdf && pdfReaderSettings
@@ -653,6 +657,7 @@ export function ReaderScreen({ bookId }: Props) {
         palette: activePalette,
         theme: pdfTheme(pdfReaderSettings.theme),
         pageSurfaceImage: paperTextureCss(settings.paperTexture ?? "none", activePalette.background),
+        pageTurn,
       }
     : {
         fontSize: settings.fontSize,
@@ -666,6 +671,7 @@ export function ReaderScreen({ bookId }: Props) {
         palette: activePalette,
         theme: settings.theme,
         pageSurfaceImage: paperTextureCss(settings.paperTexture ?? "none", activePalette.background),
+        pageTurn,
       };
 
   const pageNumber = isPdf && !isReflowPdf

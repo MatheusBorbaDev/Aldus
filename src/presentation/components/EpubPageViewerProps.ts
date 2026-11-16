@@ -49,6 +49,8 @@ export interface EpubPageViewerProps {
   backgroundColor: string;
   /** Valor de `background-image` da página (textura de papel); `none` ou ausente desliga. Não remonta o documento. */
   pageSurfaceImage?: string;
+  /** Virada de página já resolvida com o reduzir movimento do sistema (Fase D). Ausente = deslizar. */
+  pageTurn?: "none" | "slide" | "flip";
   onPageInfo: (info: EpubPageInfo) => void;
   studyRequest?: ReaderStudyRequest | null;
   onStudyResult?: (result: ReaderStudyResult) => void;

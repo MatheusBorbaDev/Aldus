@@ -26,6 +26,7 @@ export function EpubPageViewer({
   textColor,
   backgroundColor,
   pageSurfaceImage = "none",
+  pageTurn = "slide",
   onPageInfo,
   studyRequest,
   onStudyResult,
@@ -133,6 +134,13 @@ export function EpubPageViewer({
     const payload = JSON.stringify({ type: "updateSurface", backgroundImage: pageSurfaceImage });
     webView.current?.injectJavaScript(`window.updateSurface && window.updateSurface(${payload}); true;`);
   }, [loaded, pageSurfaceImage]);
+
+  // Virada de página: só muda a animação das próximas viradas; não toca layout nem posição.
+  useEffect(() => {
+    if (!loaded) return;
+    const payload = JSON.stringify({ type: "updateMotion", pageTurn });
+    webView.current?.injectJavaScript(`window.updateMotion && window.updateMotion(${payload}); true;`);
+  }, [loaded, pageTurn]);
 
   const handleMessage = (event: WebViewMessageEvent) => {
     try {

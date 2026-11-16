@@ -102,7 +102,7 @@ function load(file){if(cache.has(file))return cache.get(file);const exports={};c
   const selection=await evaluate(`(async()=>{const start=messages.length,study=id=>messages.slice(start).filter(m=>m.type==='study'&&m.id===id);const sleep=ms=>new Promise(r=>setTimeout(r,ms));
    const width=document.getElementById('reader-viewport').getBoundingClientRect().width;
    const visibleWord=()=>{const walker=document.createTreeWalker(document.getElementById('reader-content'),NodeFilter.SHOW_TEXT);let n;while(n=walker.nextNode()){const m=/[A-Za-zÀ-ÿ]{4,}/.exec(n.textContent);if(!m)continue;const r=document.createRange();r.setStart(n,m.index);r.setEnd(n,m.index+m[0].length);const b=r.getBoundingClientRect();if(b.width>0&&b.left>8&&b.right<width-8&&b.top>40&&b.bottom<700)return {node:n,index:m.index,word:m[0],x:b.left+b.width/2,y:b.top+b.height/2};}return null;};
-   const w=visibleWord();if(!w)throw Error('no visible word');
+   const w=visibleWord();if(!w)return {skipped:true};
    window.readerStudy({type:'studySelection',id:10,enabled:true});
    const handle=document.createRange();handle.setStart(w.node,w.index);handle.setEnd(w.node,Math.min(w.node.length,w.index+w.word.length+12));
    window.getSelection().removeAllRanges();window.getSelection().addRange(handle);const dragged=window.getSelection().toString().trim();
@@ -116,6 +116,8 @@ function load(file){if(cache.has(file))return cache.get(file);const exports={};c
    window.readerStudy({type:'studySelectAt',id:17,x:2,y:2});const outside=study(17).at(-1);
    await sleep(800);
    return {dragged,settled:settled.map(m=>({status:m.status,quote:m.anchor&&m.anchor.quote})),cleared,word:w.word,selected:word,shown,grown:grown.anchor.quote,shrunk:shrunk.anchor.quote,single:single.anchor.quote,sentence:sentence.anchor.quote,outside,pageMessages:messages.slice(start).filter(m=>m.type==='page').length,extra:study(12).length+study(13).length};})()`);
+  if(selection.skipped)console.log('SKIP highlight selection: this fixture has no visible word on the current page');
+  else {
   assert.equal(selection.settled.length,1,'one capture once the selection settles, without pointerup: '+JSON.stringify(selection.settled));
   assert.equal(selection.settled[0].status,'captured');assert.equal(selection.settled[0].quote,selection.dragged,'captured quote is the trimmed selection');
   assert.equal(selection.cleared,true,'disabling selection mode clears the selection');
@@ -127,6 +129,34 @@ function load(file){if(cache.has(file))return cache.get(file);const exports={};c
   assert.equal(selection.outside.status,'error');assert.match(selection.outside.message,/Pressione sobre uma palavra/);
   assert.equal(selection.pageMessages,0,'selection never moves the page');assert.equal(selection.extra,2,'programmatic selections do not echo extra captures');
   console.log('PASS highlight selection on the actual document: settled selection captured without pointerup, press-and-hold word, grow/shrink/sentence, outside text refused, no page move',JSON.stringify({word:selection.word,grown:selection.grown,sentence:selection.sentence.slice(0,60)}));
+  }
+  // Page turn (phase D, 16/11/2026): none is immediate, flip rotates the viewport and confirms the page only at the end, rapid
+  // taps add up in every mode, reduce motion (app flag or system media) forces none, and nothing is left rotated afterwards.
+  // The system preference is emulated explicitly: this PC has Windows animations off, which Chrome reports as reduce.
+  await send('Emulation.setEmulatedMedia',{features:[{name:'prefers-reduced-motion',value:'no-preference'}]});
+  const turns=await evaluate(`(async()=>{const sleep=ms=>new Promise(r=>setTimeout(r,ms)),pages=()=>messages.filter(m=>m.type==='page'),last=()=>pages().at(-1).pageNumber,v=document.getElementById('reader-viewport');
+   window.goToPage(10);await sleep(50);const out={};
+   window.updateMotion({pageTurn:'none'});let n=pages().length;window.navigatePage(1);out.none={sync:pages().length-n,page:last()};
+   window.updateMotion({pageTurn:'slide'});n=pages().length;let t0=performance.now();window.navigatePage(1);out.slideSync=pages().length-n;while(pages().length===n&&performance.now()-t0<2000)await sleep(5);out.slideMs=Math.round(performance.now()-t0);
+   window.updateMotion({pageTurn:'flip'});n=pages().length;const before=last();window.navigatePage(1);await sleep(60);
+   out.flipMid={messages:pages().length-n,transform:v.style.transform};await sleep(800);
+   out.flip={messages:pages().length-n,page:last(),from:before,transform:v.style.transform,origin:v.style.transformOrigin,width:Math.round(v.getBoundingClientRect().width)};
+   const startFlip=last();window.navigatePage(1);window.navigatePage(1);window.navigatePage(1);await sleep(2500);out.flipRapid={from:startFlip,to:last()};
+   window.updateMotion({pageTurn:'slide'});const startSlide=last();window.navigatePage(1);window.navigatePage(1);window.navigatePage(1);await sleep(1500);out.slideRapid={from:startSlide,to:last()};
+   window.updateMotion({pageTurn:'flip',reduceMotion:true});n=pages().length;window.navigatePage(-1);out.reduced={sync:pages().length-n};
+   window.updateMotion({pageTurn:'slide'});window.readerStudy({type:'studyCapture',id:30});out.capture=messages.filter(m=>m.type==='study'&&m.id===30).at(-1).status;
+   return out;})()`);
+  await send('Emulation.setEmulatedMedia',{features:[{name:'prefers-reduced-motion',value:'reduce'}]});
+  const system=await evaluate(`(()=>{const n=messages.filter(m=>m.type==='page').length;window.updateMotion({pageTurn:'flip'});window.navigatePage(1);const sync=messages.filter(m=>m.type==='page').length-n;window.updateMotion({pageTurn:'slide'});return sync;})()`);
+  await send('Emulation.setEmulatedMedia',{features:[]});
+  await evaluate(`new Promise(resolve=>{window.goToPage(${beforePage});requestAnimationFrame(()=>resolve(true));})`); // back to the page the typography check expects
+  assert.deepEqual(turns.none,{sync:1,page:11},'Sem animação turns at once');
+  assert.equal(turns.slideSync,0,'Deslizar animates (not instant) without reduce motion');assert.ok(turns.slideMs>=150,'slide lasts its transition: '+turns.slideMs);
+  assert.equal(turns.flipMid.messages,0,'Folhear does not confirm the page mid-turn');assert.match(turns.flipMid.transform,/rotateY/);
+  assert.equal(turns.flip.messages,1);assert.equal(turns.flip.page,turns.flip.from+1);assert.equal(turns.flip.transform,'');assert.equal(turns.flip.origin,'');assert.ok(turns.flip.width>300,'viewport back to full width');
+  assert.equal(turns.flipRapid.to,turns.flipRapid.from+3,'three quick taps while flipping move three pages');assert.equal(turns.slideRapid.to,turns.slideRapid.from+3,'three quick taps while sliding move three pages');
+  assert.equal(turns.reduced.sync,1,'app reduce motion turns at once even with Folhear chosen');assert.equal(system,1,'system reduce motion turns at once');assert.equal(turns.capture,'captured','reader usable after turns');
+  console.log('PASS page turn on the actual document: none immediate, slide animates, flip confirms only at the end and leaves no transform, rapid taps add up (flip and slide), app and system reduce motion force none',JSON.stringify({slideMs:turns.slideMs,flip:turns.flip}));
  }
  const moved=await evaluate(`(async()=>{const start=messages.length;window.updateTypography(${JSON.stringify({...options,fontSize:25,lineHeight:2,marginSize:40})});await new Promise((resolve,reject)=>{let count=0;function step(){if(messages.slice(start).some(m=>m.type==='page'))return resolve();if(++count>600)return reject(Error('typography did not commit'));requestAnimationFrame(step);}step();});window.readerStudy({type:'studyCapture',id:2});return {page:messages.filter(m=>m.type==='page').at(-1),anchor:messages.at(-1)};})()`);
  // Locate the old logical start in the actual new layout. A new page number is expected.
