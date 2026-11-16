@@ -67,6 +67,7 @@ import {
   PdfReflowDocument,
 } from "@/src/domain/types/pdfReader";
 import { fontFamilies, pdfReaderThemes, readerChromePalette } from "@/src/theme/tokens";
+import { paperTextureCss } from "@/src/domain/reader/paperTexture";
 import { useAppPaletteName } from "@/src/presentation/contexts/AppThemeContext";
 import { appDependencies } from "@/src/presentation/services/dependencies";
 import { LibraryBook, StoredChapter } from "@/src/domain/entities/LibraryBook";
@@ -620,6 +621,7 @@ export function ReaderScreen({ bookId }: Props) {
         allowTextSelection: true,
         palette: activePalette,
         theme: pdfTheme(pdfReaderSettings.theme),
+        pageSurfaceImage: paperTextureCss(settings.paperTexture ?? "none", activePalette.background),
       }
     : {
         fontSize: settings.fontSize,
@@ -632,6 +634,7 @@ export function ReaderScreen({ bookId }: Props) {
         allowTextSelection: false,
         palette: activePalette,
         theme: settings.theme,
+        pageSurfaceImage: paperTextureCss(settings.paperTexture ?? "none", activePalette.background),
       };
 
   const pageNumber = isPdf && !isReflowPdf

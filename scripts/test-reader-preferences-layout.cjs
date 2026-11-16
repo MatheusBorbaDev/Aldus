@@ -12,6 +12,7 @@ new Function('require','exports',code)(name=>{
  if(name.endsWith('ReaderSettingsSlider'))return {ReaderSettingsSlider:()=>React.createElement('Slider')};
  if(name.includes('readerUiDiagnostics'))return {readerUiDiagnostic(){}};
  if(name.includes('tokens'))return {pdfReaderThemes:{},readerThemes:{},fontFamilies:{}};
+ if(name.includes('reader/paperTexture'))return {PAPER_TEXTURES: [{ value: 'none', label: 'Sem textura' }, { value: 'paper', label: 'Papel' }, { value: 'aged', label: 'Papel envelhecido' }]};
  if(name.includes('vector-icons'))return {Ionicons:'Icon'};
  return {};
 },exportsForPanel);

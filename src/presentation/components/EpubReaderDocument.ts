@@ -562,6 +562,15 @@ export function createEpubReaderDocument(chapters: StoredChapter[], options: Rea
     if (window.parent && window.parent !== window) window.parent.postMessage(result, "*");
   };
 
+  // Textura de papel (16/11/2026): só a imagem de fundo do viewport. Não toca layout, página, âncora nem tipografia.
+  window.updateSurface = function(options) {
+    var image = options && typeof options.backgroundImage === "string" ? options.backgroundImage : "none";
+    if (image !== "none" && (image.indexOf('url("data:image/svg+xml,') !== 0 || image.length > 20000)) image = "none";
+    viewport.style.backgroundImage = image;
+    viewport.style.backgroundRepeat = image === "none" ? "" : "repeat, no-repeat";
+    viewport.style.backgroundSize = image === "none" ? "" : "160px 160px, 100% 100%";
+  };
+
   window.updateTypography = function(options) {
     if (!options) return;
     if (isAnimating) { pendingTypographyOptions = options; return; }
@@ -708,6 +717,8 @@ export function createEpubReaderDocument(chapters: StoredChapter[], options: Rea
       window.display();
     } else if (data.type === "updateTypography") {
       window.updateTypography(data);
+    } else if (data.type === "updateSurface") {
+      window.updateSurface(data);
     }
   }
 

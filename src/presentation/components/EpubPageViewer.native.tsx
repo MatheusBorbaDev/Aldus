@@ -25,6 +25,7 @@ export function EpubPageViewer({
   onSearchResult,
   textColor,
   backgroundColor,
+  pageSurfaceImage = "none",
   onPageInfo,
   studyRequest,
   onStudyResult,
@@ -125,6 +126,13 @@ export function EpubPageViewer({
     });
     webView.current?.injectJavaScript(`window.updateTypography && window.updateTypography(${payload}); true;`);
   }, [loaded, fontSize, fontFamily, marginSize, lineHeight, paragraphSpacing, maxWidth, alignment, allowTextSelection, textColor, backgroundColor]);
+
+  // Textura de papel: só o fundo do viewport, separado da tipografia para não recalcular o layout.
+  useEffect(() => {
+    if (!loaded) return;
+    const payload = JSON.stringify({ type: "updateSurface", backgroundImage: pageSurfaceImage });
+    webView.current?.injectJavaScript(`window.updateSurface && window.updateSurface(${payload}); true;`);
+  }, [loaded, pageSurfaceImage]);
 
   const handleMessage = (event: WebViewMessageEvent) => {
     try {

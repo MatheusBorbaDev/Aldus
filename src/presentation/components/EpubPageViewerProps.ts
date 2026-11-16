@@ -45,6 +45,8 @@ export interface EpubPageViewerProps {
   onSearchResult?: (found: boolean) => void;
   textColor: string;
   backgroundColor: string;
+  /** Valor de `background-image` da página (textura de papel); `none` ou ausente desliga. Não remonta o documento. */
+  pageSurfaceImage?: string;
   onPageInfo: (info: EpubPageInfo) => void;
   studyRequest?: ReaderStudyRequest | null;
   onStudyResult?: (result: ReaderStudyResult) => void;

@@ -83,6 +83,20 @@ function load(file){if(cache.has(file))return cache.get(file);const exports={};c
  const beforePage=await evaluate(`Math.min(30,messages.filter(m=>m.type==='page').at(-1).totalPages-2)`);assert.ok(beforePage>1);
  const before=await evaluate(`window.goToPage(${beforePage});window.readerStudy({type:'studyCapture',id:1});messages.at(-1)`);
  assert.equal(before.status,'captured');assert.ok(before.anchor.start>=0);
+ if(!baseline){
+  // Paper texture (16/11/2026): updateSurface only paints the viewport background. No page message, same page, same anchor;
+  // the data: SVG passes the document CSP; anything that is not a data: SVG is refused.
+  const paper=load('src/domain/reader/paperTexture.ts').paperTextureCss('aged',options.backgroundColor);
+  const surface=await evaluate(`(async()=>{const v=document.getElementById('reader-viewport'),violations=[];document.addEventListener('securitypolicyviolation',e=>violations.push(e.violatedDirective));const start=messages.length;const post=data=>window.dispatchEvent(new MessageEvent('message',{data}));const tick=()=>new Promise(r=>setTimeout(r,120));
+   post({type:'updateSurface',backgroundImage:${JSON.stringify(paper)}});await tick();const applied=getComputedStyle(v).backgroundImage;
+   post({type:'updateSurface',backgroundImage:'url("https://example.invalid/x.png")'});await tick();const external=v.style.backgroundImage;
+   post({type:'updateSurface',backgroundImage:${JSON.stringify(paper)}});await tick();window.readerStudy({type:'studyCapture',id:2});
+   return {applied,external,pageMessages:messages.slice(start).filter(m=>m.type==='page').length,after:messages.at(-1),violations};})()`);
+  assert.match(surface.applied,/data:image\/svg\+xml/);assert.match(surface.applied,/radial-gradient/);assert.equal(surface.external,'none','external image refused');
+  assert.equal(surface.pageMessages,0,'texture does not relayout or move the page');assert.deepEqual(surface.violations,[],'no CSP violation');
+  assert.equal(surface.after.status,'captured');assert.equal(surface.after.anchor.start,before.anchor.start,'same anchor after the texture');
+  console.log('PASS paper texture on the actual document: data: SVG + edge gradient applied, external URL refused, no page message, anchor unchanged, no CSP violation');
+ }
  const moved=await evaluate(`(async()=>{const start=messages.length;window.updateTypography(${JSON.stringify({...options,fontSize:25,lineHeight:2,marginSize:40})});await new Promise((resolve,reject)=>{let count=0;function step(){if(messages.slice(start).some(m=>m.type==='page'))return resolve();if(++count>600)return reject(Error('typography did not commit'));requestAnimationFrame(step);}step();});window.readerStudy({type:'studyCapture',id:2});return {page:messages.filter(m=>m.type==='page').at(-1),anchor:messages.at(-1)};})()`);
  // Locate the old logical start in the actual new layout. A new page number is expected.
  const rect=await evaluate(`(()=>{const section=Array.from(document.querySelectorAll('.epub-chapter')).find(s=>s.getAttribute('data-chapter-id')===${JSON.stringify(before.anchor.chapterId)});const walker=document.createTreeWalker(section,NodeFilter.SHOW_TEXT);let n,offset=0;while(n=walker.nextNode()){if(n.parentElement.closest('style,script'))continue;if(offset+n.length>${before.anchor.start}){const r=document.createRange();r.setStart(n,${before.anchor.start}-offset);r.setEnd(n,${before.anchor.start}+1-offset);const b=r.getBoundingClientRect();return {left:b.left,right:b.right,top:b.top,bottom:b.bottom};}offset+=n.length;}})()`);

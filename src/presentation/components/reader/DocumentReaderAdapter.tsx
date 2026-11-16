@@ -41,6 +41,8 @@ export interface DocumentReaderAdapterProps {
     allowTextSelection?: boolean;
     palette: ReaderPalette;
     theme: string;
+    /** `background-image` da página (textura de papel) calculado para o fundo ativo; ausente = sem textura. */
+    pageSurfaceImage?: string;
   };
   onPdfTotalPages: (count: number) => void;
   onEpubPageInfo: (info: EpubPageInfo) => void;
@@ -180,6 +182,7 @@ export function DocumentReaderAdapter({
             onSearchResult={onSearchResult}
             textColor={settings.palette.text}
             backgroundColor={settings.palette.background}
+            pageSurfaceImage={settings.pageSurfaceImage}
             onPageInfo={onEpubPageInfo}
             studyRequest={studyRequest}
             onStudyResult={onStudyResult}

@@ -25,6 +25,7 @@ function load(file, overrides = {}) {
     if (name.endsWith('/readerNavigationDiagnostics')) return { readerNavigationDiagnostic() {} };
     if (name === '@/src/core/utils/latestWrite') return load('src/core/utils/latestWrite.ts'); // pure module, real code
     if (name === '@/src/domain/reader/readerThemeAuto') return load('src/domain/reader/readerThemeAuto.ts'); // pure module, real code
+    if (name === '@/src/domain/reader/paperTexture') return load('src/domain/reader/paperTexture.ts'); // pure module, real code
     if (name === '@/src/presentation/contexts/AppThemeContext') return { useResolvedAppTheme: () => null, useAppPaletteName: () => null };
     throw Error('Uncontrolled dependency: ' + name);
   }, result);

@@ -24,6 +24,7 @@ function EpubPageViewerComponent({
   onSearchResult,
   textColor,
   backgroundColor,
+  pageSurfaceImage = "none",
   onPageInfo,
   studyRequest,
   onStudyResult,
@@ -206,6 +207,11 @@ function EpubPageViewerComponent({
     );
   }, [fontSize, fontFamily, marginSize, lineHeight, paragraphSpacing, maxWidth, alignment, allowTextSelection, textColor, backgroundColor]);
 
+  // Textura de papel: só o fundo do viewport, separado da tipografia para não recalcular o layout.
+  useEffect(() => {
+    frame.current?.contentWindow?.postMessage({ type: "updateSurface", backgroundImage: pageSurfaceImage }, "*");
+  }, [pageSurfaceImage]);
+
   const attachFrame = useCallback((element: HTMLIFrameElement | null) => {
     frame.current = element;
     console.log(`[FORENSIC:EpubPageViewer:iframe-ref] t=${performance.timeOrigin + performance.now()} ${element ? "attached" : "detached"}`);
@@ -240,6 +246,7 @@ function EpubPageViewerComponent({
         },
         "*"
       );
+      frame.current?.contentWindow?.postMessage({ type: "updateSurface", backgroundImage: pageSurfaceImage }, "*");
     } catch {
       /* Ignore frame access error */
     }

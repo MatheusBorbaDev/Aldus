@@ -10,6 +10,7 @@ import { fontFamilies, pdfReaderThemes, readerThemes } from "@/src/theme/tokens"
 import { PdfReaderTheme } from "@/src/domain/types/pdfReader";
 import { readerUiDiagnostic } from "@/src/utils/readerUiDiagnostics";
 import { FOCUS_GOAL_MINUTES } from "@/src/domain/reader/readingSession";
+import { PAPER_TEXTURES } from "@/src/domain/reader/paperTexture";
 
 /**
  * Ajustes de leitura (redesenho, etapa 1). Folha baixa: o texto continua visível atrás para o leitor ver o efeito.
@@ -363,6 +364,16 @@ export function ReaderSettingsPanel({
 
           {appearance ? (
             <View style={[styles.section, { display: expanded && activeSection === "page" ? "flex" : "none" }]}>
+              {!isOriginalPdf ? (
+                <Field label="Textura do papel" palette={palette}>
+                  <SegmentedControl
+                    options={PAPER_TEXTURES.map((texture, index) => ({ label: texture.label, value: index }))}
+                    selectedValue={Math.max(0, PAPER_TEXTURES.findIndex(texture => texture.value === (settings.paperTexture ?? "none")))}
+                    palette={palette}
+                    onSelect={(value) => settings.setPaperTexture?.(PAPER_TEXTURES[Number(value)]?.value ?? "none")}
+                  />
+                </Field>
+              ) : null}
               {!isOriginalPdf ? (
                 <Field label="Margens e largura" palette={palette}>
                   <SegmentedControl

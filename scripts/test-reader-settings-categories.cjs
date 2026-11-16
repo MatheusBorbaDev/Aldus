@@ -7,7 +7,7 @@ const { act, create } = require('../.expo/auth-test-tools/node_modules/react-tes
 global.IS_REACT_ACT_ENVIRONMENT = true;
 const palette = { background: '#fafafa', text: '#222', secondaryText: '#555', accent: '#174', onAccent: '#fefefe', separator: '#ddd', panel: '#eee' };
 const changes = []; const settings = { palette, saveError: null, hideReadingCounts: false, theme: 'paper', font: 'serif', fontSize: 20, lineHeight: 1.5, paragraphSpacing: .8, marginSize: 24, maxWidth: 900, brightness: 80, useSystemBrightness: true };
-for (const key of ['HideReadingCounts', 'Theme', 'Font', 'FontSize', 'LineHeight', 'ParagraphSpacing', 'Margin', 'MaxWidth', 'Brightness', 'UseSystemBrightness']) settings['set' + key] = value => changes.push([key, value]);
+for (const key of ['HideReadingCounts', 'Theme', 'Font', 'FontSize', 'LineHeight', 'ParagraphSpacing', 'Margin', 'MaxWidth', 'Brightness', 'UseSystemBrightness', 'PaperTexture']) settings['set' + key] = value => changes.push([key, value]);
 const themesMap = Object.fromEntries(['light', 'paper', 'sepia', 'dark', 'black'].map(k => [k, palette]));
 const output = {}; const source = fs.readFileSync('src/presentation/components/ReaderSettingsPanel.tsx', 'utf8');
 new Function('require', 'exports', ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX } }).outputText)(name => {
@@ -21,6 +21,7 @@ new Function('require', 'exports', ts.transpileModule(source, { compilerOptions:
   if (name.includes('MotionCuesControl')) return { MotionCuesControl: 'Motion' };
   if (name.includes('readerUiDiagnostics')) return { readerUiDiagnostic() {} };
   if (name.includes('reader/readingSession')) return { FOCUS_GOAL_MINUTES: [10, 15, 25, 45] };
+  if (name.includes('reader/paperTexture')) return { PAPER_TEXTURES: [{ value: 'none', label: 'Sem textura' }, { value: 'paper', label: 'Papel' }, { value: 'aged', label: 'Papel envelhecido' }] };
   if (name.includes('/tokens')) return { pdfReaderThemes: themesMap, readerThemes: themesMap, fontFamilies: { serif: 'Georgia', sans: 'System', dyslexic: 'Verdana' } };
   return {};
 }, output);
@@ -38,6 +39,11 @@ new Function('require', 'exports', ts.transpileModule(source, { compilerOptions:
     assert.strictEqual(tree.root.findByType('ScrollView'), scroll); assert.strictEqual(tree.root.findAllByType('Slider').find(x => x.props.accessibilityLabel === 'Tamanho da fonte'), slider, 'controls are never recreated');
   }
   assert.equal(flat(scroll.parent.props.style).maxHeight, '90%'); assert.deepEqual(changes, [], 'Section navigation and expanding never write reader preferences');
+  // Paper texture (16/11/2026): in Página, "Sem textura" selected by default; choosing one writes only that preference.
+  assert.equal(byLabel('Sem textura').props.accessibilityState.selected, true);
+  await act(async () => byLabel('Papel').props.onPress()); assert.deepEqual(changes.at(-1), ['PaperTexture', 'paper']);
+  await act(async () => byLabel('Papel envelhecido').props.onPress()); assert.deepEqual(changes.at(-1), ['PaperTexture', 'aged']);
+  changes.length = 0;
   // Quick controls.
   await act(async () => slider.props.onValueChange(24)); assert.deepEqual(changes, [['FontSize', 24]]);
   await act(async () => byLabel('Aumentar letra').props.onPress()); assert.deepEqual(changes.at(-1), ['FontSize', 21]);

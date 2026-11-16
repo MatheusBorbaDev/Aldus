@@ -41,6 +41,15 @@ const flush = () => act(async () => { for (let i = 0; i < 5; i++) await Promise.
   assert.equal(value.palette.accent, tokens.appPalettes.petroleum.dark.accent, 'dark book theme takes the dark palette accent');
   for (const key of ['background', 'text', 'secondaryText', 'panel']) assert.equal(value.palette[key], before[key], `book ${key} unchanged`);
   assert.equal(value.theme, 'dark', 'the palette does not change the book theme');
+  // Paper texture (16/11/2026): saved with the reading settings; unknown stored values fall back to no texture.
+  assert.equal(value.paperTexture, 'none', 'no texture by default');
+  await act(async () => value.setPaperTexture('aged')); await flush();
+  assert.equal(value.paperTexture, 'aged'); assert.equal(writes.at(-1).paperTexture, 'aged', 'choice is saved');
+  await act(async () => value.setPaperTexture('linen')); await flush();
+  assert.equal(value.paperTexture, 'aged', 'unknown texture names are ignored');
+  stored = JSON.stringify({ theme: 'sepia', paperTexture: 'linen' });
+  await act(async () => tree.unmount()); await act(async () => { tree = create(React.createElement(ReaderSettingsProvider, null, React.createElement(Probe))); }); await flush();
+  assert.equal(value.paperTexture, 'none', 'an unreadable stored texture falls back to none');
   await act(async () => tree.unmount());
-  console.log('PASS reader theme auto: rule (off/unknown/dark/light), off by default, chosen theme saved and restored, app dark → book dark, explicit choice turns it off, rule shared with PDF; app palette changes only the controls accent.');
+  console.log('PASS reader theme auto: rule (off/unknown/dark/light), off by default, chosen theme saved and restored, app dark → book dark, explicit choice turns it off, rule shared with PDF; app palette changes only the controls accent; paper texture saved and validated.');
 })().catch(e => { console.error(e); process.exitCode = 1; });

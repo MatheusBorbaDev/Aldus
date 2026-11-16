@@ -19,6 +19,7 @@ const root = path.resolve(__dirname, '..');
 const FEATURES = [
   // Reader
   { id: 'app-palettes', pedido: '16/11: tema Clássico e Moderno (Petróleo, Azul-tinta)', markers: ['Moderno · Petróleo', 'Moderno · Azul-tinta', '@aldus/app-palette.v1'] },
+  { id: 'reader-paper-texture', pedido: '16/11: textura de papel nas páginas', markers: ['Textura do papel', 'Papel envelhecido', 'updateSurface'] },
   { id: 'reader-panel', pedido: 'Redesenho 10/11: painel de ajustes reorganizado', markers: ['Ajustes de leitura', 'Mais ajustes: '] },
   { id: 'reader-theme-auto', pedido: 'Onda A3: tema automático', markers: ['Tema automático: seguir claro e escuro do app'] },
   { id: 'reader-justify', pedido: 'Onda B3: texto justificado', markers: ['Justificado'] },
