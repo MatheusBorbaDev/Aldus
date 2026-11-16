@@ -1,6 +1,6 @@
 // Actual app palette plus the five book themes (BUG 16). Does not prove physical displays.
 const assert = require('node:assert/strict');
-const { appThemeTokens, appPalettes, appPaletteOptions, isAppPaletteName, readerChromePalette, readerThemes, pdfReaderThemes } = require('./community-test-loader.cjs')()('src/theme/tokens.ts');
+const { appThemeTokens, appPalettes, appPaletteOptions, isAppPaletteName, isDarkPalette, readerChromePalette, readerThemes, pdfReaderThemes } = require('./community-test-loader.cjs')()('src/theme/tokens.ts');
 const luminance = hex => {
   const rgb = hex.slice(1).match(/../g).map(part => parseInt(part, 16) / 255)
     .map(value => value <= .04045 ? value / 12.92 : ((value + .055) / 1.055) ** 2.4);
@@ -18,6 +18,7 @@ assert.ok(isAppPaletteName('ink') && !isAppPaletteName('dark') && !isAppPaletteN
 for (const [name, variants] of Object.entries(appPalettes)) for (const [variant, palette] of Object.entries(variants)) {
   const mode = `${name}/${variant}`;
   assert.deepEqual(Object.keys(palette).sort(), Object.keys(appThemeTokens.light).sort(), `${mode}: same token set as the original`);
+  assert.equal(isDarkPalette(palette), variant === "dark", `${mode}: dark detection by background (flashcard feedback colors)`);
   for (const surface of ['background', 'surface', 'surfaceSecondary', 'panel', 'input']) {
     for (const ink of ['text', 'secondaryText', 'accent']) {
       assert(contrast(palette[ink], palette[surface]) >= 4.5, `${mode}: ${ink}/${surface} must meet normal text contrast`);

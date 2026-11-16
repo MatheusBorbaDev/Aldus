@@ -245,7 +245,7 @@ export default function Search() {
             onPress={() => { setAcquisitionMessage(null); setSelectedBook(item); }}
             style={[styles.resultRow, { backgroundColor: palette.surface, borderColor: palette.border }]}
           >
-            <View style={styles.cover}><BookCover identity={item.remoteBookId ?? item.url} title={item.title} author={item.author} format={item.format} source={item.coverUrl ? { uri: item.coverUrl } : null} compact /></View>
+            <View style={[styles.cover, { backgroundColor: palette.surfaceSecondary }]}><BookCover identity={item.remoteBookId ?? item.url} title={item.title} author={item.author} format={item.format} source={item.coverUrl ? { uri: item.coverUrl } : null} compact /></View>
             <View style={styles.resultBody}>
               <AppText variant="subheading" numberOfLines={2}>{item.title}</AppText>
               <AppText variant="bodySmall" tone="secondary" numberOfLines={1}>{item.author ?? "Autor não informado"}</AppText>
@@ -320,7 +320,7 @@ function BookDetailsModal({
             ) : null}
             {job?.status === "completed" ? (
               <View style={styles.downloadProgress}>
-                <Ionicons name="checkmark-circle" size={19} color="#39836B" />
+                <Ionicons name="checkmark-circle" size={19} color={palette.success} />
                 <Text style={{ color: palette.text }}>Adicionado à Biblioteca</Text>
               </View>
             ) : null}
@@ -388,7 +388,7 @@ const styles = StyleSheet.create({
   partialNotice: { flexDirection: "row", alignItems: "flex-start", gap: space.sm, padding: space.sm + 2, borderRadius: 10 },
   results: { width: "100%", alignSelf: "center", gap: space.sm },
   resultRow: { minHeight: 116, flexDirection: "row", alignItems: "center", gap: space.md, padding: space.md, borderWidth: StyleSheet.hairlineWidth, borderRadius: 14 },
-  cover: { width: 62, height: 92, borderRadius: 4, backgroundColor: "#E6E6E1" },
+  cover: { width: 62, height: 92, borderRadius: 4 },
   resultBody: { flex: 1, minWidth: 0, gap: space.xxs },
   meta: { fontSize: 10 },
   modalBackdrop: { flex: 1, justifyContent: "flex-end", paddingHorizontal: 8, paddingTop: 10 },
@@ -404,7 +404,7 @@ const styles = StyleSheet.create({
   downloadProgress: { minHeight: 40, flexDirection: "row", alignItems: "center", gap: 9, marginTop: 8 },
   errorMessage: { fontSize: 12, lineHeight: 17, marginTop: 6 },
   acquireButton: { minHeight: 46, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 9, borderRadius: 7, marginTop: 10 },
-  acquireText: { color: "#FFFFFF", fontSize: 14, fontWeight: "700" },
+  acquireText: { fontSize: 14, fontWeight: "700" },
   cancelButton: { minHeight: 42, alignItems: "center", justifyContent: "center", borderWidth: 1, borderRadius: 7, marginTop: 8 },
   closeButton: { minHeight: 40, alignItems: "center", justifyContent: "center", marginTop: 2 },
 });

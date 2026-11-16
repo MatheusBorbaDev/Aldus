@@ -33,12 +33,12 @@ export function PdfModeChooser({ visible, onChoose, onCancel }: Props) {
 }
 
 const styles = StyleSheet.create({
-  backdrop: { flex: 1, alignItems: "center", justifyContent: "center", padding: 20, backgroundColor: "rgba(0,0,0,0.48)" },
-  dialog: { width: "100%", maxWidth: 420, padding: 22, gap: 12, borderRadius: 8, backgroundColor: "#F9EED9" },
-  title: { marginBottom: 4, color: "#57463A", fontSize: 20, fontWeight: "700" },
-  option: { padding: 14, borderWidth: 1, borderColor: "#D7C5A6", borderRadius: 6, gap: 5 },
-  optionTitle: { color: "#57463A", fontSize: 16, fontWeight: "600" },
-  description: { color: "#8A7561", fontSize: 13, lineHeight: 19 },
+  backdrop: { flex: 1, alignItems: "center", justifyContent: "center", padding: 20, },
+  dialog: { width: "100%", maxWidth: 420, padding: 22, gap: 12, borderRadius: 8 },
+  title: { marginBottom: 4, fontSize: 20, fontWeight: "700" },
+  option: { padding: 14, borderWidth: 1, borderRadius: 6, gap: 5 },
+  optionTitle: { fontSize: 16, fontWeight: "600" },
+  description: { fontSize: 13, lineHeight: 19 },
   cancel: { alignSelf: "flex-end", paddingVertical: 10, paddingHorizontal: 6 },
-  cancelText: { color: "#8A7561", fontSize: 13, fontWeight: "600" },
+  cancelText: { fontSize: 13, fontWeight: "600" },
 });

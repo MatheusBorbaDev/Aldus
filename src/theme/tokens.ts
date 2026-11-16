@@ -166,6 +166,11 @@ function relativeLuminance(hex: string) {
   return 0.2126 * channels[0] + 0.7152 * channels[1] + 0.0722 * channels[2];
 }
 
+/** Paleta escura pelo fundo (substitui comparar o texto com um hex fixo, que só reconhecia uma paleta). */
+export function isDarkPalette(palette: { background: string }) {
+  return relativeLuminance(palette.background) < 0.2;
+}
+
 export function contrastRatio(a: string, b: string) {
   const [high, low] = [relativeLuminance(a), relativeLuminance(b)].sort((x, y) => y - x);
   return (high + 0.05) / (low + 0.05);

@@ -8,7 +8,7 @@ import {
   flashcardTitle,
 } from "@/src/domain/types/flashcards";
 import { getFlashcardFeedbackColor } from "@/src/domain/study/flashcardScoring";
-import { AppThemePalette } from "@/src/theme/tokens";
+import { AppThemePalette, isDarkPalette } from "@/src/theme/tokens";
 import { FlashcardVisual } from "./FlashcardVisual";
 
 interface FlashcardCardViewProps {
@@ -31,7 +31,7 @@ export function FlashcardCardView({
   const feedback = evaluation
     ? getFlashcardFeedbackColor(
         evaluation.isCorrect,
-        palette.text === "#EEF2F4",
+        isDarkPalette(palette),
       )
     : null;
 
@@ -124,11 +124,11 @@ export function FlashcardCardView({
                       styles.pointsBadge,
                       {
                         backgroundColor:
-                          evaluation.points >= 0 ? palette.success ?? "#15803D" : palette.danger ?? "#DC2626",
+                          evaluation.points >= 0 ? palette.success : palette.danger,
                       },
                     ]}
                   >
-                    <Text style={[styles.pointsText, { color: evaluation.points >= 0 ? palette.background : palette.onDanger ?? palette.background }]}>
+                    <Text style={[styles.pointsText, { color: evaluation.points >= 0 ? palette.background : palette.onDanger }]}>
                       {evaluation.points > 0
                         ? `+${evaluation.points}`
                         : evaluation.points}{" "}
