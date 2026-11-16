@@ -1,14 +1,22 @@
-import { useEffect } from "react";
-import { Platform, Pressable, StyleSheet, View } from "react-native";
+import { useEffect, useRef } from "react";
+import { GestureResponderEvent, LayoutRectangle, Platform, Pressable, StyleSheet, View } from "react-native";
 import { epubDiagnosticConsole as console } from "@/src/utils/epubOpenMetrics";
 
 interface Props {
   onPreviousPage: () => void;
   onNextPage: () => void;
   onToggleControls: () => void;
+  /** Pressionar e segurar (Fase B): ponto em coordenadas da página do livro (mesmo contêiner da WebView). */
+  onLongPressText?: (x: number, y: number) => void;
 }
 
-export function ReadingTouchZones({ onPreviousPage, onNextPage, onToggleControls }: Props) {
+export function ReadingTouchZones({ onPreviousPage, onNextPage, onToggleControls, onLongPressText }: Props) {
+  const layout = useRef<LayoutRectangle | null>(null);
+  // Cada zona começa numa fração da largura (30% · 40% · 30%); o ponto vai para o contêiner somando a posição da faixa.
+  const longPress = (zoneStart: number) => onLongPressText ? (event: GestureResponderEvent) => {
+    const area = layout.current; if (!area) return;
+    onLongPressText(area.x + area.width * zoneStart + event.nativeEvent.locationX, area.y + event.nativeEvent.locationY);
+  } : undefined;
   useEffect(() => {
     if (Platform.OS !== "web" || typeof window === "undefined") return;
 
@@ -38,17 +46,19 @@ export function ReadingTouchZones({ onPreviousPage, onNextPage, onToggleControls
   }, [onNextPage, onPreviousPage, onToggleControls]);
 
   return (
-    <View style={styles.overlay} pointerEvents="box-none">
+    <View style={styles.overlay} pointerEvents="box-none" onLayout={event => { layout.current = event.nativeEvent.layout; }}>
       <Pressable
         accessibilityRole="button"
         accessibilityLabel="Página anterior"
         style={styles.leftZone}
         onPress={onPreviousPage}
+        onLongPress={longPress(0)}
       />
       <Pressable
         accessibilityRole="button"
         accessibilityLabel="Alternar menus e controles de leitura"
         style={styles.centerZone}
+        onLongPress={longPress(0.3)}
         onPress={() => {
           console.log(`[FORENSIC:center-click] t=${performance.timeOrigin + performance.now()} center Pressable onPress`);
           onToggleControls();
@@ -59,6 +69,7 @@ export function ReadingTouchZones({ onPreviousPage, onNextPage, onToggleControls
         accessibilityLabel="Próxima página"
         style={styles.rightZone}
         onPress={onNextPage}
+        onLongPress={longPress(0.7)}
       />
     </View>
   );

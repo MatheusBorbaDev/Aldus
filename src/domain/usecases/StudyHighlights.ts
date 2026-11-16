@@ -37,3 +37,16 @@ export function parseStudyHighlightsBackup(text: string, book: LibraryBook): Hig
     ids.add(h.id); return result;
   });
 }
+
+/**
+ * Registro de um grifo novo a partir de um trecho capturado (painel e pop-up de seleção usam o mesmo formato). Relógio e
+ * identificador injetáveis para teste. A nota acima de 100 mil caracteres é recusada, como no painel.
+ */
+export function createStudyHighlight(input: { bookId: string; anchor: TextReadingAnchor; chapterTitle: string; color: Highlight["colorLabel"]; note?: string; now?: number; id?: string }): Highlight {
+  const note = (input.note ?? "").trim();
+  if (note.length > 100000) throw new Error("A nota excede 100 mil caracteres.");
+  const location: StudyHighlightLocation = { format: "kindle-study-highlight", version: 1, anchor: input.anchor, chapterTitle: input.chapterTitle, note };
+  const encoded = JSON.stringify(location);
+  const now = input.now ?? Date.now();
+  return { id: input.id ?? `highlight-${now}-${Math.random().toString(36).slice(2)}`, bookId: input.bookId, chapterId: input.anchor.chapterId, startCfi: encoded, endCfi: encoded, highlightedText: input.anchor.quote, colorLabel: input.color, createdAt: now, pinned: false };
+}

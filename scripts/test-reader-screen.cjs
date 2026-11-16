@@ -11,7 +11,8 @@ const dependencies={highlightRepository:{listByBookId:async()=>[]},openBook:{exe
 function load(file){if(cache.has(file))return cache.get(file);const exports={};cache.set(file,exports);const input=(baseline||finalizationBaseline)&&file.endsWith('ReaderScreen.tsx')?cp.execFileSync('git',['show',(finalizationBaseline?'3df3f5b':'77c490c')+':'+file],{encoding:'utf8'}):fs.readFileSync(file,'utf8');const code=ts.transpileModule(input,{compilerOptions:{module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.ReactJSX,target:ts.ScriptTarget.ES2022,esModuleInterop:true}}).outputText;
 new Function('require','exports','setTimeout','clearTimeout',code)(name=>{
 if(name==='react')return React;if(name==='react/jsx-runtime')return require('../.expo/auth-test-tools/node_modules/react/jsx-runtime');if(name==='react-native')return {View:'View',Text:'Text',Pressable:'Pressable',ActivityIndicator:'Spinner',StatusBar:'StatusBar',Platform:{OS:'android'},StyleSheet:{create:x=>x,absoluteFill:{position:'absolute',top:0,bottom:0,left:0,right:0}},AppState:{currentState:'active',addEventListener:()=>({remove:noop})},BackHandler:{addEventListener:(_,fn)=>{back.add(fn);return {remove:()=>back.delete(fn)}}},useWindowDimensions:()=>({width:420,height:780})};if(name==='react-native-safe-area-context')return {useSafeAreaInsets:()=>({top:32,bottom:24,left:5,right:7})};if(name==='expo-router')return {router:{push:noop}};if(name==='expo-brightness')return {isAvailableAsync:async()=>false};if(name==='expo-speech')return {speak(){},stop:async()=>{}};if(name.includes('/services/dependencies'))return {appDependencies:dependencies};if(name.includes('/stores/readerStore'))return {useReaderStore:readerStore};if(name.includes('/contexts/ReaderSettingsContext'))return {useReaderSettings:()=>({hideReadingCounts,fontSize:16,fontFamily:'Georgia',marginSize:24,theme:'light',brightness:100,useSystemBrightness:true,palette})};if(name.includes('epubOpenMetrics'))return {epubDiagnosticConsole:{log:noop},markEpubOpenEvent:noop,markEpubOpenSpanStart:noop,markEpubOpenSpanEnd:noop};
-for(const component of ['MotionCuesOverlay','StudyBookmarksPanel','ReaderControls','ReaderSettingsPanel','DocumentReaderAdapter','PdfModeChooser','PdfReflowProcessor'])if(name.endsWith('/'+component))return {[component]:widget(component)};
+if(name.endsWith('/StudyPanelControls'))return {studyColorNames:{yellow:'Amarelo',green:'Verde',blue:'Azul',pink:'Rosa',purple:'Roxo'}};
+for(const component of ['HighlightSelectionPopup','MotionCuesOverlay','StudyBookmarksPanel','ReaderControls','ReaderSettingsPanel','DocumentReaderAdapter','PdfModeChooser','PdfReflowProcessor'])if(name.endsWith('/'+component))return {[component]:widget(component)};
 if(name.startsWith('@/')||name.startsWith('.')){const base=name.startsWith('@/')?name.slice(2):path.posix.join(path.posix.dirname(file),name);return load(['.ts','.tsx'].map(ext=>base+ext).find(p=>fs.existsSync(p)));}return require(name);},exports,file.endsWith('cooperativeWork.ts')?global.setTimeout:fn=>{timers.set(++timerId,fn);return timerId},file.endsWith('cooperativeWork.ts')?global.clearTimeout:id=>timers.delete(id));return exports;}
 const flushTimers=async()=>act(async()=>{const due=[...timers.values()];timers.clear();due.forEach(fn=>fn());});
 (async()=>{
@@ -98,9 +99,33 @@ const flushTimers=async()=>act(async()=>{const due=[...timers.values()];timers.c
  await act(async()=>panel().props.onSelectText());request=getDoc().props.studyRequest;assert.equal(request.type,'studySelection');assert.equal(request.enabled,true);
  assert.equal(renderer.root.findAllByType('StudyBookmarksPanel').length,0);
  await act(async()=>getDoc().props.onStudyResult({id:request.id-1,status:'captured',anchor}));assert.equal(renderer.root.findAllByType('StudyBookmarksPanel').length,0,'Old selection result ignored');
- await act(async()=>getDoc().props.onStudyResult({id:request.id,status:'captured',anchor}));assert.equal(panel().props.selectionCaptured,true);
+ // Phase B: the selection now ends in the highlight pop-up; "Adicionar nota" opens the panel with the trecho.
+ const popup=()=>renderer.root.findAllByType('HighlightSelectionPopup')[0];
+ await act(async()=>getDoc().props.onStudyResult({id:request.id,status:'captured',anchor}));assert.equal(popup().props.quote,anchor.quote);assert.equal(renderer.root.findAllByType('StudyBookmarksPanel').length,0);
+ assert.equal(getDoc().props.panelOpen,true,'page touch zones are suspended while the pop-up is open');
+ await act(async()=>popup().props.onNote());assert.equal(renderer.root.findAllByType('HighlightSelectionPopup').length,0);
+ assert.deepEqual([getDoc().props.studyRequest.type,getDoc().props.studyRequest.enabled],['studySelection',false],'document selection is released');
+ assert.equal(panel().props.selectionCaptured,true);assert.deepEqual(panel().props.capture,anchor);
  await act(async()=>panel().props.onCaptureConsumed());assert.equal(panel().props.selectionCaptured,false);assert.equal(panel().props.capture,null);
  assert.equal(getDoc().props.epubPage,37);assert.equal(writes.length,committed,'Opening and saving panel state cannot write reading progress');
+ // Press-and-hold: word under the finger, adjust, save with one color; a failed save keeps the trecho.
+ await act(async()=>panel().props.onClose());assert.equal(typeof getDoc().props.onLongPressText,'function');
+ await act(async()=>getDoc().props.onLongPressText(120,300));request=getDoc().props.studyRequest;assert.deepEqual([request.type,request.x,request.y],['studySelectAt',120,300]);assert.equal(popup().props.busy,true);
+ await act(async()=>getDoc().props.onStudyResult({id:request.id,status:'error',message:'Pressione sobre uma palavra do texto.'}));assert.equal(popup().props.quote,null);assert.match(popup().props.error,/Pressione sobre uma palavra/);
+ await act(async()=>popup().props.onCancel());assert.equal(renderer.root.findAllByType('HighlightSelectionPopup').length,0);
+ await act(async()=>getDoc().props.onLongPressText(150,320));request=getDoc().props.studyRequest;
+ const word={...anchor,end:anchor.start+3,quote:anchor.quote.slice(0,3)};
+ await act(async()=>getDoc().props.onStudyResult({id:request.id,status:'captured',anchor:word}));assert.equal(popup().props.quote,word.quote);
+ await act(async()=>getDoc().props.onStudyResult({id:request.id-1,status:'captured',anchor}));assert.equal(popup().props.quote,word.quote,'old result ignored');
+ await act(async()=>popup().props.onAdjust('growEnd'));request=getDoc().props.studyRequest;assert.deepEqual([request.type,request.op,request.anchor.quote],['studyAdjust','growEnd',word.quote]);
+ await act(async()=>getDoc().props.onStudyResult({id:request.id,status:'captured',anchor}));assert.equal(popup().props.quote,anchor.quote);
+ const saved=[];dependencies.highlightRepository.save=async h=>{throw Error('Disco cheio.')};
+ await act(async()=>popup().props.onColor('green'));assert.equal(popup().props.quote,anchor.quote,'failed save keeps the trecho');assert.match(popup().props.error,/Disco cheio/);
+ dependencies.highlightRepository.save=async h=>{saved.push(h)};
+ await act(async()=>popup().props.onColor('green'));assert.equal(saved.length,1);assert.equal(saved[0].colorLabel,'green');assert.equal(saved[0].highlightedText,anchor.quote);assert.equal(JSON.parse(saved[0].startCfi).anchor.start,anchor.start);
+ assert.equal(renderer.root.findAllByType('HighlightSelectionPopup').length,0);assert.deepEqual([getDoc().props.studyRequest.type,getDoc().props.studyRequest.enabled],['studySelection',false]);
+ assert.ok(JSON.stringify(renderer.toJSON()).includes('Grifo salvo em verde.'),'saved notice');
+ assert.equal(writes.length,committed,'selecting and saving a highlight never writes reading progress');
  await act(async()=>renderer.unmount());
  writes.length=0;await act(async()=>{renderer=create(React.createElement(ReaderScreen,{bookId:'anchor-missing'}));});await report(1,101,true);
  await act(async()=>getDoc().props.onEpubPageInfo({...restored,readingAnchor:null,anchorRestoreStatus:'missing',pageNumber:51}));assert.equal(writes.length,0);assert.match(renderer.root.findByType('StudyBookmarksPanel').props.feedback,/trecho salvo/);

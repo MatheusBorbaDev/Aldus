@@ -55,6 +55,8 @@ export interface DocumentReaderAdapterProps {
   studyHighlights?: Highlight[];
   studySelecting?: boolean;
   panelOpen?: boolean;
+  /** Pressionar e segurar sobre o texto (só EPUB): abre o pop-up de grifo com a palavra. */
+  onLongPressText?: (x: number, y: number) => void;
 }
 
 /**
@@ -93,6 +95,7 @@ export function DocumentReaderAdapter({
   studyHighlights,
   studySelecting,
   panelOpen,
+  onLongPressText,
 }: DocumentReaderAdapterProps) {
   const renderCount = useRef(0);
   const previousEpubProps = useRef<{
@@ -201,6 +204,7 @@ export function DocumentReaderAdapter({
         onPreviousPage={onPreviousPage}
         onNextPage={onNextPage}
         onToggleControls={onToggleControls}
+        onLongPressText={onLongPressText}
       /> : null}
     </View>
   );

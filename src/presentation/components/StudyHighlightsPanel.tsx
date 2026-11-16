@@ -97,7 +97,7 @@ export function StudyHighlightsPanel({ book, capture, chapterTitle, highlights, 
     </View> : <>
       <Text style={{ color: palette.secondaryText, lineHeight: 21 }}>Guarde as palavras que você quer lembrar.</Text>
       <StudyAction label="Grifar um trecho" icon="color-wand-outline" primary disabled={busy} onPress={onSelect} />
-      <Text style={{ color: palette.secondaryText, fontSize: 13, lineHeight: 19 }}>Selecione o texto no livro. Depois escolha a cor e, se quiser, adicione uma nota.</Text>
+      <Text style={{ color: palette.secondaryText, fontSize: 13, lineHeight: 19 }}>Selecione o texto no livro. Depois escolha a cor e, se quiser, adicione uma nota. Atalho: pressione e segure uma palavra na página.</Text>
     </>}
     {message ? <Text accessibilityLiveRegion="polite" style={{ color: palette.text }}>{message}</Text> : null}
     {justSaved && canUse("flashcards") ? <StudyAction label="Criar flashcard deste grifo" icon="albums-outline" disabled={busy} onPress={() => void createFlashcard(justSaved)} /> : null}

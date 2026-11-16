@@ -17,6 +17,11 @@ import { useReadAloud } from "@/src/presentation/hooks/useReadAloud";
 import { htmlToSpeechText, speechStartOffset } from "@/src/domain/reader/speechText";
 import { chapterLanguage } from "@/src/presentation/components/EpubReaderDocument";
 import { ReaderFeedbackBanner } from "@/src/presentation/components/reader/ReaderFeedbackBanner";
+import { HighlightSelectionPopup } from "@/src/presentation/components/reader/HighlightSelectionPopup";
+import { createStudyHighlight } from "@/src/domain/usecases/StudyHighlights";
+import { studyColorNames } from "@/src/presentation/components/StudyPanelControls";
+import type { HighlightColor } from "@/src/domain/repositories/HighlightRepository";
+import type { ReaderStudyAdjust } from "@/src/presentation/components/EpubPageViewerProps";
 
 import { readableBookTitle } from "@/src/presentation/services/bookDisplay";
 
@@ -103,11 +108,17 @@ export function ReaderScreen({ bookId }: Props) {
   const [studySelecting, setStudySelecting] = useState(false);
   const studySelectionIntent = useRef(false);
   const [studySelectionCaptured, setStudySelectionCaptured] = useState(false);
+  // Pop-up do grifo (Fase B): aberto por pressionar e segurar ou ao terminar a seleção arrastando. Enquanto aberto, a seleção do
+  // documento continua armada (as alças recapturam) e os toques de página ficam suspensos.
+  const [selectionPopup, setSelectionPopup] = useState<{ anchor: TextReadingAnchor | null; error: string | null; busy: boolean } | null>(null);
+  const [selectionNotice, setSelectionNotice] = useState<string | null>(null);
+  const popupIntent = useRef(false);
   const [studyHighlights, setStudyHighlights] = useState<Highlight[]>([]);
   const [studyRenderFeedback, setStudyRenderFeedback] = useState<string | null>(null);
   const [studyStorageError, setStudyStorageError] = useState<string | null>(null);
   const reloadHighlights = useCallback(async () => { setStudyHighlights(await appDependencies.highlightRepository.listByBookId(bookId)); setStudyStorageError(null); }, [bookId]);
   useEffect(() => { let active = true; setStudyHighlights([]); appDependencies.highlightRepository.listByBookId(bookId).then(values => { if (active) { setStudyHighlights(values); setStudyStorageError(null); } }).catch(e => { if (active) setStudyStorageError(e.message); }); return () => { active = false; }; }, [bookId]);
+  useEffect(() => { popupIntent.current = false; setSelectionPopup(null); setSelectionNotice(null); }, [bookId]);
   useEffect(() => { studySequence.current++; studySelectionIntent.current = false; setStudySelectionCaptured(false); setStudyAnchor(null); setStudyRequest(null); setStudyVisible(false); setStudySelecting(false); setStudyLoading(false); setStudyFeedback(null); setStudyRenderFeedback(null); }, [bookId]);
   const studySequence = useRef(0);
   const handleStudyResult = useCallback((result: ReaderStudyResult) => {
@@ -117,6 +128,14 @@ export function ReaderScreen({ bookId }: Props) {
     }
     if (result.id !== studySequence.current) return;
     setStudyLoading(false);
+    if (popupIntent.current && (result.status === "captured" || result.status === "error")) {
+      let anchor: TextReadingAnchor | null = null;
+      try { const parsed = result.anchor ? parseReadingAnchor(result.anchor) : null; anchor = parsed && parsed.kind === "epub-text" ? parsed : null; } catch { anchor = null; }
+      setStudySelecting(false);
+      setSelectionPopup(current => result.status === "captured" && anchor ? { anchor, error: null, busy: false }
+        : { anchor: current?.anchor ?? null, error: result.message ?? "Não foi possível selecionar este trecho.", busy: false });
+      return;
+    }
     if (result.status === "captured" && result.anchor) {
       try { setStudyAnchor(parseReadingAnchor(result.anchor)); setStudySelectionCaptured(studySelectionIntent.current); setStudyFeedback(null); setStudySelecting(false); setStudyVisible(true); setStudyRequest({ id: result.id, type: "studySelection", enabled: false }); }
       catch { setStudyFeedback("A localização recebida não é válida. Capture novamente."); }
@@ -124,6 +143,16 @@ export function ReaderScreen({ bookId }: Props) {
       setStudyVisible(false); setStudyFeedback(null);
     } else setStudyFeedback(result.status === "ambiguous" ? "Há mais de um trecho correspondente. A nota permanece disponível; o leitor não foi movido." : result.status === "missing" ? "O trecho não foi encontrado nesta edição. A nota permanece disponível." : result.message ?? "Não foi possível localizar o trecho.");
   }, []);
+  useEffect(() => {
+    if (!selectionPopup?.busy) return;
+    const timer = setTimeout(() => setSelectionPopup(current => current?.busy ? { ...current, busy: false, error: "O leitor não respondeu. Tente de novo." } : current), 5000);
+    return () => clearTimeout(timer);
+  }, [selectionPopup?.busy]);
+  useEffect(() => {
+    if (!selectionNotice) return;
+    const timer = setTimeout(() => setSelectionNotice(null), 2600);
+    return () => clearTimeout(timer);
+  }, [selectionNotice]);
   useEffect(() => {
     if (!studyLoading) return;
     const timer = setTimeout(() => { setStudyLoading(false); setStudyFeedback("O leitor não respondeu. Aguarde o carregamento e tente novamente."); }, 5000);
@@ -970,6 +999,38 @@ export function ReaderScreen({ bookId }: Props) {
     );
   }
 
+  const closeSelectionPopup = () => {
+    popupIntent.current = false; setSelectionPopup(null);
+    setStudyRequest({ id: ++studySequence.current, type: "studySelection", enabled: false });
+  };
+  const selectTextAt = isEpub ? (x: number, y: number) => {
+    if (studyVisible || readerPanel || selectionPopup) return;
+    popupIntent.current = true; studySelectionIntent.current = false; setStudyFeedback(null);
+    setSelectionPopup({ anchor: null, error: null, busy: true });
+    setStudyRequest({ id: ++studySequence.current, type: "studySelectAt", x, y });
+  } : undefined;
+  const adjustSelection = (op: ReaderStudyAdjust) => {
+    const anchor = selectionPopup?.anchor; if (!anchor || selectionPopup?.busy) return;
+    setSelectionPopup({ anchor, error: null, busy: true });
+    setStudyRequest({ id: ++studySequence.current, type: "studyAdjust", anchor, op });
+  };
+  const saveSelection = async (color: HighlightColor) => {
+    const anchor = selectionPopup?.anchor; if (!anchor || selectionPopup?.busy) return;
+    setSelectionPopup({ anchor, error: null, busy: true });
+    try {
+      await appDependencies.highlightRepository.save(createStudyHighlight({ bookId, anchor, chapterTitle, color }));
+      closeSelectionPopup(); setSelectionNotice(`Grifo salvo em ${studyColorNames[color].toLowerCase()}.`);
+      await reloadHighlights().catch(() => undefined);
+    } catch (error) {
+      // Rascunho preservado: o trecho continua no pop-up para tentar de novo.
+      setSelectionPopup({ anchor, error: error instanceof Error ? error.message : "Não foi possível salvar o grifo.", busy: false });
+    }
+  };
+  const noteSelection = () => {
+    const anchor = selectionPopup?.anchor; if (!anchor) return;
+    closeSelectionPopup();
+    studySelectionIntent.current = true; setStudyAnchor(anchor); setStudySelectionCaptured(true); setStudyFeedback(null); setStudyVisible(true);
+  };
   const readerDocument = (
     <View style={[styles.documentSurface, documentSafeInsets(Platform.OS, insets), { opacity: Platform.OS === "web" ? documentBrightnessFactor : 1 }]}>
       {!(isReflowPdf && !pdfReflowDocument) ? <DocumentReaderAdapter
@@ -1000,7 +1061,8 @@ export function ReaderScreen({ bookId }: Props) {
         studyRequest={studyRequest}
         onStudyResult={handleStudyResult}
         studySelecting={studySelecting}
-        panelOpen={readerPanel !== null || studyVisible}
+        panelOpen={readerPanel !== null || studyVisible || selectionPopup !== null}
+        onLongPressText={selectTextAt}
         studyHighlights={isEpub ? studyHighlights : undefined}
       /> : null}
     </View>
@@ -1059,10 +1121,12 @@ export function ReaderScreen({ bookId }: Props) {
 
         <MotionCuesOverlay color={activePalette.text} />
         {studySelecting ? <View style={{ position: "absolute", bottom: Math.max(insets.bottom, 12) + 64, left: 16, right: 16, zIndex: 30, backgroundColor: activePalette.panel, padding: 12, borderRadius: 8 }}><Text style={{ color: activePalette.text }}>{Platform.OS === "web" ? "Arraste sobre o texto. Solte para escolher a cor." : "Toque e segure uma palavra. Ajuste a seleção e solte para escolher a cor."}</Text>{studyFeedback ? <Text accessibilityRole="alert" style={{ color: activePalette.text }}>{studyFeedback}</Text> : null}<Pressable accessibilityRole="button" style={{ minHeight: 44, justifyContent: "center" }} onPress={() => { studySelectionIntent.current = false; setStudySelectionCaptured(false); setStudySelecting(false); setStudyVisible(true); setStudyRequest({ id: ++studySequence.current, type: "studySelection", enabled: false }); }}><Text style={{ color: activePalette.accent, paddingVertical: 10 }}>Cancelar seleção</Text></Pressable></View> : null}
+        {selectionPopup ? <HighlightSelectionPopup quote={selectionPopup.anchor?.quote ?? null} error={selectionPopup.error} busy={selectionPopup.busy} palette={activePalette}
+          bottom={Math.max(insets.bottom, 12) + 12} onColor={color => void saveSelection(color)} onAdjust={adjustSelection} onNote={noteSelection} onCancel={closeSelectionPopup} /> : null}
         {studyVisible && currentBook ? <StudyBookmarksPanel book={currentBook} capture={studyAnchor} chapterTitle={chapterTitle} loading={studyLoading} feedback={studyStorageError ?? studyFeedback ?? studyRenderFeedback}
           highlights={isEpub ? studyHighlights : undefined} onHighlightsSaved={reloadHighlights}
           selectionCaptured={studySelectionCaptured} onCaptureConsumed={() => { setStudySelectionCaptured(false); setStudyAnchor(null); }}
-          onSelectText={isEpub ? () => { studySelectionIntent.current = true; setStudySelectionCaptured(false); setStudyVisible(false); setStudySelecting(true); setStudyFeedback(null); setStudyAnchor(null); setStudyRequest({ id: ++studySequence.current, type: "studySelection", enabled: true }); } : undefined}
+          onSelectText={isEpub ? () => { popupIntent.current = true; studySelectionIntent.current = false; setStudySelectionCaptured(false); setStudyVisible(false); setStudySelecting(true); setStudyFeedback(null); setStudyAnchor(null); setStudyRequest({ id: ++studySequence.current, type: "studySelection", enabled: true }); } : undefined}
           onCapture={() => {
             studySelectionIntent.current = false; setStudySelectionCaptured(false); setStudyAnchor(null); setStudyFeedback(null);
             if (isPdf && !isReflowPdf) { setStudyAnchor({ version: 1, kind: "pdf-page", sourcePage: pdfPage }); return; }
@@ -1106,6 +1170,14 @@ export function ReaderScreen({ bookId }: Props) {
             actionLabel={readingSession.lastFocus ? "Ver cartão" : "Fechar"}
             actionAccessibilityLabel={readingSession.lastFocus ? "Ver cartão de foco" : "Fechar resumo do foco"}
             onDismiss={() => { if (readingSession.lastFocus) setFocusCardVisible(true); readingSession.dismissSummary(); }}
+          />
+        ) : selectionNotice ? (
+          <ReaderFeedbackBanner
+            message={selectionNotice}
+            transient
+            palette={activePalette}
+            top={readerFeedbackTop(insets.top, controlsVisible && !studySelecting, headerHeight)}
+            onDismiss={() => setSelectionNotice(null)}
           />
         ) : reflowFeedback ? (
           <ReaderFeedbackBanner
