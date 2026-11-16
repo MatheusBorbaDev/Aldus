@@ -138,9 +138,12 @@ function load(file){if(cache.has(file))return cache.get(file);const exports={};c
    window.goToPage(10);await sleep(50);const out={};
    window.updateMotion({pageTurn:'none'});let n=pages().length;window.navigatePage(1);out.none={sync:pages().length-n,page:last()};
    window.updateMotion({pageTurn:'slide'});n=pages().length;let t0=performance.now();window.navigatePage(1);out.slideSync=pages().length-n;while(pages().length===n&&performance.now()-t0<2000)await sleep(5);out.slideMs=Math.round(performance.now()-t0);
-   window.updateMotion({pageTurn:'flip'});n=pages().length;const before=last();window.navigatePage(1);await sleep(60);
-   out.flipMid={messages:pages().length-n,transform:v.style.transform};await sleep(800);
-   out.flip={messages:pages().length-n,page:last(),from:before,transform:v.style.transform,origin:v.style.transformOrigin,width:Math.round(v.getBoundingClientRect().width)};
+   window.updateMotion({pageTurn:'flip'});window.readerStudy({type:'studyCapture',id:31});const startText=messages.filter(m=>m.type==='study'&&m.id===31).at(-1).anchor.quote.trim().slice(0,24);
+   n=pages().length;const before=last();window.navigatePage(1);await sleep(200);
+   const sheet=document.getElementById('reader-curl'),flap=document.getElementById('reader-curl-flap');
+   out.flipMid={messages:pages().length-n,sheet:!!sheet,flap:!!flap,clip:sheet&&sheet.style.clipPath.slice(0,8),copy:!!sheet&&sheet.textContent.replace(/s+/g,' ').includes(startText.replace(/s+/g,' ')),startText};await sleep(800);
+   out.flip={messages:pages().length-n,page:last(),from:before,left:!!document.getElementById('reader-curl')||!!document.getElementById('reader-curl-flap')||!!document.getElementById('reader-curl-shadow'),width:Math.round(v.getBoundingClientRect().width)};
+   const back0=last();window.navigatePage(-1);await sleep(200);out.backMid=!!document.getElementById('reader-curl');await sleep(800);out.back={from:back0,to:last(),left:!!document.getElementById('reader-curl')};window.navigatePage(1);await sleep(900);
    const startFlip=last();window.navigatePage(1);window.navigatePage(1);window.navigatePage(1);await sleep(2500);out.flipRapid={from:startFlip,to:last()};
    window.updateMotion({pageTurn:'slide'});const startSlide=last();window.navigatePage(1);window.navigatePage(1);window.navigatePage(1);await sleep(1500);out.slideRapid={from:startSlide,to:last()};
    window.updateMotion({pageTurn:'flip',reduceMotion:true});n=pages().length;window.navigatePage(-1);out.reduced={sync:pages().length-n};
@@ -185,8 +188,10 @@ function load(file){if(cache.has(file))return cache.get(file);const exports={};c
   before=await evaluate(`(()=>{window.goToPage(${beforePage});window.readerStudy({type:'studyCapture',id:97});return messages.filter(m=>m.type==='study'&&m.id===97).at(-1);})()`);assert.equal(before.status,'captured');
   assert.deepEqual(turns.none,{sync:1,page:11},'Sem animação turns at once');
   assert.equal(turns.slideSync,0,'Deslizar animates (not instant) without reduce motion');assert.ok(turns.slideMs>=150,'slide lasts its transition: '+turns.slideMs);
-  assert.equal(turns.flipMid.messages,0,'Folhear does not confirm the page mid-turn');assert.match(turns.flipMid.transform,/rotateY/);
-  assert.equal(turns.flip.messages,1);assert.equal(turns.flip.page,turns.flip.from+1);assert.equal(turns.flip.transform,'');assert.equal(turns.flip.origin,'');assert.ok(turns.flip.width>300,'viewport back to full width');
+  assert.equal(turns.flipMid.messages,0,'Folhear does not confirm the page mid-turn');assert.equal(turns.flipMid.sheet&&turns.flipMid.flap,true,'page copy and paper flap mid-turn');assert.equal(turns.flipMid.clip,'polygon(');
+  assert.equal(turns.flipMid.copy,true,'the curling sheet is a copy of the visible page: '+JSON.stringify(turns.flipMid.startText));
+  assert.equal(turns.backMid,true,'going back also curls');assert.equal(turns.back.to,turns.back.from-1);assert.equal(turns.back.left,false);
+  assert.equal(turns.flip.messages,1);assert.equal(turns.flip.page,turns.flip.from+1);assert.equal(turns.flip.left,false,'no curl layer left behind');assert.ok(turns.flip.width>300,'viewport back to full width');
   assert.equal(turns.flipRapid.to,turns.flipRapid.from+3,'three quick taps while flipping move three pages');assert.equal(turns.slideRapid.to,turns.slideRapid.from+3,'three quick taps while sliding move three pages');
   assert.equal(turns.reduced.sync,1,'app reduce motion turns at once even with Folhear chosen');assert.equal(system,1,'system reduce motion turns at once');assert.equal(turns.capture,'captured','reader usable after turns');
   console.log('PASS page turn on the actual document: none immediate, slide animates, flip confirms only at the end and leaves no transform, rapid taps add up (flip and slide), app and system reduce motion force none',JSON.stringify({slideMs:turns.slideMs,flip:turns.flip}));

@@ -564,32 +564,123 @@ export function createEpubReaderDocument(chapters: StoredChapter[], options: Rea
     pageTurnMode = mode === "none" || mode === "flip" ? mode : "slide";
     reduceMotionRequested = !!(options && options.reduceMotion);
   };
-  function flipToPage(width) {
-    var forward = targetPage > currentPage, phase = 0, half = forward ? -90 : 90;
-    document.body.style.perspective = "1800px";
-    viewport.style.transition = "transform 170ms ease-in, filter 170ms ease-in";
-    viewport.style.transformOrigin = forward ? "left center" : "right center";
+  // Folhear (refeito em 16/11/2026 depois do teste no aparelho): a página vira como papel, a partir do canto de baixo. Por cima
+  // fica uma cópia só do trecho visível (poucos KB, não o livro); por baixo, a página de destino. A cada quadro calculam-se a
+  // linha da dobra, o verso do papel e a sombra. A posição só é confirmada no fim.
+  function curlCharVisible(node, index, width, height) {
+    var r = document.createRange(); r.setStart(node, index); r.setEnd(node, index + 1);
+    var b = r.getBoundingClientRect(); return b.width > 0 && b.right > 0 && b.left < width && b.bottom > 0 && b.top < height;
+  }
+  function curlPageRange() {
+    var width = getPageWidth(), height = getPageHeight(), sections = content.querySelectorAll(".epub-chapter");
+    var from = Math.max(0, currentChapterIndex - 1), visible = [];
+    for (var s = from; s < sections.length; s++) {
+      var bounds = sections[s].getBoundingClientRect();
+      if (bounds.right <= 0 && !visible.length) continue;
+      var walker = document.createTreeWalker(sections[s], NodeFilter.SHOW_TEXT), node, passed = false;
+      while ((node = walker.nextNode())) {
+        if (!node.nodeValue.trim() || node.parentElement.closest("style,script")) continue;
+        var full = document.createRange(); full.selectNodeContents(node);
+        var rects = full.getClientRects(), seen = false;
+        for (var k = 0; k < rects.length; k++) { var b = rects[k]; if (b.width > 0 && b.right > 0 && b.left < width && b.bottom > 0 && b.top < height) { seen = true; break; } }
+        if (seen) visible.push(node); else if (visible.length) { passed = true; break; }
+      }
+      if (passed || bounds.left >= width) break;
+    }
+    if (!visible.length) return null;
+    var first = visible[0], last = visible[visible.length - 1], low = 0, high = first.length - 1;
+    while (low < high) { var mid = Math.floor((low + high) / 2); if (curlCharVisible(first, mid, width, height)) high = mid; else low = mid + 1; }
+    var start = low; low = 0; high = last.length - 1;
+    while (low < high) { var mid2 = Math.ceil((low + high) / 2); if (curlCharVisible(last, mid2, width, height)) low = mid2; else high = mid2 - 1; }
+    var range = document.createRange(); range.setStart(first, start); range.setEnd(last, Math.min(last.length, low + 1));
+    return range;
+  }
+  function curlCopy(range) {
+    var width = getPageWidth(), height = getPageHeight(), probe = document.createRange();
+    probe.setStart(range.startContainer, range.startOffset); probe.setEnd(range.startContainer, Math.min(range.startContainer.length, range.startOffset + 1));
+    var origin = probe.getBoundingClientRect(), fragment = range.cloneContents();
+    var sheet = document.createElement("div"), inner = document.createElement("div");
+    sheet.id = "reader-curl"; sheet.setAttribute("aria-hidden", "true");
+    var surface = getComputedStyle(viewport);
+    sheet.style.cssText = "position:absolute;left:0;top:0;width:" + width + "px;height:" + height + "px;overflow:hidden;z-index:3;pointer-events:none;will-change:clip-path;";
+    sheet.style.backgroundColor = surface.backgroundColor; sheet.style.backgroundImage = viewport.style.backgroundImage;
+    sheet.style.backgroundSize = viewport.style.backgroundSize; sheet.style.backgroundRepeat = viewport.style.backgroundRepeat;
+    var wrapsChapters = fragment.querySelector && fragment.querySelector(".epub-chapter");
+    if (wrapsChapters) inner.appendChild(fragment); else { var chapter = document.createElement("div"); chapter.className = "epub-chapter"; chapter.appendChild(fragment); inner.appendChild(chapter); }
+    inner.style.cssText = "position:absolute;left:0;top:0;width:" + width + "px;";
+    sheet.appendChild(inner); viewport.appendChild(sheet);
+    // Página que começa no meio de um parágrafo: sem recuo de primeira linha na cópia.
+    if (range.startOffset > 0) { var block = inner.querySelector("p,div:not(.epub-chapter),li,blockquote"); if (block) block.style.textIndent = "0"; }
+    var walker = document.createTreeWalker(inner, NodeFilter.SHOW_TEXT), firstText;
+    while ((firstText = walker.nextNode()) && !firstText.nodeValue.trim()) {}
+    if (firstText) {
+      var at = 0; while (at < firstText.length && !firstText.nodeValue[at].trim()) at++;
+      var copyProbe = document.createRange(); copyProbe.setStart(firstText, at); copyProbe.setEnd(firstText, Math.min(firstText.length, at + 1));
+      var placed = copyProbe.getBoundingClientRect();
+      inner.style.transform = "translate(" + (origin.left - placed.left) + "px," + (origin.top - placed.top) + "px)";
+    }
+    return sheet;
+  }
+  function curlLayer(id, z) {
+    var layer = document.createElement("div"); layer.id = id; layer.setAttribute("aria-hidden", "true");
+    layer.style.cssText = "position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;z-index:" + z + ";";
+    viewport.appendChild(layer); return layer;
+  }
+  function curlClip(points, mid, normal, lifted) {
+    var out = [];
+    for (var i = 0; i < points.length; i++) {
+      var a = points[i], b = points[(i + 1) % points.length];
+      var da = (a[0] - mid[0]) * normal[0] + (a[1] - mid[1]) * normal[1], db = (b[0] - mid[0]) * normal[0] + (b[1] - mid[1]) * normal[1];
+      if (!lifted) { da = -da; db = -db; }
+      if (da >= 0) out.push(a);
+      if ((da >= 0) !== (db >= 0)) { var f = da / (da - db); out.push([a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f]); }
+    }
+    return out;
+  }
+  function curlPolygon(points) {
+    if (points.length < 3) return "polygon(0px 0px, 0px 0px, 0px 0px)";
+    return "polygon(" + points.map(function(p) { return p[0].toFixed(1) + "px " + p[1].toFixed(1) + "px"; }).join(", ") + ")";
+  }
+  function curlToPage(width) {
+    var forward = targetPage > currentPage, height = getPageHeight();
+    // Volta: a página de destino é que se desdobra por cima; a cópia é feita dela, com a atual por baixo.
+    if (!forward) content.style.transform = "translateX(-" + ((targetPage - 1) * width) + "px)";
+    var range = curlPageRange();
+    if (!range) { content.style.transform = "translateX(-" + ((currentPage - 1) * width) + "px)"; return false; }
+    var sheet = curlCopy(range), shadow = curlLayer("reader-curl-shadow", 2), flap = curlLayer("reader-curl-flap", 4);
+    content.style.transform = "translateX(-" + (((forward ? targetPage : currentPage) - 1) * width) + "px)";
+    var paper = getComputedStyle(viewport).backgroundColor, rect = [[0, 0], [width, 0], [width, height], [0, height]];
+    flap.style.backgroundColor = paper;
+    var duration = 560, started = 0, finished = false;
+    function frame(now) {
+      if (finished) return;
+      if (!started) started = now;
+      var linear = Math.min(1, (now - started) / duration), eased = 0.5 - Math.cos(Math.PI * linear) / 2;
+      var t = forward ? eased : 1 - eased;
+      // O canto de baixo sobe em arco e atravessa a página.
+      var corner = [width - t * 2.1 * width, height - Math.sin(Math.PI * t) * height * 0.2];
+      var dx = width - corner[0], dy = height - corner[1], length = Math.sqrt(dx * dx + dy * dy) || 1;
+      var normal = [dx / length, dy / length], mid = [(width + corner[0]) / 2, (height + corner[1]) / 2];
+      var lifted = curlClip(rect, mid, normal, true);
+      var back = lifted.map(function(p) { var d = 2 * ((p[0] - mid[0]) * normal[0] + (p[1] - mid[1]) * normal[1]); return [p[0] - d * normal[0], p[1] - d * normal[1]]; });
+      sheet.style.clipPath = curlPolygon(curlClip(rect, mid, normal, false));
+      flap.style.clipPath = curlPolygon(back);
+      var angle = Math.atan2(-normal[0], normal[1]) * 180 / Math.PI;
+      flap.style.backgroundImage = "linear-gradient(" + (angle + 180) + "deg, rgba(0,0,0,0.16), rgba(255,255,255,0.28) 45%, rgba(0,0,0,0.06))";
+      shadow.style.clipPath = curlPolygon(lifted);
+      shadow.style.backgroundImage = "linear-gradient(" + angle + "deg, rgba(0,0,0,0.30), rgba(0,0,0,0) 22%)";
+      if (linear < 1) requestAnimationFrame(frame); else done();
+    }
     function done() {
-      if (phase === 2) return; phase = 2; clearTimeout(flipTimer);
-      viewport.removeEventListener("transitionend", onEnd);
-      viewport.style.transition = ""; viewport.style.transform = ""; viewport.style.transformOrigin = ""; viewport.style.filter = "";
+      if (finished) return; finished = true; clearTimeout(flipTimer);
+      content.style.transform = "translateX(-" + ((targetPage - 1) * width) + "px)";
+      [sheet, shadow, flap].forEach(function(layer) { if (layer.parentNode) layer.parentNode.removeChild(layer); });
       finishNavigation();
     }
-    function swap() {
-      phase = 1;
-      content.style.transform = "translateX(-" + ((targetPage - 1) * width) + "px)";
-      viewport.style.transition = "none";
-      viewport.style.transformOrigin = forward ? "right center" : "left center";
-      viewport.style.transform = "rotateY(" + (-half) + "deg)";
-      void viewport.offsetWidth;
-      viewport.style.transition = "transform 190ms ease-out, filter 190ms ease-out";
-      viewport.style.transform = "rotateY(0deg)"; viewport.style.filter = "";
-    }
-    function onEnd(event) { if (event.target !== viewport || event.propertyName !== "transform") return; if (phase === 0) swap(); else done(); }
-    viewport.addEventListener("transitionend", onEnd);
-    // Sem transitionend (aba oculta, WebView pausada) a virada termina mesmo assim.
-    flipTimer = setTimeout(function() { if (phase === 0) swap(); done(); }, 700);
-    requestAnimationFrame(function() { viewport.style.transform = "rotateY(" + half + "deg)"; viewport.style.filter = "brightness(0.82)"; });
+    // Sem quadros (aba oculta, WebView pausada) a virada termina mesmo assim.
+    flipTimer = setTimeout(done, duration + 400);
+    requestAnimationFrame(frame);
+    return true;
   }
 
   window.navigatePage = function(direction, operationId, origin) {
@@ -625,7 +716,7 @@ export function createEpubReaderDocument(chapters: StoredChapter[], options: Rea
 
     isAnimating = true;
     var turn = effectivePageTurn();
-    if (turn === "flip") { flipToPage(getPageWidth()); return; }
+    if (turn === "flip" && curlToPage(getPageWidth())) return;
     content.classList.toggle("turn-instant", turn === "none");
     content.classList.add("is-transitioning");
     content.style.transform = "translateX(-" + ((targetPage - 1) * getPageWidth()) + "px)";
