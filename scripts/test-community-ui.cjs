@@ -31,6 +31,16 @@ function press(label) { const button=renderer.root.findAllByType('Pressable').fi
 (async()=>{
   const {CommunityHomeScreen:Home}=load('src/community/presentation/CommunityHomeScreen');
   let root=await render(Home); assert.match(text(root),/Nenhuma atividade ainda/);assert.match(text(root),/Sua biblioteca está vazia/);
+  // Pessoas logo no topo (aba Comunidade, pedido de 16/11) e seta de voltar só fora da aba.
+  assert.ok(text(root).indexOf('Encontrar leitores')<text(root).indexOf('Sua jornada literária'),'Pessoas vem antes da jornada');
+  assert.ok(root.findAllByType('Pressable').some(n=>n.props.accessibilityLabel==='Voltar'),'fora da aba há Voltar');
+  { const Tab=()=>React.createElement(Home,{asTab:true});const tabRoot=await render(Tab);
+    assert.ok(!tabRoot.findAllByType('Pressable').some(n=>n.props.accessibilityLabel==='Voltar'),'na aba não há Voltar');
+    assert.match(text(tabRoot),/Encontrar leitores/); root=await render(Home); }
+  { const layout=fs.readFileSync('app/(tabs)/_layout.tsx','utf8'),tab=fs.readFileSync('app/(tabs)/community.tsx','utf8');
+    assert.match(layout,/<Tabs\.Screen name="community" options=\{\{ title: "Comunidade"/);
+    assert.ok(layout.indexOf('name="community"')<layout.indexOf('name="settings"'),'Comunidade antes de Conta');
+    assert.match(tab,/<CommunityProvider><CommunityHomeScreen asTab \/><\/CommunityProvider>/); }
   assert(!text(root).includes('seguidores: 0'));
   await press('Meu perfil literário');assert.equal(navigations.at(-1),'/community/profile');
   await press('Incluir estas leituras na minha jornada local');assert.deepEqual(include,[true]);

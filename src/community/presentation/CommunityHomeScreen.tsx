@@ -6,7 +6,8 @@ import { communityDestinations, type CommunityDestination } from "./content";
 import { goalProgress } from "../domain/profile";
 import { achievements } from "../domain/progression";
 
-export function CommunityHomeScreen() {
+/** `asTab`: aberta pela aba Comunidade da barra principal (sem seta de voltar). */
+export function CommunityHomeScreen({ asTab = false }: { asTab?: boolean } = {}) {
   useCommunityFocus();
   const { view, refresh, service } = useCommunity();
   const [busy, setBusy] = useState(false), [failure, setFailure] = useState<string | null>(null);
@@ -18,8 +19,11 @@ export function CommunityHomeScreen() {
     finally { setBusy(false); }
   };
   const goal = view ? goalProgress(view.state.profile?.readingGoal ?? null, view.stats.booksByYear) : null;
-  return <CommunityPage title="Comunidade"><CommunityGate>{view?.state.profile && <>
+  return <CommunityPage title="Comunidade" showBack={!asTab}><CommunityGate>{view?.state.profile && <>
     <Copy secondary>Uma jornada construída entre livros.</Copy>
+    <Card title="Pessoas"><Copy secondary>Publique seu perfil, encontre leitores pelo @usuário e escolha quem acompanhar.</Copy>
+      <Action label="Encontrar leitores" onPress={() => router.push("/community/people" as Href)} />
+    </Card>
     <Card><ProfileIdentity profile={view.state.profile} /><Action label="Meu perfil literário" onPress={() => router.push("/community/profile" as Href)} /></Card>
     <Card title="Sua jornada literária"><Meter fraction={view.progression.fraction} label={view.progression.level.name} />
       <Copy secondary>{view.progression.points} pontos de leitura{view.progression.level.nextThreshold !== null ? ` · próximo nível em ${view.progression.level.nextThreshold}` : ""}</Copy>
@@ -43,9 +47,6 @@ export function CommunityHomeScreen() {
       <Action label="Atualizar leituras" disabled={busy} onPress={() => void refresh()} />
     </Card>
     <Timeline activities={view.state.activities} />
-    <Card title="Pessoas"><Copy secondary>Publique seu perfil, encontre leitores pelo @usuário e escolha quem acompanhar.</Copy>
-      <Action label="Encontrar leitores" onPress={() => router.push("/community/people" as Href)} />
-    </Card>
     {(Object.keys(communityDestinations) as CommunityDestination[]).map(key => <Card key={key} title={communityDestinations[key].title}>
       <Copy secondary>{communityDestinations[key].description} Em construção.</Copy>
       <Action label={`Conhecer ${communityDestinations[key].title.toLowerCase()}`} onPress={() => router.push(`/community/${key}` as Href)} />

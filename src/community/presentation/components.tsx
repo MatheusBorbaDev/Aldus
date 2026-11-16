@@ -10,14 +10,15 @@ import { activityText } from "../domain/progression";
 import { useCommunity } from "./CommunityProvider";
 import { noActivity } from "./content";
 
-export function CommunityPage({ title, children }: PropsWithChildren<{ title: string }>) {
+/** `showBack` falso quando a página é uma aba da barra principal (não há para onde voltar). */
+export function CommunityPage({ title, children, showBack = true }: PropsWithChildren<{ title: string; showBack?: boolean }>) {
   const { palette } = useAppTheme(), insets = useSafeAreaInsets();
   return <View style={{ flex: 1, backgroundColor: palette.background }}>
     <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={[styles.page, { paddingTop: Math.max(insets.top, 16), paddingBottom: Math.max(insets.bottom, 24) }]}>
       <View style={styles.header}>
-        <Pressable accessibilityRole="button" accessibilityLabel="Voltar" style={styles.back} onPress={() => router.canGoBack() ? router.back() : router.replace("/(tabs)/settings")}>
+        {showBack ? <Pressable accessibilityRole="button" accessibilityLabel="Voltar" style={styles.back} onPress={() => router.canGoBack() ? router.back() : router.replace("/(tabs)/settings")}>
           <Ionicons name="arrow-back" size={22} color={palette.text} />
-        </Pressable>
+        </Pressable> : null}
         <Text accessibilityRole="header" style={[appUi.title, { color: palette.text, flex: 1 }]}>{title}</Text>
       </View>
       {children}
