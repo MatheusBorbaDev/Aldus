@@ -52,3 +52,20 @@
 - Suítes que conferem textos/estrutura atuais (`test:library:web`, `test:source-library:browser`,
   `test-library-ui`, `test-source-ui`, `test-saas-ui`, `test-flashcard-ui`) devem ser atualizadas junto,
   sem afrouxar o comportamento verificado.
+
+## Paletas e plano de leitura e compartilhamento (16/11/2026)
+
+- **Paletas do app** (`src/theme/tokens.ts`): `classic` (o `appThemeTokens` original, intocado), `petroleum` (Moderno · Petróleo) e
+  `ink` (Moderno · Azul-tinta), cada uma claro/escuro com o conjunto completo de tokens e o mesmo contrato de contraste
+  (`scripts/test-app-design.cjs`). Escolha no aparelho em `@aldus/app-palette.v1`, independente do modo claro/escuro. Tela: Conta →
+  Tema do aplicativo, grupo "Paleta" (bolinhas de prévia, seleção por contorno + negrito + ✓).
+- **Reader**: o tema do livro (fundo/texto) é do leitor e não muda; os controles usam o destaque da paleta via `readerChromePalette`, só
+  quando mantém 4,5:1 sobre o fundo e o painel do livro. O documento do livro não recebe `accent`.
+- **Cor nova em tela**: sempre por token. Exceções conscientes: página do PDF (branca), cores de grifo, marcas brancas sobre capas/véus, o
+  painel do OCR sobre véu escuro fixo e os indicadores antes dos provedores montarem.
+- **Textura de papel** (`src/domain/reader/paperTexture.ts`): grão SVG próprio em `data:`, nunca imagem de terceiros. Opacidade limitada
+  para o texto do livro manter 4,5:1 no pior pixel; aplicada só por `updateSurface` (fundo do viewport), nunca pela tipografia.
+- **Plano aprovado** (ordem): A paletas + textura (feito: `f0215f7`, `fcde063`, `986f099`, `1aca293`); B grifo (captura por mudança da
+  seleção, pop-up próprio, gestos suspensos durante a seleção); C card de trecho 9:16/1:1/4:5 desenhado em canvas na WebView, envio por
+  `expo-sharing` (dependência a aprovar), limite de caracteres, nunca o arquivo; D "Sem animação/Deslizar/Folhear" com reduzir movimento;
+  E rolagem contínua por fatias (PDF Original → EPUB em um capítulo → entre capítulos), posição gravada só ao parar.

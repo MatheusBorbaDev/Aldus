@@ -132,6 +132,8 @@ Persistência (legado mantido, não renomear `kindle-*`/`@kindle/*`): Native SQL
   `expo-notifications`) e filtro VIEW `content://` PDF/EPUB; o `*/*` é a consulta OPEN_DOCUMENT já existente. `apksigner`: v2, certificado
   `fac61745…033b9c` (o do Redmi) — não é o Beta privado. dex com `expo/modules/speech`, `expo/modules/notifications`; bundle Hermes com textos
   das ondas A–D; 34 livros. **NÃO instalado**: o Redmi segue com `ae98991`.
+- **Fase A, paletas e textura (16/11, `f0215f7`…`1aca293`)**: typecheck PASS; `test:critical` **125/125**; `test:reader:browser` PASS; `export:web`
+  PASS; lista de entrega `--source`/`--dist` PASS com 30 recursos. APK não compilado.
 - **Pendências antes do APK (16/11, `98a8ead`…`3cd2d9a`)**: typecheck PASS; `test:critical` **124/124**; `export:web` PASS; lista de entrega
   `--source`/`--dist` PASS com 28 recursos. Migration de clubes/fóruns **aplicada no Supabase em 16/11** (ver log). APK não compilado (aguarda pedido).
 - **Segurança (15/11, `e71b31d`, `64ad127`, `68b18cd`)**: typecheck PASS; `test:critical` **117/117**; `export:web` PASS; Chromium PASS: `test:reader:
@@ -262,6 +264,7 @@ Legenda: **IVER** = implementado e verificado (suíte/execução citada); **ISVS
 | Landing Web e legal | IVER (local/Chromium) | `src/marketing`, `src/legal`; `test:marketing*`, `test:legal*`. Deploy Vercel não reconferido. |
 | Android (build/APK/módulos) | PARC | `android/`, `scripts/build-apk-local.mjs`; APK `00b6e4d`/`53b4e32` (privados, ignorados). Homologação física BLOQUEADA (Redmi ausente), APK do HEAD inexistente. |
 | UX/UI reformulação (27/10) | IVER (Web controlado) / físico PENDENTE | commits `d6ef9c7`, `ea0b1ec`, `f970c2d`; `test-app-design`, 8 suítes Chromium. Será substituída pelo redesign abaixo. |
+| Paletas Clássico/Moderno e textura de papel (16/11) | IVER (local + Chromium); Android NÃO TESTADO | `src/theme/tokens.ts` (`appPalettes`, `readerChromePalette`), `AppThemeContext`, `app/preferences.tsx`, `src/domain/reader/paperTexture.ts`, `updateSurface` no `EpubReaderDocument`; `test-app-design`, `test-preference-persistence`, `test-paper-texture`, `test:reader:browser`. |
 | Redesign editorial (06/11, fases 1–5) | Fases 1–5 IVER (local + Chromium); Android NÃO TESTADO | `src/ui/*`, `app/(tabs)/_layout.tsx`, `app/(tabs)/search.tsx` (Descobrir), `app/(tabs)/library.tsx`, `BookCard.tsx`; `test-ui-primitives`, `test-discover-ui`, `test-app-design` (critical), `test:source-library:browser`. Ver `docs/context/design-system.md`. |
 | Reflow/PDF seleção ↔ EPUB equivalência | PLAN | `reader.md`: grifos mapeados entre PDF e Reflow ainda não equivalem ao EPUB. |
 
@@ -329,6 +332,10 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
    aprovar o texto de privacidade sobre o perfil publicado e decidir se as migrations entram no ledger.
    **Clubes e Fóruns (16/11)**: código pronto e `20261116120000_community_clubs_forums.sql` aplicada no Supabase (autorização do dono); falta
    homologar com duas contas reais e publicar o app. Denúncias de conteúdo ficam só no servidor (sem painel no Admin ainda).
+   **Leitura e compartilhamento (16/11)**: plano de 5 fases em `docs/context/design-system.md` §Paletas e plano. Fase A (paletas e textura)
+   concluída no código. Pendentes, nesta ordem: B grifo (pop-up não abre no Android: captura só em `pointerup`), C card de trecho
+   (precisa de `expo-sharing`, aprovação do dono; botão direto de Stories exige ID de app da Meta), D "Folhear"/"Sem animação"
+   ("Deslizar" já existe), E rolagem contínua (PDF → EPUB num capítulo → entre capítulos). Decisões abertas: D3–D5 do plano.
    **Plano de mercado (11/11)**: FASES 0–5 concluídas (3 e 5a só planejamento: `docs/context/reader.md` e `community-estudo.md` §13.1; 4 em
    `docs/mockups/certo-errado/`). FASE 3 implementada em 16/11 (A1, A2, B1, B2, C em texto); A3, A4, B3 e D seguem só planejados. Pendentes do usuário: texto da política de
    dados sobre sessões, marcos e diário; entrevistas da FASE 4.
@@ -362,6 +369,21 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
 - **IA externa:** não enviar livros/trechos a serviço de IA sem pedido e consentimento explícito do usuário final.
 
 ## 10. Log (mais recente primeiro; máx. 5 entradas, resto → docs/context/historico/)
+
+### 16/11/2026 — Leitura e compartilhamento, Fase A: paletas e textura de papel (Claude)
+- Pedidos do dono (16/11), recebidos em várias mensagens e planejados antes de produzir: tema Clássico × Moderno, textura nas páginas,
+  animação de virar página, rolagem contínua, grifo que não abre o pop-up e card de trecho para Stories/X. Plano A→E aprovado ("Aprovar e
+  iniciar"); depois da prévia o dono pediu **duas** Moderno: Petróleo e Azul-tinta. Plano completo: `docs/context/design-system.md` §Paletas.
+- `f0215f7` paletas (Clássico = `appThemeTokens` sem mudança), escolha guardada no aparelho em `@aldus/app-palette.v1` (só por ato explícito;
+  leitura ruim mantém Clássico sem regravar); controles do Reader levam o destaque da paleta só se mantiver 4,5:1 sobre o livro.
+  `fcde063` cores fixas trocadas por tokens (Descobrir, BibliON/MEC, leitor web, Admin; feedback de flashcard nunca detectava o escuro).
+  `986f099` grupo "Paleta" em Conta → Tema do aplicativo. `1aca293` "Textura do papel" (Sem textura · Papel · Papel envelhecido) em
+  Ajustes de leitura → Página: grão SVG próprio em `data:`, mensagem `updateSurface` que só pinta o fundo (sem relayout, sem mover página).
+- VALIDADO (local): typecheck; `test:critical` 125/125 (nova `paper-texture`); `test:reader:browser` com textura no documento real (nenhuma
+  mensagem de página, mesma âncora, URL externa recusada, sem violação de CSP); `export:web`; lista de entrega `--source`/`--dist` com 30
+  recursos. Tela de paleta medida em fixture react-native-web: 320/390 px × texto 1/1,3/1,6 × 3 paletas × claro/escuro, sem estouro.
+- Limites: painel do OCR (véu escuro fixo), spinners do PDF e da abertura continuam com o Clássico; PDF Original sem textura.
+  NÃO TESTADO: Android, TalkBack, aparência da textura em tela física. Próximas fases (B grifo, C card, D animação, E rolagem) aguardam.
 
 ### 16/11/2026 — Pendências antes do APK: OCR, FASE 3 e Clubes/Fóruns (Claude)
 - Pedido: "antes de compilar, verifique se possuem outras pendências de implementação"; à lista, o dono respondeu "Todos, inclusive o G do
@@ -419,27 +441,6 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
 - VALIDADO: `node scripts/validate-ai-instructions.cjs` PASS (12 skills, 17 documentos) e `git diff --check`. Só documentação: suítes do app não
   foram reexecutadas. As regras de produto do dono (11/11) ficaram registradas na skill nova, §3.
 
-### 12/11/2026 — Community, Etapa 2: grafo social (Claude)
-- Pedido: "desenvolva e aprimore a parte de rede social". Segui a ordem do §13: primeiro perfis publicados e seguir. `0ffe781` migration
-  `20261112120000_community_social_graph.sql` (só local): identidade do perfil publicado vem da conta (`public.profiles`; a foundation deixava o
-  cliente escolher o `username`), `community_follows` pending/accepted (PUBLIC direto, FOLLOWERS por pedido, PRIVATE nunca), política FOLLOWERS
-  aberta só a aceitos, `community_blocks` nos dois sentidos, `community_reports` sem leitura pelo cliente (20/dia), escrita só por RPC que responde
-  sobre quem chama, busca por prefixo só entre públicos e sem contagens. `2140f8f` app: tela Pessoas (publicar por ato explícito com aviso do
-  que sai do aparelho, atualizar/retirar com confirmação, buscar, pedidos, seguindo/seguidores/bloqueados), perfil de leitor (seguir/pedir/cancelar,
-  bloquear, denunciar), `SupabaseCommunityGateway` (sessão da conta em cada chamada, contrato validado, erros mapeados, "indisponível no servidor").
-- Não feito: aplicar no Supabase (exige autorização), atividades/estatísticas publicadas (continuam derivadas só pelo servidor, sem fonte confiável),
-  clubes, comentários, painel de denúncias no Admin, texto de privacidade. Sem contagem de seguidores, ranking ou comparação.
-- NÃO TESTADO (até a aplicação abaixo): Supabase real, navegador e Android das telas novas.
-- **Aplicação remota (12/11, autorizada pelo usuário: "Sim, aplicar" e "Usar o Chrome")**: projeto "Kindle reader" (branch main/PRODUCTION), editor SQL
-  do painel no Chrome do usuário. Inventário somente leitura antes: PG 17.6, 7 contas todas com @usuário, nenhuma tabela/função `community*`, ledger com
-  7 migrations (versões remotas diferentes das locais). Cada arquivo foi colado e conferido por SHA-256 contra o repositório antes de rodar
-  (`cc0e8c36…4c6ded` foundation, `4e2780a1…6f1a91` social graph); ambos "Success". O painel avisou de operação destrutiva na segunda (troca de duas
-  políticas em tabelas recém-criadas e vazias; `delete` só dentro de funções); confirmado. Depois: 8 tabelas com RLS, 10 políticas, 18 funções com os
-  grants esperados (RPCs só `authenticated`; internas sem execução por cliente; `community_can_view` para anon/authenticated), só SELECT em follows/blocks
-  e nada em reports para clientes, gatilhos novos em `profiles`/`community_profiles`, 0 linhas. Sonda REST anônima: perfis/atividades 200 `[]`,
-  follows/blocks/reports e RPCs 401, escrita direta 401. Nenhum dado existente alterado. **Não feito**: registro no ledger, homologação com sessões
-  reais A/B (não há contas de teste autorizadas), deploy do frontend.
-
 ### 06/11/2026 — Entradas anteriores
 - Fechamento UX/UI e Onboarding 1: ver `docs/context/historico/2026-11-06-ux-fechamento-e-onboarding-1.md`.
 - Onboarding 2 (auditoria e reescrita do contexto): ver `docs/context/historico/2026-11-06-onboarding-2.md`.
@@ -467,3 +468,4 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
 - Plano de mercado, FASES 0 e 1 (11/11): ver `docs/context/historico/2026-11-11-plano-mercado-fases-0-1.md`.
 - Plano de mercado, FASE 2 (11/11): ver `docs/context/historico/2026-11-11-plano-mercado-fase-2.md`.
 - Acervo (etapas 1–3) e plano de mercado, FASES 3–5 (11/11): ver `docs/context/historico/2026-11-11-acervo-e-plano-mercado-fases-3-5.md`.
+- Community, Etapa 2: grafo social (12/11): ver `docs/context/historico/2026-11-12-community-etapa-2.md`.
