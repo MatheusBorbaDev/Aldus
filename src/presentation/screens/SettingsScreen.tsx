@@ -39,7 +39,7 @@ export default function SettingsScreen() {
     </SettingsGroup>
     <SettingsGroup title="Leitura e aparência">
       <SettingsLink title="Preferências do leitor" description="Fonte, margens e tema do livro" icon="book-outline" onPress={() => setReaderVisible(true)} />
-      <SettingsLink title="Tema do aplicativo" description="Claro, escuro ou do sistema" icon="color-palette-outline" onPress={() => go('/preferences?section=appearance')} />
+      <SettingsLink title="Tema do aplicativo" description="Clássico ou Moderno; claro, escuro ou do sistema" icon="color-palette-outline" onPress={() => go('/preferences?section=appearance')} />
       <SettingsLink title="Conforto durante a leitura" icon="leaf-outline" onPress={() => go('/preferences?section=comfort')} />
     </SettingsGroup>
     <SettingsGroup title="Fontes de livros">
