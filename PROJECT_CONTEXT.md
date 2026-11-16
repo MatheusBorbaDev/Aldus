@@ -318,6 +318,8 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
    (reanexam ao mesmo livro da conta) e um APK/deploy novos; o APK `cde4ce8` e deploys anteriores ainda contêm os arquivos; os binários seguem no histórico Git.
    **Revisão de qualidade (09/11)**: Ondas 0–5 aprovadas concluídas (commits locais, sem push); 6 e 7 fora. R5: patches do SDK 57 aplicados
    (BUG 13); APK de ensaio `6883532` compilado e conferido (§3), **não instalado**; remover `js-polyfills` 0.76/`metro-cache` 0.81 segue pendente. Levantamento do
+   **Entrega (16/11)**: aba Comunidade e lista de entrega no código; o próximo APK sai do `npm run build:apk:local`, que só termina com
+   sucesso se todos os recursos pedidos estiverem no pacote.
    **Segurança (15–16/11)**: SEG 01–04 e backup do Android corrigidos no código; pendentes de decisão: `npm audit` (SDK 58),
    `debug.keystore` versionado, CSP do app Web. Precisa de APK e deploy novos para valer.
    **Community, Etapa 2 (12/11)**: código pronto e as duas migrations **aplicadas no Supabase** com autorização do usuário. Falta: homologar com
@@ -357,6 +359,17 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
 - **IA externa:** não enviar livros/trechos a serviço de IA sem pedido e consentimento explícito do usuário final.
 
 ## 10. Log (mais recente primeiro; máx. 5 entradas, resto → docs/context/historico/)
+
+### 16/11/2026 — Aba Comunidade e lista de entrega obrigatória (Claude)
+- Dono: "na última compilação não veio a rede social" e "garanta que o app estará exatamente do jeito que solicitei". Diagnóstico: o APK
+  `99ce32d` tinha Pessoas e perfis (confirmado pela checagem nova), mas o acesso era Conta → Comunidade literária → fim da página.
+- `c27b26a` (decisão do dono: "Nova aba Comunidade"): barra Biblioteca · Descobrir · Estudo · Comunidade · Conta; Pessoas no topo da
+  Comunidade; sem seta de voltar na aba. `2efa908` `scripts/verify-release-features.cjs` com os 21 recursos pedidos e marcadores;
+  `--source` na matriz crítica, `--dist` para o site, `--apk` para bundle Hermes, livros e manifesto; `npm run build:apk:local` limpa
+  `generated/res/react/release` e falha se a checagem falhar; `npm run verify:release`.
+- VALIDADO: typecheck; `test:critical` 118/118; `export:web` e `--dist` PASS; `test:library:web` PASS; `--apk` no `99ce32d` falha só no que veio
+  depois (segurança, aba, backup), como esperado. NÃO TESTADO: barra de 5 abas no aparelho e a 320 px ("Comunidade" tem o tamanho de
+  "Biblioteca"); próximo APK ainda não compilado (dono: "não por agora").
 
 ### 15/11/2026 — Verificação de segurança (Claude)
 - Pedido: "faça verificações de segurança no Aldus, corrija o que for necessário". Achados e pendências em BUGS_ATUAIS (SEG 01–04).
@@ -417,21 +430,6 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
 - Limites: sessões (FASE 2) e marcos são só locais; a política de dados ainda não os cita (texto a aprovar). Reanexar exige o mesmo arquivo
   (outra edição vira livro novo). NÃO TESTADO: Android, upload real à nuvem privada, `Share` nativo.
 
-### 11/11/2026 — Plano de mercado, FASE 2: sessão de leitura medida e "Ler em foco" (Claude)
-- `6da731d` `readingSession.ts`: só tempo ativo, ou seja, primeiro plano e no máximo **3 min** (escolha do usuário) após o último sinal (abrir,
-  virar página, voltar ao app); parado além disso ou em segundo plano não conta; nada estimado nem retroativo. `ReadingSessionStore`: só neste
-  aparelho, por conta (`@aldus/reading-sessions.v1:<user>`), atualiza por id, descarta <10 s ativos, limite 2000, histórico ilegível preservado.
-  Não sincroniza. Sem streak/ranking/comparação.
-- `21a001b` `useReadingSession` no Reader (página exibida em EPUB/PDF Original/Leitura Livre + `AppState`; grava ao ir para segundo plano e ao
-  fechar o livro; sem conta mede mas não grava; troca de conta no meio não grava). Conforto: "Ler em foco por" 10/15/25/45 min (meta em tempo
-  ativo), "Encerrar foco", resumo só com minutos medidos e desligável ("Mostrar resumo ao terminar o foco"); minutos restantes seguem "Ocultar
-  porcentagem e páginas". **Só Android**: "Abrir Não perturbe do Android" (`ZEN_MODE_PRIORITY_SETTINGS` → `ZEN_MODE_SETTINGS` → `SOUND_SETTINGS`,
-  sem permissão nova; o app não muda a configuração). Web: mede pela visibilidade, sem o atalho. iOS não avaliado.
-- Teste do slider em `test:reader:settings:web`: o toque a 25% caía no limite de arredondamento (16,5) e virou 16 com a barra de rolagem do
-  painel mais longo; passou a mirar o valor 17 pela fórmula do slider. Limites: PDF Original rolando dentro da mesma página por >3 min conta
-  como inatividade; política de dados (`dataDocument`) ainda não cita as sessões (texto a aprovar). Sessões não aparecem em lugar nenhum
-  além do resumo do foco (diário é FASE 3).
-
 ### 06/11/2026 — Entradas anteriores
 - Fechamento UX/UI e Onboarding 1: ver `docs/context/historico/2026-11-06-ux-fechamento-e-onboarding-1.md`.
 - Onboarding 2 (auditoria e reescrita do contexto): ver `docs/context/historico/2026-11-06-onboarding-2.md`.
@@ -457,3 +455,4 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
 - Melhorias, Onda C (11/11): ver `docs/context/historico/2026-11-11-melhorias-onda-c.md`.
 - Melhorias, Onda D (11/11): ver `docs/context/historico/2026-11-11-melhorias-onda-d.md`.
 - Plano de mercado, FASES 0 e 1 (11/11): ver `docs/context/historico/2026-11-11-plano-mercado-fases-0-1.md`.
+- Plano de mercado, FASE 2 (11/11): ver `docs/context/historico/2026-11-11-plano-mercado-fase-2.md`.

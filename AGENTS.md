@@ -86,6 +86,8 @@ O procedimento completo está em [aldus-engineering-workflow](.agents/skills/ald
 - Antes de cada commit, leia a linha `N/N critical suites passed`. Teste exercita comportamento, não strings.
 - Melhoria de design: ver a tela, medir em 320/390 px e texto ampliado, entregar captura; roteiro em
   [aldus-interface-review](.agents/skills/aldus-interface-review/SKILL.md).
+- Recurso pedido entra na lista de entrega (`scripts/verify-release-features.cjs`) no mesmo commit; APK e site só saem com
+  `npm run verify:release` verde (o build do APK já roda e falha se faltar algo).
 - Implantação em ordem, cada passo com autorização própria: código → servidor → APK → Web → homologação →
   registro. PC verde não é aparelho nem conta real: o que não foi exercitado ali fica `NÃO TESTADO`.
 

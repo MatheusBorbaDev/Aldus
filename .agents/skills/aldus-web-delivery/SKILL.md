@@ -21,6 +21,8 @@ que a URL de uma entrega antiga aponta para o código atual.
 - O pós-export (`scripts/copy-books-to-dist.mjs`) confere cada arquivo de `assets/Livros` contra o manifesto
   de domínio público e recusa qualquer título do acervo antigo; se falhar, declare o livro com fonte e
   licença ou retire o arquivo, nunca desligue a guarda. `dist` sem livros protegidos fica perto de 16 MB.
+- Antes de publicar, `node scripts/verify-release-features.cjs --dist` confere que todos os recursos pedidos estão nos bundles
+  de `dist/`; falhou, não publique.
 - `node scripts/test-web-build.cjs --exported` confere o export existente. Exercite browser
   conforme [aldus-validation](../aldus-validation/SKILL.md). Não reutilize dist antigo por nome.
 - Env pública só pode conter chave anon/publishable e configuração destinada ao cliente.

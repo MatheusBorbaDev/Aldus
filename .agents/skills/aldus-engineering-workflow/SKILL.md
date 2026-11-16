@@ -58,6 +58,9 @@ As armadilhas de ambiente e de testes já encontradas estão em [pitfalls](refer
 
 ## 4. Testes
 
+- **Lista de entrega**: todo recurso pedido pelo dono entra em `scripts/verify-release-features.cjs` no mesmo commit que o
+  implementa, com marcadores que só existem quando o recurso está no pacote (texto da tela, rota). Remover um item exige
+  pedido do dono. Recurso visível só por um caminho longo conta como ausente para quem usa: deixe o acesso evidente.
 - Todo item funcional ganha `scripts/test-NOME.cjs` registrado em `scripts/test-critical.cjs`. O
   teste exercita comportamento: conta A e B, sem conta, dado ilegível, cancelamento, limites,
   servidor indisponível. Procurar uma string no código não é teste de comportamento.
@@ -87,9 +90,10 @@ Cada passo precisa da sua própria autorização; uma autorização cumprida nã
 1. **Código**: gates verdes na revisão que vai ser entregue, árvore limpa.
 2. **Servidor**, se houver migration: [aldus-backend-operations](../aldus-backend-operations/SKILL.md).
    Inventário somente leitura, aplicar só o incremento autorizado, conferir catálogo e contrato.
-3. **APK**: [verify-android-apk-delivery](../verify-android-apk-delivery/SKILL.md). Compilar, conferir
-   conteúdo/assinatura, arquivar, registrar. Instalar é outro passo.
-4. **Web**: [aldus-web-delivery](../aldus-web-delivery/SKILL.md). Export conferido; publicar só com pedido.
+3. **APK**: [verify-android-apk-delivery](../verify-android-apk-delivery/SKILL.md). Compilar (o comando já roda a lista de
+   entrega e falha se faltar algo), conferir assinatura, arquivar, registrar. Instalar é outro passo.
+4. **Web**: [aldus-web-delivery](../aldus-web-delivery/SKILL.md). Export conferido com `npm run verify:release -- --dist`;
+   publicar só com pedido.
 5. **Homologação**: aparelho e contas reais. Enquanto não acontecer, o item fica `NÃO TESTADO` ali,
    mesmo com tudo verde no PC.
 6. **Registro** em PROJECT_CONTEXT (§3, §8 e log), no módulo da área e em BUGS_ATUAIS se couber.

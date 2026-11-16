@@ -33,6 +33,13 @@ credenciais. Auditoria de APK não autoriza compilar, instalar ou usar o aparelh
 
 ## Conferir o artefato efetivo
 
+**Portão obrigatório (pedido do dono em 16/11/2026: "não deixe faltar nada").** `npm run build:apk:local` apaga
+`generated/res/react/release`, compila e roda `node scripts/verify-release-features.cjs --apk` no final; se faltar qualquer
+recurso pedido, livro fora do acervo ativo ou o manifesto não estiver conforme, o comando falha e o APK **não** é entregue.
+APK obtido por outro caminho (EAS, cópia) passa pelo mesmo comando com `--apk CAMINHO` antes de qualquer entrega.
+Lembrete: em 11/11 o dono disse que a rede social "não veio"; ela estava no APK, mas escondida. Recurso que o dono não acha
+conta como faltando: confira também o caminho até ele na tela, não só o texto no pacote.
+
 0. Se algum asset saiu do projeto desde o último build (livros, imagens), apague a pasta de saída
    `android/app/build/generated/res/react/release` antes de compilar: o Gradle não remove recursos
    antigos e o APK sai com os arquivos removidos (aconteceu em 11/11/2026: 244 MiB e 40 livros em vez de 7).
