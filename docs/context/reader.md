@@ -109,3 +109,13 @@ Ordem sugerida: B1 → B2 → A1 → A2 → C → A3 → D → A4.
   `HighlightSelectionPopup` grava com uma cor via `createStudyHighlight` (mesmo formato do painel), ajusta e passa a nota ao painel.
   Com o pop-up aberto as zonas de toque não existem. Só EPUB.
 - **Próximo passo natural**: o card de trecho (Fase C) entra como ação do pop-up.
+
+## Card de trecho (Fase C, 16/11/2026)
+
+- **Regras** (`src/domain/reader/quoteCard.ts`): até 400 caracteres (decisão do dono; acima disso explica e não desenha), espaços colapsados,
+  formatos Stories 9:16, Post 4:5 e Quadrado 1:1, modelos Papel/Claro/Noite/Destaque a partir das paletas do app, título/autor e marca ocultáveis.
+- **Desenho**: `QUOTE_CARD_RENDERER` é fonte JavaScript literal (Hermes não dá fonte por `toString`). Android: `QuoteCardCanvas.native`
+  (WebView invisível só para o canvas, sem rede e sem navegação, separada do documento do livro); site: canvas fora da tela. JPEG 0,9; respostas
+  de desenhos antigos são ignoradas.
+- **Envio**: Android grava o JPEG no cache do app e abre a folha do sistema com `expo-sharing` (sem botão direto de Stories, decisão do dono);
+  site usa `navigator.share` com arquivo quando aceito, senão baixa a imagem. Só o trecho (e título/autor, se ligados) sai do aparelho.

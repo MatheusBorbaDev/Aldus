@@ -132,6 +132,8 @@ Persistência (legado mantido, não renomear `kindle-*`/`@kindle/*`): Native SQL
   `expo-notifications`) e filtro VIEW `content://` PDF/EPUB; o `*/*` é a consulta OPEN_DOCUMENT já existente. `apksigner`: v2, certificado
   `fac61745…033b9c` (o do Redmi) — não é o Beta privado. dex com `expo/modules/speech`, `expo/modules/notifications`; bundle Hermes com textos
   das ondas A–D; 34 livros. **NÃO instalado**: o Redmi segue com `ae98991`.
+- **Fase C, card de trecho (16/11, `d1c1402`, `68e2d13`, `9e5b2ad`)**: typecheck PASS; `test:critical` **128/128**; `export:web` PASS; lista de entrega
+  com 32 recursos; legal PASS. Nova dependência nativa `expo-sharing`: exige APK novo. Android NÃO TESTADO.
 - **Fase B, grifo (16/11, `763feca`, `ee53a66`)**: typecheck PASS; `test:critical` **126/126**; `test:reader:browser`, `test:reader:{study,markings,epub}:web`
   PASS; `export:web` PASS; lista de entrega `--source`/`--dist` com 31 recursos. Android NÃO TESTADO.
 - **Fase A, paletas e textura (16/11, `f0215f7`…`1aca293`)**: typecheck PASS; `test:critical` **125/125**; `test:reader:browser` PASS; `export:web`
@@ -266,6 +268,7 @@ Legenda: **IVER** = implementado e verificado (suíte/execução citada); **ISVS
 | Landing Web e legal | IVER (local/Chromium) | `src/marketing`, `src/legal`; `test:marketing*`, `test:legal*`. Deploy Vercel não reconferido. |
 | Android (build/APK/módulos) | PARC | `android/`, `scripts/build-apk-local.mjs`; APK `00b6e4d`/`53b4e32` (privados, ignorados). Homologação física BLOQUEADA (Redmi ausente), APK do HEAD inexistente. |
 | UX/UI reformulação (27/10) | IVER (Web controlado) / físico PENDENTE | commits `d6ef9c7`, `ea0b1ec`, `f970c2d`; `test-app-design`, 8 suítes Chromium. Será substituída pelo redesign abaixo. |
+| Card de trecho para Stories/X (16/11) | IVER (local + Chromium); Android NÃO TESTADO | `src/domain/reader/quoteCard.ts`, `QuoteCardModal`, `QuoteCardCanvas.{native,web}`, `shareQuoteCard.{native,web}`; `test-quote-card`, `test-quote-card-modal`. Limite de 400 caracteres; só a folha do sistema. |
 | Paletas Clássico/Moderno e textura de papel (16/11) | IVER (local + Chromium); Android NÃO TESTADO | `src/theme/tokens.ts` (`appPalettes`, `readerChromePalette`), `AppThemeContext`, `app/preferences.tsx`, `src/domain/reader/paperTexture.ts`, `updateSurface` no `EpubReaderDocument`; `test-app-design`, `test-preference-persistence`, `test-paper-texture`, `test:reader:browser`. |
 | Redesign editorial (06/11, fases 1–5) | Fases 1–5 IVER (local + Chromium); Android NÃO TESTADO | `src/ui/*`, `app/(tabs)/_layout.tsx`, `app/(tabs)/search.tsx` (Descobrir), `app/(tabs)/library.tsx`, `BookCard.tsx`; `test-ui-primitives`, `test-discover-ui`, `test-app-design` (critical), `test:source-library:browser`. Ver `docs/context/design-system.md`. |
 | Reflow/PDF seleção ↔ EPUB equivalência | PLAN | `reader.md`: grifos mapeados entre PDF e Reflow ainda não equivalem ao EPUB. |
@@ -335,9 +338,10 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
    **Clubes e Fóruns (16/11)**: código pronto e `20261116120000_community_clubs_forums.sql` aplicada no Supabase (autorização do dono); falta
    homologar com duas contas reais e publicar o app. Denúncias de conteúdo ficam só no servidor (sem painel no Admin ainda).
    **Leitura e compartilhamento (16/11)**: plano de 5 fases em `docs/context/design-system.md` §Paletas e plano. Fase A (paletas e textura)
-   e B (grifo: captura pela seleção parada, pressionar e segurar, pop-up) concluídas no código; B precisa do Redmi. Pendentes: C card de trecho
-   (precisa de `expo-sharing`, aprovação do dono; botão direto de Stories exige ID de app da Meta), D "Folhear"/"Sem animação"
-   ("Deslizar" já existe), E rolagem contínua (PDF → EPUB num capítulo → entre capítulos). Decisões abertas: D3–D5 do plano.
+   , B (grifo: captura pela seleção parada, pressionar e segurar, pop-up) e C (card de trecho, `expo-sharing`, 400 caracteres) concluídas no
+   código; B e C precisam de APK e Redmi. Pendentes: D "Folhear"/"Sem animação"
+   ("Deslizar" já existe), E rolagem contínua (PDF → EPUB num capítulo → entre capítulos). Candidato: a imagem do cartão de foco pode usar o
+   mesmo desenho em canvas. Decisões D3–D5 tomadas em 16/11 (expo-sharing sim, 400 caracteres, sem botão direto de Stories).
    **Plano de mercado (11/11)**: FASES 0–5 concluídas (3 e 5a só planejamento: `docs/context/reader.md` e `community-estudo.md` §13.1; 4 em
    `docs/mockups/certo-errado/`). FASE 3 implementada em 16/11 (A1, A2, B1, B2, C em texto); A3, A4, B3 e D seguem só planejados. Pendentes do usuário: texto da política de
    dados sobre sessões, marcos e diário; entrevistas da FASE 4.
@@ -371,6 +375,20 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
 - **IA externa:** não enviar livros/trechos a serviço de IA sem pedido e consentimento explícito do usuário final.
 
 ## 10. Log (mais recente primeiro; máx. 5 entradas, resto → docs/context/historico/)
+
+### 16/11/2026 — Leitura e compartilhamento, Fase C: card de trecho (Claude)
+- Pedido do dono: compartilhar trecho "igual o Spotify", para Stories do Instagram e X, card bonito e seleção simples. Decisões do dono antes
+  de produzir: instalar `expo-sharing` = sim; limite = **400 caracteres** (nunca corta em silêncio); botão direto de Stories (cadastro Meta) = não.
+- `d1c1402` `expo-sharing ~57.0.26` (plugin sem opções não mexe no Android; avisos de licença regenerados, 41 dependências). `68e2d13`
+  `quoteCard.ts`: regras, 3 formatos (Stories 9:16, Post 4:5, Quadrado 1:1), 4 modelos (Papel, Claro, Noite, Destaque) a partir das paletas, e o
+  desenho em canvas como fonte JavaScript literal. `9e5b2ad` botão "Compartilhar" no pop-up de grifo → tela "Compartilhar trecho" com prévia
+  da imagem real, modelo, formato, título/autor e marca ocultáveis; Android desenha numa WebView invisível só de canvas e envia JPEG do cache pelo
+  `expo-sharing`; site usa o compartilhamento do navegador ou baixa a imagem. Só o trecho sai; nunca o arquivo do livro.
+- VALIDADO (local): typecheck; `test:critical` 128/128 (novas `quote-card` e `quote-card-modal`); `export:web`; lista de entrega com 32
+  recursos (`--source`/`--dist`); legal PASS. Card renderizado no Chrome com o canvas real (5 combinações) e a tela medida em fixture
+  react-native-web (24 combinações 320/390 × 1/1,3/1,6, sem estouro).
+- NÃO TESTADO: Android (WebView de desenho, folha de compartilhamento, Instagram/X), fontes do aparelho no card (Georgia não existe no Android:
+  cai em Noto Serif). Precisa de APK novo (dependência nativa).
 
 ### 16/11/2026 — Leitura e compartilhamento, Fase B: grifo (Claude)
 - Relato do dono: "a seleção do grifo está ruim e quando termino de selecionar ele não abre o pop up". Causa confirmada no código: o documento
@@ -433,19 +451,6 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
   depois (segurança, aba, backup), como esperado. NÃO TESTADO: barra de 5 abas no aparelho e a 320 px ("Comunidade" tem o tamanho de
   "Biblioteca"); próximo APK ainda não compilado (dono: "não por agora").
 
-### 15/11/2026 — Verificação de segurança (Claude)
-- Pedido: "faça verificações de segurança no Aldus, corrija o que for necessário". Achados e pendências em BUGS_ATUAIS (SEG 01–04).
-- `e71b31d` WebViews nativas presas ao próprio documento, sem acesso a arquivos; pdf.js 3.x com `isEvalSupported:false` (CVE-2024-4367) e
-  integridade sha512. `64ad127` `sanitizeBookHtml` (reconstrói as tags; o filtro antigo era contornável) e CSP com nonce no documento do
-  Reader; links externos não navegam; caminho RenderHTML filtrado e sem abrir links. `68b18cd` release sem SYSTEM_ALERT_WINDOW; Web com
-  `X-Frame-Options: DENY` e `Permissions-Policy`. Novas suítes `book-html-security` e `platform-security`.
-- Erro do caminho: o teste de navegador falhou com a CSP nova porque `Page.setDocumentContent` mantém a CSP do primeiro documento na mesma
-  página; confirmado por bisseção (só a regra de script causava) e resolvido com nonce fixo no teste. No app cada documento é carga nova.
-- Não alterado (decisão do dono): `npm audit` (3 altos só com SDK 58), `debug.keystore` versionado, CSP do app Web.
-- 16/11, `127b7db` (dono escolheu "Desligar backup"): backup do Android desligado na nuvem e na transferência entre aparelhos (`allowBackup`
-  e `fullBackupContent` false, `data_extraction_rules.xml` excluindo todos os domínios, `tools:replace`; `app.json` espelhado). Manifesto e
-  recursos do release conferidos pelo Gradle; `test:critical` 117/117. NÃO TESTADO no aparelho.
-
 ### 06/11/2026 — Entradas anteriores
 - Fechamento UX/UI e Onboarding 1: ver `docs/context/historico/2026-11-06-ux-fechamento-e-onboarding-1.md`.
 - Onboarding 2 (auditoria e reescrita do contexto): ver `docs/context/historico/2026-11-06-onboarding-2.md`.
@@ -475,3 +480,4 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
 - Acervo (etapas 1–3) e plano de mercado, FASES 3–5 (11/11): ver `docs/context/historico/2026-11-11-acervo-e-plano-mercado-fases-3-5.md`.
 - Community, Etapa 2: grafo social (12/11): ver `docs/context/historico/2026-11-12-community-etapa-2.md`.
 - Instruções para outras IAs (12/11): ver `docs/context/historico/2026-11-12-instrucoes-para-ias.md`.
+- Verificação de segurança e backup desligado (15–16/11): ver `docs/context/historico/2026-11-15-verificacao-de-seguranca.md`.
