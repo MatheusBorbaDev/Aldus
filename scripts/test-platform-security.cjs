@@ -14,6 +14,22 @@ const app = JSON.parse(fs.readFileSync('app.json', 'utf8')).expo.android;
 assert.deepEqual(app.blockedPermissions, ['android.permission.SYSTEM_ALERT_WINDOW'], 'app.json espelha o manifesto');
 assert.ok(!(app.permissions ?? []).includes('android.permission.SYSTEM_ALERT_WINDOW'));
 
+// Backup desligado (decisão do dono, 16/11/2026): sessão de login e biblioteca local fora do backup na nuvem e da transferência
+// entre aparelhos. allowBackup="false" vale abaixo do SDK 31; no SDK 31+ a transferência direta exige dataExtractionRules.
+assert.match(manifest, /android:allowBackup="false"/);
+assert.match(manifest, /android:fullBackupContent="false"/);
+assert.match(manifest, /android:dataExtractionRules="@xml\/data_extraction_rules"/);
+assert.match(manifest, /tools:replace="android:allowBackup"/, 'biblioteca que declare allowBackup não religa o backup');
+assert.equal(app.allowBackup, false, 'app.json espelha o manifesto');
+const rules = fs.readFileSync('android/app/src/main/res/xml/data_extraction_rules.xml', 'utf8');
+const domains = ['root', 'file', 'database', 'sharedpref', 'external', 'device_root', 'device_file', 'device_database', 'device_sharedpref'];
+for (const section of ['cloud-backup', 'device-transfer']) {
+  const body = rules.match(new RegExp(`<${section}>([\\s\\S]*?)</${section}>`))?.[1] ?? '';
+  assert.ok(body, section);
+  assert.doesNotMatch(body, /<include\b/, `${section}: nada incluído`);
+  for (const domain of domains) assert.match(body, new RegExp(`<exclude domain="${domain}" path="\\." />`), `${section}: ${domain} excluído`);
+}
+
 // Web: não pode ser exibido dentro de outro site e não pede recursos sensíveis do navegador.
 const vercel = JSON.parse(fs.readFileSync('vercel.json', 'utf8'));
 const all = vercel.headers.find(rule => rule.source === '/(.*)').headers;
@@ -28,4 +44,4 @@ const tracked = cp.execFileSync('git', ['ls-files'], { encoding: 'utf8' }).split
 assert.deepEqual(tracked.filter(file => /(^|\/)\.env(\.|$)|\.(jks|keystore|p12|pem|key)$/i.test(file)), ['android/app/debug.keystore']);
 const gitignore = fs.readFileSync('.gitignore', 'utf8');
 for (const rule of ['.env*', '*.jks', '*.keystore']) assert.ok(gitignore.includes(rule), rule);
-console.log('PASS platform security: release sem SYSTEM_ALERT_WINDOW (app.json espelhado), sem HTTP sem criptografia, Web com X-Frame-Options DENY e Permissions-Policy, nenhum .env ou chave privada versionado além da chave de ensaio. Sem build nem deploy.');
+console.log('PASS platform security: release sem SYSTEM_ALERT_WINDOW e sem backup do Android (nuvem e transferência entre aparelhos; app.json espelhado), sem HTTP sem criptografia, Web com X-Frame-Options DENY e Permissions-Policy, nenhum .env ou chave privada versionado além da chave de ensaio. Sem build nem deploy.');
