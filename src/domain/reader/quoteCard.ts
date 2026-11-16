@@ -3,8 +3,8 @@ import { appPalettes, AppPaletteName } from "@/src/theme/tokens";
 /**
  * Card de trecho para compartilhar (Fase C, pedido do dono em 16/11/2026, estilo Spotify). Decisões do dono: limite de 400
  * caracteres (acima disso o app pede para encurtar, nunca corta em silêncio), envio pela folha de compartilhamento do sistema,
- * sem botão direto de Stories. Leva só o trecho, título e autor (ocultáveis) e a marca Aldus (ocultável); nunca o arquivo do
- * livro nem um link para ele. As cores vêm das paletas do app.
+ * sem botão direto de Stories, e a marca Aldus sempre presente (16/11, depois do teste no aparelho). Leva só o trecho, título e
+ * autor (ocultáveis) e a marca; nunca o arquivo do livro nem um link para ele. As cores vêm das paletas do app.
  */
 export const QUOTE_CARD_MAX_CHARACTERS = 400;
 
@@ -49,7 +49,7 @@ export function validateQuoteForCard(quote: string): { ok: true; quote: string }
 }
 
 export function buildQuoteCardSpec(input: {
-  quote: string; title: string | null; author: string | null; showBook: boolean; showBrand: boolean;
+  quote: string; title: string | null; author: string | null; showBook: boolean;
   format: QuoteCardFormat; template: QuoteCardTemplate; paletteName: AppPaletteName;
 }): QuoteCardSpec {
   const checked = validateQuoteForCard(input.quote);
@@ -62,7 +62,7 @@ export function buildQuoteCardSpec(input: {
     : { background: light.background, text: light.text, secondary: light.secondaryText, accent: light.accent };
   const title = input.showBook ? (input.title ?? "").replace(/\s+/g, " ").trim() : "";
   const author = input.showBook ? (input.author ?? "").replace(/\s+/g, " ").trim() : "";
-  return { width: format.width, height: format.height, ...colors, grain: input.template === "paper", quote: checked.quote, book: title || null, author: author || null, brand: input.showBrand };
+  return { width: format.width, height: format.height, ...colors, grain: input.template === "paper", quote: checked.quote, book: title || null, author: author || null, brand: true };
 }
 
 /**

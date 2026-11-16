@@ -8,8 +8,8 @@ import { shareQuoteCard } from "@/src/presentation/services/shareQuoteCard";
 import { AppPaletteName, ReaderPalette } from "@/src/theme/tokens";
 
 /**
- * Card de trecho para Stories, post e X (Fase C, 16/11/2026). A pessoa escolhe modelo e formato, liga ou desliga título/autor e
- * a marca Aldus, vê a prévia e envia a imagem pela folha do sistema (Android) ou pelo navegador (site). Só o trecho sai.
+ * Card de trecho para Stories, post e X (Fase C, 16/11/2026). A pessoa escolhe modelo e formato, liga ou desliga título/autor
+ * (a marca Aldus vai sempre, decisão do dono), vê a prévia e envia a imagem pela folha do sistema (Android) ou pelo navegador (site). Só o trecho sai.
  */
 export function QuoteCardModal({ quote, title, author, paletteName, palette, onClose }: {
   quote: string; title: string | null; author: string | null; paletteName: AppPaletteName; palette: ReaderPalette; onClose: () => void;
@@ -17,14 +17,13 @@ export function QuoteCardModal({ quote, title, author, paletteName, palette, onC
   const [format, setFormat] = useState<QuoteCardFormat>("story");
   const [template, setTemplate] = useState<QuoteCardTemplate>("paper");
   const [showBook, setShowBook] = useState(true);
-  const [showBrand, setShowBrand] = useState(true);
   const [image, setImage] = useState<string | null>(null);
   const [problem, setProblem] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [sharing, setSharing] = useState(false);
   const checked = validateQuoteForCard(quote);
-  const spec = useMemo(() => checked.ok ? buildQuoteCardSpec({ quote, title, author, showBook, showBrand, format, template, paletteName }) : null,
-    [checked.ok, quote, title, author, showBook, showBrand, format, template, paletteName]);
+  const spec = useMemo(() => checked.ok ? buildQuoteCardSpec({ quote, title, author, showBook, format, template, paletteName }) : null,
+    [checked.ok, quote, title, author, showBook, format, template, paletteName]);
   const size = QUOTE_CARD_FORMATS.find(item => item.value === format) ?? QUOTE_CARD_FORMATS[0];
   const onImage = useCallback((dataUrl: string) => { setImage(dataUrl); setProblem(null); }, []);
   const onError = useCallback((text: string) => { setImage(null); setProblem(text); }, []);
@@ -75,7 +74,6 @@ export function QuoteCardModal({ quote, title, author, paletteName, palette, onC
               <Text style={[styles.label, { color: palette.secondaryText }]}>Formato</Text>
               <View style={styles.wrap}>{QUOTE_CARD_FORMATS.map(item => chip(item.label, format === item.value, () => change(setFormat)(item.value)))}</View>
               {toggle("Mostrar título e autor", showBook, change(setShowBook))}
-              {toggle("Mostrar a marca Aldus", showBrand, change(setShowBrand))}
               <Text style={{ color: palette.secondaryText, fontSize: 13, lineHeight: 19 }}>
                 {`A imagem leva só este trecho${showBook ? ", o título e o autor" : ""}. O arquivo do livro nunca é enviado.`}
               </Text>

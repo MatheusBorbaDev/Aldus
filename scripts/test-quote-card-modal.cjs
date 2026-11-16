@@ -38,8 +38,8 @@ const flat = style => Object.assign({}, ...[style].flat(Infinity).filter(Boolean
   const switches = tree.root.findAllByType('Switch');
   await act(async () => switches.find(s => s.props.accessibilityLabel === 'Mostrar título e autor').props.onValueChange(false));
   assert.equal(specs.at(-1).book, null); assert.equal(specs.at(-1).author, null); assert.match(text(), /A imagem leva só este trecho\. O arquivo do livro nunca é enviado\./);
-  await act(async () => switches.find(s => s.props.accessibilityLabel === 'Mostrar a marca Aldus').props.onValueChange(false));
-  assert.equal(specs.at(-1).brand, false);
+  assert.deepEqual(switches.map(s => s.props.accessibilityLabel), ['Mostrar título e autor'], 'the Aldus mark is not optional (owner, 16/11)');
+  assert.equal(specs.at(-1).brand, true);
   await act(async () => byLabel('Compartilhar imagem').props.onPress());
   assert.deepEqual(shares.at(-1), [image(), 'aldus-trecho-square.jpg']);
   shareResult = 'downloaded'; await act(async () => byLabel('Compartilhar imagem').props.onPress()); assert.match(text(), /Imagem baixada/);
@@ -53,5 +53,5 @@ const flat = style => Object.assign({}, ...[style].flat(Infinity).filter(Boolean
   assert.match(text(), /O card aceita até 400 caracteres \(este trecho tem 479\)/); assert.equal(byLabel('Compartilhar imagem'), undefined);
   assert.equal(tree.root.findAllByType(FakeCanvas).length, 0); assert.equal(specs.length, before, 'no card is drawn for an over-limit trecho');
   await act(async () => tree.unmount());
-  console.log('PASS quote card screen: Papel + Stories by default, template/format/book/brand choices reach the spec, Noite follows the palette, share passes the image and file name, downloaded/unavailable/error messages, 400-character limit explained with nothing drawn, 44 px static targets. Image generator and share service are fakes; no Android share sheet proof.');
+  console.log('PASS quote card screen: Papel + Stories by default, template/format/book choices reach the spec, Aldus mark always on, Noite follows the palette, share passes the image and file name, downloaded/unavailable/error messages, 400-character limit explained with nothing drawn, 44 px static targets. Image generator and share service are fakes; no Android share sheet proof.');
 })().catch(error => { console.error(error); process.exitCode = 1; });

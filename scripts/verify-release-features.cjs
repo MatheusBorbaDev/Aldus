@@ -21,7 +21,7 @@ const FEATURES = [
   { id: 'app-palettes', pedido: '16/11: tema Clássico e Moderno (Petróleo, Azul-tinta)', markers: ['Moderno · Petróleo', 'Moderno · Azul-tinta', '@aldus/app-palette.v1'] },
   { id: 'reader-paper-texture', pedido: '16/11: textura de papel nas páginas', markers: ['Textura do papel', 'Papel envelhecido', 'updateSurface'] },
   { id: 'reader-highlight-popup', pedido: '16/11: grifo por pressionar, pop-up e ajuste do trecho', markers: ['Palavra depois', 'Tirar a última', 'Frase inteira', 'studySelectAt', 'selectionchange'] },
-  { id: 'reader-quote-card', pedido: '16/11: card de trecho para Stories e X (imagem, 400 caracteres)', markers: ['Compartilhar trecho', 'Compartilhar imagem', 'Stories 9:16', 'Mostrar a marca Aldus', 'renderQuoteCard'], androidMarkers: ['public.jpeg'] },
+  { id: 'reader-quote-card', pedido: '16/11: card de trecho para Stories e X (imagem, 400 caracteres)', markers: ['Compartilhar trecho', 'Compartilhar imagem', 'Stories 9:16', 'Mostrar título e autor', 'renderQuoteCard'], androidMarkers: ['public.jpeg'] },
   { id: 'reader-page-turn', pedido: '16/11: animação de virar página (Folhear) e Sem animação', markers: ['Virar página', 'Folhear', 'Sem animação', 'updateMotion', 'prefers-reduced-motion: reduce'] },
   { id: 'reader-epub-scroll', pedido: '16/11: rolagem contínua (EPUB e Leitura Livre)', markers: ['updateFlow', 'reader-scroll', 'longPress'] },
   { id: 'reader-pdf-scroll', pedido: '16/11: rolagem contínua (PDF Original, fatia 1)', markers: ['Rolagem contínua', 'Página a página', 'createPdfScroller', 'As páginas ficam uma embaixo da outra'] },
