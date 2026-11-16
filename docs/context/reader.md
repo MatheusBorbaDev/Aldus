@@ -129,3 +129,13 @@ Ordem sugerida: B1 → B2 → A1 → A2 → C → A3 → D → A4.
   lado e abre a nova. A largura é lida antes de girar. Um temporizador de 700 ms encerra a virada se `transitionend` não vier.
 - **Invariantes**: a mensagem de página só sai no fim da virada (`finishNavigation`); toques durante a virada acumulam em `deferredPage`;
   nada fica girado depois. O PDF Original não usa estes modos.
+
+## Rolagem contínua (Fase E, 16/11/2026)
+
+- **Fatia 1, PDF Original (feita, `b2d35e0`)**: ajuste `flow` ("paged" | "scroll") nos ajustes do PDF por livro, local (não entra em
+  `pdfPositionPayload`). `createPdfScroller` (fonte literal) empilha as páginas na largura, desenha só perto da área visível e libera as
+  distantes (±3 da atual), informa a página do topo 220 ms depois de parar, separa toque de arrasto (< 10 px) e não ecoa a navegação do app
+  (`goTo` suprime relatórios por 450 ms). Sem zonas de toque nesse modo. Progresso = página do topo; o deslocamento dentro da página não é salvo.
+- **Fatias 2 e 3, EPUB e Leitura Livre (planejadas)**: o documento troca colunas por fluxo vertical; a posição continua a âncora de texto do
+  topo (alternar modos volta ao mesmo trecho); gravação só quando a rolagem para; depois, carga do capítulo seguinte embaixo e descarga dos
+  anteriores. Mexe no núcleo de posição: testes de ida e volta Páginas ↔ Rolagem, troca de conta e livro grande antes de liberar.

@@ -132,6 +132,8 @@ Persistência (legado mantido, não renomear `kindle-*`/`@kindle/*`): Native SQL
   `expo-notifications`) e filtro VIEW `content://` PDF/EPUB; o `*/*` é a consulta OPEN_DOCUMENT já existente. `apksigner`: v2, certificado
   `fac61745…033b9c` (o do Redmi) — não é o Beta privado. dex com `expo/modules/speech`, `expo/modules/notifications`; bundle Hermes com textos
   das ondas A–D; 34 livros. **NÃO instalado**: o Redmi segue com `ae98991`.
+- **Fase E fatia 1, rolagem no PDF Original (16/11, `b2d35e0`)**: typecheck PASS; `test:critical` **130/130**; `test:reader:pdf:web` com rolagem PASS;
+  `export:web` PASS; lista de entrega com 34 recursos. Android NÃO TESTADO.
 - **Fase D, virar página (16/11, `de31a33`)**: typecheck PASS; `test:critical` **129/129**; 8 suítes `test:reader:*` de navegador PASS; `export:web` PASS;
   lista de entrega com 33 recursos. Android NÃO TESTADO.
 - **Fase C, card de trecho (16/11, `d1c1402`, `68e2d13`, `9e5b2ad`)**: typecheck PASS; `test:critical` **128/128**; `export:web` PASS; lista de entrega
@@ -270,6 +272,7 @@ Legenda: **IVER** = implementado e verificado (suíte/execução citada); **ISVS
 | Landing Web e legal | IVER (local/Chromium) | `src/marketing`, `src/legal`; `test:marketing*`, `test:legal*`. Deploy Vercel não reconferido. |
 | Android (build/APK/módulos) | PARC | `android/`, `scripts/build-apk-local.mjs`; APK `00b6e4d`/`53b4e32` (privados, ignorados). Homologação física BLOQUEADA (Redmi ausente), APK do HEAD inexistente. |
 | UX/UI reformulação (27/10) | IVER (Web controlado) / físico PENDENTE | commits `d6ef9c7`, `ea0b1ec`, `f970c2d`; `test-app-design`, 8 suítes Chromium. Será substituída pelo redesign abaixo. |
+| Rolagem contínua (16/11) | PDF Original IVER (Chromium), Android NÃO TESTADO; EPUB/Leitura Livre PLAN (fatias 2 e 3) | `src/domain/reader/pdfScroll.ts` (`createPdfScroller`), `PdfPageViewer.{native,web}`; `test-pdf-scroll`, `test:reader:pdf:web`. |
 | Virar página: Sem animação/Deslizar/Folhear (16/11) | IVER (Chromium); Android NÃO TESTADO | `src/domain/reader/pageTurn.ts`, `updateMotion` no `EpubReaderDocument`, `useReduceMotion`; `test-page-turn`, `test:reader:browser` (EPUB e Reflow). |
 | Card de trecho para Stories/X (16/11) | IVER (local + Chromium); Android NÃO TESTADO | `src/domain/reader/quoteCard.ts`, `QuoteCardModal`, `QuoteCardCanvas.{native,web}`, `shareQuoteCard.{native,web}`; `test-quote-card`, `test-quote-card-modal`. Limite de 400 caracteres; só a folha do sistema. |
 | Paletas Clássico/Moderno e textura de papel (16/11) | IVER (local + Chromium); Android NÃO TESTADO | `src/theme/tokens.ts` (`appPalettes`, `readerChromePalette`), `AppThemeContext`, `app/preferences.tsx`, `src/domain/reader/paperTexture.ts`, `updateSurface` no `EpubReaderDocument`; `test-app-design`, `test-preference-persistence`, `test-paper-texture`, `test:reader:browser`. |
@@ -342,7 +345,7 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
    homologar com duas contas reais e publicar o app. Denúncias de conteúdo ficam só no servidor (sem painel no Admin ainda).
    **Leitura e compartilhamento (16/11)**: plano de 5 fases em `docs/context/design-system.md` §Paletas e plano. Fase A (paletas e textura)
    , B (grifo: captura pela seleção parada, pressionar e segurar, pop-up) e C (card de trecho, `expo-sharing`, 400 caracteres) concluídas no
-   código, e D (virar página: Sem animação/Deslizar/Folhear) também; B, C e D precisam de APK e Redmi. Pendente: E rolagem contínua (PDF → EPUB num capítulo → entre capítulos). Candidato: a imagem do cartão de foco pode usar o
+   código, e D (virar página: Sem animação/Deslizar/Folhear) também; B, C, D e E1 (rolagem no PDF Original) precisam de APK e Redmi. Pendente: E2/E3 rolagem contínua no EPUB e na Leitura Livre (PDF → EPUB num capítulo → entre capítulos). Candidato: a imagem do cartão de foco pode usar o
    mesmo desenho em canvas. Decisões D3–D5 tomadas em 16/11 (expo-sharing sim, 400 caracteres, sem botão direto de Stories).
    **Plano de mercado (11/11)**: FASES 0–5 concluídas (3 e 5a só planejamento: `docs/context/reader.md` e `community-estudo.md` §13.1; 4 em
    `docs/mockups/certo-errado/`). FASE 3 implementada em 16/11 (A1, A2, B1, B2, C em texto); A3, A4, B3 e D seguem só planejados. Pendentes do usuário: texto da política de
@@ -377,6 +380,17 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
 - **IA externa:** não enviar livros/trechos a serviço de IA sem pedido e consentimento explícito do usuário final.
 
 ## 10. Log (mais recente primeiro; máx. 5 entradas, resto → docs/context/historico/)
+
+### 16/11/2026 — Leitura e compartilhamento, Fase E (fatia 1): rolagem contínua no PDF Original (Claude)
+- Pedido do dono: "rolagem para baixo, contínua". Plano aprovado em 3 fatias: PDF Original → EPUB/Leitura Livre num capítulo → entre capítulos.
+  `b2d35e0` fatia 1: Ajustes de leitura → Página (PDF Original) → "Leitura": Página a página (padrão) ou Rolagem contínua. Controlador literal
+  `createPdfScroller` (`pdfScroll.ts`) compartilhado pela WebView do Android e pelo site: páginas empilhadas na largura, canvases só perto da
+  área visível (os distantes são liberados), página do topo informada quando a rolagem para, toque sem arrastar mostra os controles, navegação do
+  app sem eco. Sem zonas de toque na rolagem (engoliriam o gesto). Progresso continua por página (reabrir volta ao topo dela); ajuste local, não sincroniza.
+- VALIDADO (local): typecheck; `test:critical` 130/130 (nova `pdf-scroll`); `test:reader:pdf:web` com pdf.js real em rolagem (abre na página 3,
+  informa só a rolagem do leitor, toque × arrasto, volta ao modo página idêntico); `test:reader:{settings,browser}:web` PASS; `export:web`; 34 recursos.
+- NÃO TESTADO: rolagem dentro da WebView no Redmi e memória em PDF longo. PENDENTE: fatias 2 e 3 (EPUB/Leitura Livre), que mudam o núcleo de
+  posição do Reader; paradas para decisão do dono sobre a ordem (antes ou depois de homologar A–E1 no aparelho).
 
 ### 16/11/2026 — Leitura e compartilhamento, Fase D: virar página (Claude)
 - Pedido do dono: animação de troca de página "com a página passando, igual o Kindle". `de31a33`: Ajustes de leitura → Página → "Virar
@@ -434,27 +448,6 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
 - Limites: painel do OCR (véu escuro fixo), spinners do PDF e da abertura continuam com o Clássico; PDF Original sem textura.
   NÃO TESTADO: Android, TalkBack, aparência da textura em tela física. Próximas fases (B grifo, C card, D animação, E rolagem) aguardam.
 
-### 16/11/2026 — Pendências antes do APK: OCR, FASE 3 e Clubes/Fóruns (Claude)
-- Pedido: "antes de compilar, verifique se possuem outras pendências de implementação"; à lista, o dono respondeu "Todos, inclusive o G do
-  clubes e fóruns". BUG 12 (fontes por conta) já estava resolvido no código desde `10d6d24` (`ownerId`, adoção explícita); só o registro estava velho.
-- `98a8ead` botão e painel de OCR do Reflow seguem o tema (contraste AA). `54b1849` fixar trechos (`highlights.pinned`, schema SQLite v6, Sync
-  envia o campo; ausente = não fixado). `2a3d8fd` "Todas as anotações" (menu ⋯ da Biblioteca; tocar abre o livro, sem navegar à âncora).
-  `68d4f09` Diário de leitura (só sessões medidas, números ocultáveis, sem dias seguidos) e CSV no padrão Goodreads (só campos com dado real).
-  `da43e57` cartão de foco: compartilha **texto** (imagem exigiria dependência nova, não adicionada).
-- `ff25abc` migration `20261116120000_community_clubs_forums.sql` (aplicada em 16/11, ver abaixo): clubes por convite com marcos, comentários
-  ancorados em marco e visíveis só até o marco de cada um, fóruns com aviso de spoiler, denúncias de conteúdo, limites contra abuso, tudo por RPC.
-  `3cd2d9a` telas Clubes, Clube, Fóruns e Tópico; denúncia abre sem motivo escolhido; aviso de DRM. Sem contagens de membros ou curtidas.
-- VALIDADO (local): typecheck; `test:critical` 124/124 (novas `pinned-highlights`, `all-annotations`, `reading-diary`, `focus-card`,
-  `community-clubs-schema` em PGlite, `community-clubs`); `verify-release-features --source` e `--dist` com 28 recursos; `export:web`; diff-check.
-- NÃO TESTADO: sessões autenticadas reais, Android, navegador para as telas novas.
-- **Aplicação remota (16/11, autorizada: "Sim, aplicar")**: projeto "Kindle reader", editor SQL do painel no Chrome do usuário. Inventário somente
-  leitura antes: PG 17.6, 8 tabelas e 18 funções `community*` (estado de 12/11), nenhum objeto de clubes/fóruns. O arquivo entrou pela área de
-  transferência e foi conferido na página por SHA-256 (`115bd504…bcd0f9`, idêntico ao repositório; o editor só usa CRLF). Erro do caminho: o
-  `clip.exe` com UTF-8 trocou os acentos (hash diferente, nada executado); refeito em UTF-16 e removido o BOM antes da conferência. O painel
-  avisou de operação destrutiva (só os `delete` dentro das funções novas e `on delete cascade`); confirmado; "Success". Depois: 6 tabelas com
-  RLS, 0 políticas e 0 grants a clientes, 41 funções (23 novas), as internas sem execução por `authenticated`, só `community_can_view` para
-  anon, 0 linhas. Sonda REST anônima: as 6 tabelas, `POST` direto e 4 RPCs → 401. Não registrada no ledger; nenhum dado existente alterado.
-
 ### 06/11/2026 — Entradas anteriores
 - Fechamento UX/UI e Onboarding 1: ver `docs/context/historico/2026-11-06-ux-fechamento-e-onboarding-1.md`.
 - Onboarding 2 (auditoria e reescrita do contexto): ver `docs/context/historico/2026-11-06-onboarding-2.md`.
@@ -486,3 +479,4 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
 - Instruções para outras IAs (12/11): ver `docs/context/historico/2026-11-12-instrucoes-para-ias.md`.
 - Verificação de segurança e backup desligado (15–16/11): ver `docs/context/historico/2026-11-15-verificacao-de-seguranca.md`.
 - Aba Comunidade e lista de entrega obrigatória (16/11): ver `docs/context/historico/2026-11-16-aba-comunidade-e-lista-de-entrega.md`.
+- Pendências antes do APK: OCR, FASE 3 e Clubes/Fóruns (16/11): ver `docs/context/historico/2026-11-16-pendencias-antes-do-apk.md`.
