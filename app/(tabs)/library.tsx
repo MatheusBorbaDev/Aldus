@@ -184,6 +184,7 @@ function LibraryContent() {
   const moreItems: ActionMenuItem[] = [
     { key: "select", label: "Selecionar livros", description: "Organizar vários livros de uma vez", icon: "checkbox-outline", onPress: startSelecting },
     { key: "collections", label: "Coleções", description: collections.length ? `${collections.length} ${collections.length === 1 ? "coleção" : "coleções"}` : "Agrupe livros por tema", icon: "albums-outline", onPress: () => setManageCollections(true) },
+    { key: "diary", label: "Diário de leitura", description: "Sessões medidas e exportação para o Goodreads", icon: "calendar-outline", onPress: () => router.push("/diary" as never) },
     { key: "annotations", label: "Todas as anotações", description: "Grifos, notas e marcadores de todos os livros", icon: "bookmarks-outline", onPress: () => router.push("/annotations" as never) },
     { key: "sources", label: "Minhas fontes", description: "Drive e bibliotecas conectadas", icon: "cloud-outline", onPress: () => router.push("/sources" as never) },
     { key: "theme", label: resolvedTheme === "dark" ? "Mudar para tema claro" : "Mudar para tema escuro", icon: resolvedTheme === "dark" ? "sunny-outline" : "moon-outline", onPress: () => void setMode(resolvedTheme === "dark" ? "light" : "dark") },
