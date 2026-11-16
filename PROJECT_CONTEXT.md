@@ -132,6 +132,8 @@ Persistência (legado mantido, não renomear `kindle-*`/`@kindle/*`): Native SQL
   `expo-notifications`) e filtro VIEW `content://` PDF/EPUB; o `*/*` é a consulta OPEN_DOCUMENT já existente. `apksigner`: v2, certificado
   `fac61745…033b9c` (o do Redmi) — não é o Beta privado. dex com `expo/modules/speech`, `expo/modules/notifications`; bundle Hermes com textos
   das ondas A–D; 34 livros. **NÃO instalado**: o Redmi segue com `ae98991`.
+- **Fase B, grifo (16/11, `763feca`, `ee53a66`)**: typecheck PASS; `test:critical` **126/126**; `test:reader:browser`, `test:reader:{study,markings,epub}:web`
+  PASS; `export:web` PASS; lista de entrega `--source`/`--dist` com 31 recursos. Android NÃO TESTADO.
 - **Fase A, paletas e textura (16/11, `f0215f7`…`1aca293`)**: typecheck PASS; `test:critical` **125/125**; `test:reader:browser` PASS; `export:web`
   PASS; lista de entrega `--source`/`--dist` PASS com 30 recursos. APK não compilado.
 - **Pendências antes do APK (16/11, `98a8ead`…`3cd2d9a`)**: typecheck PASS; `test:critical` **124/124**; `export:web` PASS; lista de entrega
@@ -248,7 +250,7 @@ Legenda: **IVER** = implementado e verificado (suíte/execução citada); **ISVS
 | PDF Reflow | IVER (Web) / Android PARC | `PdfReflowProcessor.*`, `PdfReflowDocumentBuilder.ts`, cache SQLite/IndexedDB; `test-pdf-reflow`, `test-reflow-*` (critical), `test:reader:reflow:web`. BUG 06: livro grande lento (584 págs ≈3m32 no Redmi, observação pontual). |
 | Bug EPUB/Reflow "center reset" | RESOLVIDO (usuário confirmou em 06/11). Reflow: causa confirmada e corrigida; EPUB: nunca reproduzido em teste | `ReaderScreen.tsx` ≈L1043-1052; `test-reader-screen.cjs` (10 toggles, mocks) e `test-reader-browser.cjs`. Registrado em BUGS_ATUAIS.md como resolvido. |
 | Bug restauração de progresso (era Reflow 1↔11) | Causa CONFIRMADA; handshake implementado; validação PARC | `ReaderScreen.tsx` L128/L769-822; sem teste Chromium dedicado de reabertura Reflow com total mudando; Redmi validou EPUB. |
-| Marcações (grifos/marcadores) | IVER (Web) / físico PENDENTE | `StudyPanelControls.tsx`, `Study{Bookmarks,Highlights}.ts`; fixar trechos e "Todas as anotações" (16/11, `test-pinned-highlights`, `test-all-annotations`); `test-study-storage`, `test:reader:markings:web`, `test:reader:study:web`. Seleção por toque no Android não homologada. |
+| Marcações (grifos/marcadores) | IVER (Web) / físico PENDENTE | `StudyPanelControls.tsx`, `Study{Bookmarks,Highlights}.ts`; grifo por pressionar e pop-up `HighlightSelectionPopup` (16/11, `test-highlight-popup`, `test:reader:browser`); fixar trechos e "Todas as anotações" (16/11, `test-pinned-highlights`, `test-all-annotations`); `test-study-storage`, `test:reader:markings:web`, `test:reader:study:web`. Seleção por toque no Android não homologada. |
 | Biblioteca/organização/lote | IVER (local) | `library.tsx`, `OrganizeLibrarySelection.ts`; `test:library:*` (bulk, web, 1000 livros). |
 | Importação EPUB/PDF + OCR | IVER (local); BUG 01 VALIDADO FÍSICO (Amêndoas); OCR Android ISVS | `LocalBookImportService.ts`, `src/data/epub/*`, `modules/aldus-pdf-ocr`; `test-book-import`, `test-epub-*`, `test-pdf-ocr`. |
 | Flashcards, Estudo (4 respostas, SRS, sessões) | IVER (local); sem aparelho | `src/domain/study/flashcard{Scoring,Srs}.ts`, `components/flashcards/*`, `flashcardStorage.*`; `test-flashcard-{scoring,sessions,storage,ui}`, `test-flashcards` (critical). Pontuação +10/+5/−5/−10 é a **proposta do usuário já adotada no código**. |
@@ -333,7 +335,7 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
    **Clubes e Fóruns (16/11)**: código pronto e `20261116120000_community_clubs_forums.sql` aplicada no Supabase (autorização do dono); falta
    homologar com duas contas reais e publicar o app. Denúncias de conteúdo ficam só no servidor (sem painel no Admin ainda).
    **Leitura e compartilhamento (16/11)**: plano de 5 fases em `docs/context/design-system.md` §Paletas e plano. Fase A (paletas e textura)
-   concluída no código. Pendentes, nesta ordem: B grifo (pop-up não abre no Android: captura só em `pointerup`), C card de trecho
+   e B (grifo: captura pela seleção parada, pressionar e segurar, pop-up) concluídas no código; B precisa do Redmi. Pendentes: C card de trecho
    (precisa de `expo-sharing`, aprovação do dono; botão direto de Stories exige ID de app da Meta), D "Folhear"/"Sem animação"
    ("Deslizar" já existe), E rolagem contínua (PDF → EPUB num capítulo → entre capítulos). Decisões abertas: D3–D5 do plano.
    **Plano de mercado (11/11)**: FASES 0–5 concluídas (3 e 5a só planejamento: `docs/context/reader.md` e `community-estudo.md` §13.1; 4 em
@@ -369,6 +371,20 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
 - **IA externa:** não enviar livros/trechos a serviço de IA sem pedido e consentimento explícito do usuário final.
 
 ## 10. Log (mais recente primeiro; máx. 5 entradas, resto → docs/context/historico/)
+
+### 16/11/2026 — Leitura e compartilhamento, Fase B: grifo (Claude)
+- Relato do dono: "a seleção do grifo está ruim e quando termino de selecionar ele não abre o pop up". Causa confirmada no código: o documento
+  só capturava no `pointerup` com o modo armado pelo painel; as alças nativas do Android mudam a seleção sem esse evento (BUGS_ATUAIS, GRIFO 01).
+- `763feca` documento: captura também quando a seleção para de mudar (650 ms após o último `selectionchange`), sem eco repetido; `studySelectAt`
+  seleciona a palavra sob o dedo (ponto fora do texto é recusado, o Chromium "gruda" na palavra mais próxima); `studyAdjust` (palavra antes/depois,
+  tirar a última, frase inteira); desligar o modo limpa a seleção. Nada disso move a página.
+  `ee53a66` app: pressionar e segurar na página abre o pop-up de grifo (5 cores gravam na hora, 4 ajustes, "Adicionar nota" leva ao painel,
+  Cancelar); o "Grifar um trecho" do painel também termina no pop-up; zonas de toque suspensas com o pop-up aberto; `createStudyHighlight`.
+- VALIDADO (local): typecheck; `test:critical` 126/126 (nova `highlight-popup`; `reader-screen` com o fluxo novo); `test:reader:browser` no
+  documento real (seleção parada capturada sem `pointerup`, palavra por ponto, ajustes, ponto fora recusado, página parada); study/markings/epub web
+  PASS; `export:web` e lista de entrega com 31 recursos. Pop-up medido em fixture react-native-web (24 combinações 320/390 × 1/1,3/1,6 × tema × trecho).
+- Limites: só EPUB (como os grifos); o pop-up pode cobrir a palavra quando ela está embaixo na página. NÃO TESTADO: Android (pressionar e segurar,
+  alças nativas, TalkBack) — é exatamente onde o problema aparecia; precisa de APK e Redmi.
 
 ### 16/11/2026 — Leitura e compartilhamento, Fase A: paletas e textura de papel (Claude)
 - Pedidos do dono (16/11), recebidos em várias mensagens e planejados antes de produzir: tema Clássico × Moderno, textura nas páginas,
@@ -430,17 +446,6 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
   e `fullBackupContent` false, `data_extraction_rules.xml` excluindo todos os domínios, `tools:replace`; `app.json` espelhado). Manifesto e
   recursos do release conferidos pelo Gradle; `test:critical` 117/117. NÃO TESTADO no aparelho.
 
-### 12/11/2026 — Instruções para outras IAs: fluxo de engenharia, design e implantação (Claude)
-- Pedido do usuário: deixar instruções de como seguir com o projeto, melhorias de design, estrutura dos desenvolvimentos e implantações.
-- Nova skill `aldus-engineering-workflow` (inventário, decisões do dono × técnicas, fatias em commits verdes, camadas e convenções, testes,
-  gates, ordem de implantação, relato) com `references/pitfalls.md` (armadilhas reais de shell/CRLF, simulados de teste, navegador, build
-  Android, dados e textos). `aldus-interface-review` ganhou o roteiro de melhoria de design (ver a tela, propor, medir em 320/390 e texto
-  ampliado, evidência). `verify-android-apk-delivery`: limpar `generated/res/react/release` após remover assets, conferir livros por hash,
-  UTF-16 no Hermes, limites de entrega ao celular. `aldus-backend-operations`: caminho sem CLI (sonda REST anônima, painel SQL com conferência
-  por SHA-256, ledger). `aldus-web-delivery`: guarda do acervo no pós-export. AGENTS com resumo e catálogo; README com doze skills.
-- VALIDADO: `node scripts/validate-ai-instructions.cjs` PASS (12 skills, 17 documentos) e `git diff --check`. Só documentação: suítes do app não
-  foram reexecutadas. As regras de produto do dono (11/11) ficaram registradas na skill nova, §3.
-
 ### 06/11/2026 — Entradas anteriores
 - Fechamento UX/UI e Onboarding 1: ver `docs/context/historico/2026-11-06-ux-fechamento-e-onboarding-1.md`.
 - Onboarding 2 (auditoria e reescrita do contexto): ver `docs/context/historico/2026-11-06-onboarding-2.md`.
@@ -469,3 +474,4 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
 - Plano de mercado, FASE 2 (11/11): ver `docs/context/historico/2026-11-11-plano-mercado-fase-2.md`.
 - Acervo (etapas 1–3) e plano de mercado, FASES 3–5 (11/11): ver `docs/context/historico/2026-11-11-acervo-e-plano-mercado-fases-3-5.md`.
 - Community, Etapa 2: grafo social (12/11): ver `docs/context/historico/2026-11-12-community-etapa-2.md`.
+- Instruções para outras IAs (12/11): ver `docs/context/historico/2026-11-12-instrucoes-para-ias.md`.

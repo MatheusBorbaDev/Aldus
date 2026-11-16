@@ -1,5 +1,17 @@
 # Aldus Reader — Bugs Atuais
 
+## GRIFO 01 — Seleção do grifo ruim e pop-up que não abre (relato do dono, 16/11/2026)
+
+- Prioridade: ALTA. Status: **CORRIGIDO NO CÓDIGO** (`763feca`, `ee53a66`); Android NÃO TESTADO.
+- Causa CONFIRMADA no código: o documento do Reader só capturava o trecho no `pointerup` e só depois de armar o modo pelo painel
+  ("Grifar um trecho"). No Android, as alças nativas ajustam a seleção sem disparar `pointerup` no documento: o trecho nunca chegava ao
+  app e o pop-up não abria. As zonas de toque por cima da página também impediam selecionar sem passar pelo painel.
+- Correção: captura quando a seleção para de mudar; pressionar e segurar seleciona a palavra sob o dedo; pop-up próprio com cores,
+  ajuste do trecho sem depender das alças e nota; zonas de toque suspensas com o pop-up aberto.
+- Validado: `test:reader:browser` (documento real no Chromium) e `test-reader-screen`/`test-highlight-popup` (componentes controlados).
+- Falta: homologar no Redmi com APK novo (pressionar e segurar, alças nativas, salvar em cada cor, TalkBack). Até lá, NÃO TESTADO no aparelho.
+- Não regredir: seleção não grava progresso nem move a página; âncora com prefixo/sufixo; `missing`/`ambiguous` continuam com aviso.
+
 ## 15/11/2026 — Verificação de segurança (corrigidos no código; riscos que dependem do dono)
 
 Sobre `main` `ad8ad80`, neste PC (Windows). Inventário de segredos, dependências, manifesto, cabeçalhos Web, conteúdo de livros,

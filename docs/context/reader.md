@@ -97,3 +97,15 @@ termos), links para lojas e bibliotecas com direitos, e fontes adicionadas pela 
 pré-configuradas fontes de pirataria; preço e disponibilidade só quando a fonte informar.
 
 Ordem sugerida: B1 → B2 → A1 → A2 → C → A3 → D → A4.
+
+## Grifo: seleção e pop-up (Fase B, 16/11/2026)
+
+- **Captura** (`ReaderAnchorDocument.ts`): por `pointerup` ou quando a seleção fica parada 650 ms (`selectionchange`), porque as alças
+  nativas do Android não disparam `pointerup` no documento. Captura idêntica não é reenviada; o trecho é aparado de espaços.
+- **Mensagens novas**: `studySelectAt` (x, y do contêiner da página → palavra inteira; ponto fora do texto é recusado com mensagem) e
+  `studyAdjust` (`growStart`, `growEnd`, `shrinkStart`, `shrinkEnd`, `sentence`). Ambas mostram a seleção no documento e respondem
+  com a âncora `epub-text` validada; nenhuma envia mensagem de página. `studySelection` desligado limpa a seleção.
+- **App**: `ReadingTouchZones` converte o pressionar e segurar para coordenadas da página (mesmo contêiner da WebView);
+  `HighlightSelectionPopup` grava com uma cor via `createStudyHighlight` (mesmo formato do painel), ajusta e passa a nota ao painel.
+  Com o pop-up aberto as zonas de toque não existem. Só EPUB.
+- **Próximo passo natural**: o card de trecho (Fase C) entra como ação do pop-up.
