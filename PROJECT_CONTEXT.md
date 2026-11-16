@@ -388,6 +388,20 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
 
 ## 10. Log (mais recente primeiro; máx. 5 entradas, resto → docs/context/historico/)
 
+### 16/11/2026 — Ajustes depois do teste do APK `268d62d` no Redmi (Claude)
+- Relato do dono após instalar: "As texturas não funcionam, a animação ficou ruim, quero igual a do kindle, que inicia de baixo, algo fluido e
+  bonito", "a marca do Aldus não deve ser opcional ao compartilhar o card" e "a opção de como passar página (rolagem ou padrão) deve ser uma
+  configuração mais simples".
+- `3cc23da` marca Aldus sempre no card (sem interruptor). `6f3c8bf` "Passar página: Virar páginas | Rolar para baixo" na primeira tela de Ajustes
+  de leitura, uma escolha para EPUB, Leitura Livre e PDF Original (PDF fica em página única na rolagem); os campos "Leitura" antigos saíram.
+  `cdd131b` textura: o caminho funcionava, mas o grão (até 8%, com ruído concentrado em 0,5) virava um tom quase liso; agora fibras + grão em bloco
+  de 400 px, ruído espalhado por tabela e intensidade máxima por tema limitada pelo contraste do texto (4,6:1 no pior pixel).
+  `0325795` "Folhear" virou dobra de página a partir do canto de baixo: cópia só do trecho visível por cima, destino por baixo, dobra/verso/sombra
+  calculados por quadro (560 ms); voltar desdobra a página anterior; sem texto visível, desliza.
+- VALIDADO (local): typecheck; `test:critical` 130/130; `test:reader:{browser,epub,reflow,study,settings}` PASS (cópia fiel ao texto visível, nenhuma
+  camada sobrando, voltar também dobra); matriz de 125 layouts do painel PASS. Quadros da dobra e da textura capturados no Chrome.
+- NÃO TESTADO: Redmi (fluidez da dobra, textura na tela, rolagem). Precisa de APK novo.
+
 ### 16/11/2026 — Leitura e compartilhamento, Fase E (fatias 2 e 3): rolagem contínua no EPUB e na Leitura Livre (Claude)
 - Dono: "Seguir para EPUB". `0c31cf2`: Ajustes de leitura → Página → "Leitura" (Página a página · Rolagem contínua) para EPUB e Leitura Livre.
   O livro inteiro já está no documento, então as fatias 2 e 3 viraram uma: as colunas viram uma coluna vertical e as "páginas" passam a ser
@@ -438,20 +452,6 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
 - NÃO TESTADO: Android (WebView de desenho, folha de compartilhamento, Instagram/X), fontes do aparelho no card (Georgia não existe no Android:
   cai em Noto Serif). Precisa de APK novo (dependência nativa).
 
-### 16/11/2026 — Leitura e compartilhamento, Fase B: grifo (Claude)
-- Relato do dono: "a seleção do grifo está ruim e quando termino de selecionar ele não abre o pop up". Causa confirmada no código: o documento
-  só capturava no `pointerup` com o modo armado pelo painel; as alças nativas do Android mudam a seleção sem esse evento (BUGS_ATUAIS, GRIFO 01).
-- `763feca` documento: captura também quando a seleção para de mudar (650 ms após o último `selectionchange`), sem eco repetido; `studySelectAt`
-  seleciona a palavra sob o dedo (ponto fora do texto é recusado, o Chromium "gruda" na palavra mais próxima); `studyAdjust` (palavra antes/depois,
-  tirar a última, frase inteira); desligar o modo limpa a seleção. Nada disso move a página.
-  `ee53a66` app: pressionar e segurar na página abre o pop-up de grifo (5 cores gravam na hora, 4 ajustes, "Adicionar nota" leva ao painel,
-  Cancelar); o "Grifar um trecho" do painel também termina no pop-up; zonas de toque suspensas com o pop-up aberto; `createStudyHighlight`.
-- VALIDADO (local): typecheck; `test:critical` 126/126 (nova `highlight-popup`; `reader-screen` com o fluxo novo); `test:reader:browser` no
-  documento real (seleção parada capturada sem `pointerup`, palavra por ponto, ajustes, ponto fora recusado, página parada); study/markings/epub web
-  PASS; `export:web` e lista de entrega com 31 recursos. Pop-up medido em fixture react-native-web (24 combinações 320/390 × 1/1,3/1,6 × tema × trecho).
-- Limites: só EPUB (como os grifos); o pop-up pode cobrir a palavra quando ela está embaixo na página. NÃO TESTADO: Android (pressionar e segurar,
-  alças nativas, TalkBack) — é exatamente onde o problema aparecia; precisa de APK e Redmi.
-
 ### 06/11/2026 — Entradas anteriores
 - Fechamento UX/UI e Onboarding 1: ver `docs/context/historico/2026-11-06-ux-fechamento-e-onboarding-1.md`.
 - Onboarding 2 (auditoria e reescrita do contexto): ver `docs/context/historico/2026-11-06-onboarding-2.md`.
@@ -485,3 +485,4 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
 - Aba Comunidade e lista de entrega obrigatória (16/11): ver `docs/context/historico/2026-11-16-aba-comunidade-e-lista-de-entrega.md`.
 - Pendências antes do APK: OCR, FASE 3 e Clubes/Fóruns (16/11): ver `docs/context/historico/2026-11-16-pendencias-antes-do-apk.md`.
 - Leitura e compartilhamento, Fase A: paletas e textura (16/11): ver `docs/context/historico/2026-11-16-leitura-fase-a.md`.
+- Leitura e compartilhamento, Fase B: grifo (16/11): ver `docs/context/historico/2026-11-16-leitura-fase-b.md`.

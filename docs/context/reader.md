@@ -143,3 +143,13 @@ Ordem sugerida: B1 → B2 → A1 → A2 → C → A3 → D → A4.
   `goToPage` com LAYOUT_RECALC/SETTINGS_LAYOUT não move a rolagem. Sem zonas de toque: o documento envia `tap` (< 10 px) e `longPress`
   (500 ms parado); toques são ignorados com seleção armada. Imagens fora da tela no modo página carregam na rolagem e podem deslocar páginas
   ao voltar: a posição segue a âncora.
+
+## Ajustes depois do teste no aparelho (16/11/2026)
+
+- **Folhear = dobra de página** (`curlToPage`): `curlPageRange` acha o intervalo do primeiro ao último caractere visível (busca binária,
+  a partir do capítulo atual), `curlCopy` clona esse intervalo numa folha alinhada à primeira linha original; a cada quadro, o canto de baixo
+  percorre um arco, `curlClip` corta a folha pela linha da dobra (mediatriz entre o canto original e o atual), o verso é o reflexo da parte
+  levantada e a sombra cai na página de baixo. Voltar copia a página de destino e desdobra. Sem texto visível: desliza.
+- **Textura**: o ruído `fractalNoise` tem opacidade perto de 0,5; sem a tabela `feFuncA` vira um tom liso. Intensidade por tema limitada
+  pelo contraste do texto (`paperTextureCss(texture, background, text)`).
+- **Passar página**: uma escolha global na primeira tela do painel (`readingFlow`), também para o PDF Original (que usa página única na rolagem).
