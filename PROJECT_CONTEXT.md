@@ -317,7 +317,7 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
    **Acervo** (11/11): etapas 1–3 concluídas no código; os 33 títulos protegidos saíram do pacote. Falta: o usuário importar as próprias cópias
    (reanexam ao mesmo livro da conta) e um APK/deploy novos; o APK `cde4ce8` e deploys anteriores ainda contêm os arquivos; os binários seguem no histórico Git.
    **Revisão de qualidade (09/11)**: Ondas 0–5 aprovadas concluídas (commits locais, sem push); 6 e 7 fora. R5: patches do SDK 57 aplicados
-   (BUG 13); APK de ensaio `6883532` compilado e conferido (§3), **não instalado**; remover `js-polyfills` 0.76/`metro-cache` 0.81 segue pendente. Levantamento do
+   (BUG 13); APK de ensaio `6883532` compilado e conferido (§3), **não instalado**; `js-polyfills` 0.76/`metro-cache` 0.81 removidos na Onda D (D2).
    **Entrega (16/11)**: aba Comunidade e lista de entrega no código; o próximo APK sai do `npm run build:apk:local`, que só termina com
    sucesso se todos os recursos pedidos estiverem no pacote.
    **Segurança (15–16/11)**: SEG 01–04 e backup do Android corrigidos no código; pendentes de decisão: `npm audit` (SDK 58),
@@ -331,11 +331,11 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
    **Melhorias (11/11)**: Ondas A–D concluídas (C precisa de APK novo para valer no aparelho); Maestro não adotado (ver log D); rolagem contínua avaliada e adiada (segundo sistema de posição; ver log). Dependem do usuário: acervo, Play/Firebase, Redmi, Literata.
    acervo: 33 protegidos removidos do pacote em 11/11 (ver item Acervo); fixtures de teste só com domínio público.
    Candidatos de bundle (sem decisão): pdfjs-dist duplicado no entry, reanimated só para motion cues, `react-native-render-html` em `ChapterRenderer`.
-   Abertos da revisão: BUG 17 (EPUB sem `lang`/justificar; onda 6, fora), **BUG 20** (Reflow com página final em branco; motor do Reader,
-   fora das ondas aprovadas). Botão OCR do Reflow (`PdfReflowProcessor.native.tsx`) ainda com
+   BUG 17 e BUG 20 corrigidos no código na Onda B (11/11; Android não testado). Botão OCR do Reflow (`PdfReflowProcessor.native.tsx`) ainda com
    terracota fixa `#B65F42` + branco (4,46:1), fora do tema.
 3. **Backend remoto não comprovado**: Library Sync/Battle/Admin/SaaS (BUG 02, 11), `username-login` (BUG 09), cadastro/recovery (BUG 08),
-   Drive real (BUG 03). Nada disto é verificável pelo código.
+   Drive real (BUG 03). Nada disto é verificável pelo código. BUG 11: o ledger remoto lista `library_active_account_fences` (16/10;
+   conferido em 12/11), então a migration está aplicada; falta a homologação com contas reais A/B/desativada.
 4. **Geração de flashcards por livro** é só local determinística (pergunta fixa): não vender como IA; IA exige decisão do usuário (§5).
 5. **Sources device-scoped** (BUG 12) e snapshot/config sem isolamento por conta.
 6. **Dependências** com avisos sem upgrade compatível (BUG 13; não rebaixar Expo/RN, sem `audit fix --force`).
