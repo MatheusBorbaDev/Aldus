@@ -405,9 +405,13 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
 - Decisões do dono: Supabase gratuito na beta pequena; Drive com verificação do Google; @usuário com Upstash; ainda sem domínio (primeiro passo).
 - Exclusão de conta ("Sim, começar"): IMPLEMENTADA só no projeto — tela `app/account/delete.tsx`, função `supabase/functions/account-delete`, migration
   `20261117120000_account_deletion.sql` (NÃO aplicada), testes `account-delete` e `account-delete-ui`, recurso `account-delete` na lista de entrega.
-  Texto legal aprovado pelo dono e aplicado (Política §9, Termos §14, resumo; documentos v0.9 de 17/11). PENDENTE: aplicar migration e implantar a
-  função (autorização própria) ANTES do próximo APK/site, senão o botão só responde "indisponível"; página web de pedido de exclusão (depende de
-  canal/domínio); APK novo. NÃO TESTADO no Supabase real nem no aparelho.
+  Texto legal aprovado pelo dono e aplicado (Política §9, Termos §14, resumo; documentos v0.9 de 17/11).
+- Implantação autorizada ("Sim, implantar"), pelo painel no Chrome "Browser 1" deste PC, projeto Kindle reader (ref confere com `.env.local`):
+  migration `20261117120000` aplicada pelo SQL Editor (hash `c9724815…23ad2` conferido na página; catálogo mostra `ON DELETE CASCADE`; não entra no
+  ledger); única referência restritiva restante a `auth.users`/`profiles` é `aldus_admin_members` (proposital). Função `account-delete` implantada pelo
+  editor do painel como arquivo único (handler + `Deno.serve`, hash `4b1a68be…`), "Verify JWT" desligado como no `config.toml`. Sondas anônimas do PC:
+  OPTIONS 204 com CORS, GET 405, POST sem sessão 401, sessão falsa 401 (prova que a função lê o Auth com as variáveis do servidor), frase errada 400.
+  NÃO TESTADO: exclusão real de ponta a ponta (exige conta de teste), aparelho. PENDENTE: página web de pedido de exclusão (canal/domínio); APK novo.
 
 ### 16/11/2026 — Ajustes depois do teste do APK `268d62d` no Redmi (Claude)
 - Relato do dono após instalar: "As texturas não funcionam, a animação ficou ruim, quero igual a do kindle, que inicia de baixo, algo fluido e
