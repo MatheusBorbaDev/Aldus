@@ -11,6 +11,11 @@
 - Validado: `test:reader:browser` (documento real no Chromium) e `test-reader-screen`/`test-highlight-popup` (componentes controlados).
 - Falta: homologar no Redmi com APK novo (pressionar e segurar, alças nativas, salvar em cada cor, TalkBack). Até lá, NÃO TESTADO no aparelho.
 - Não regredir: seleção não grava progresso nem move a página; âncora com prefixo/sufixo; `missing`/`ambiguous` continuam com aviso.
+- **17/11/2026, relato do dono no APK:** "não funcionou da página 106 pra frente". Não reproduzido no Chrome do PC (livro de 349 páginas). Endurecido em
+  `83f2dc6`: pressionar não é mais recusado com a restauração inicial pendente (sessão aberta direto numa página distante cuja restauração não fechava
+  recusava todo grifo com "Aguarde"); ponto do toque com reserva por geometria quando o motor não devolve texto; palavra não atravessa troca de bloco
+  ("Capítulo 1" + "primeiro" virava "1primeiro"); pontas da seleção nativa em elementos ou no capítulo seguinte passam a ser aceitas. Nova suíte
+  `test:reader:highlight:web` (livro de ~310 páginas, a cada 7 páginas, incluindo a 106) falha na versão anterior e passa agora. Redmi NÃO TESTADO.
 
 ## 15/11/2026 — Verificação de segurança (corrigidos no código; riscos que dependem do dono)
 
