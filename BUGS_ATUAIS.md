@@ -487,6 +487,8 @@ e 7f50a90^:DIAGNOSTICO_BUGS_APK.md. Não restaurar esses arquivos como contexto.
 - Prioridade: ALTA. Status: BLOQUEADO EXTERNAMENTE.
 - Sintoma/reprodução: relatos históricos de erro seguido de entrada, rejeição de cadastro
   e recovery voltando para localhost; sem nova captura dessas operações nesta campanha.
+- Leitura do painel em 17/11: SMTP próprio desligado, limite de 2 e-mails/hora, confirmação de e-mail ligada, Site URL
+  `aldus://auth/callback`, redirecionamentos `aldus://` + duas URLs de preview do Vercel (nenhum localhost configurado).
 - Evidência/primeira divergência: cliente já separa credencial, navegação, perfil e erros
   operacionais. Não existe prova de acesso sem sessão. A sonda de callback de 12/10 foi de
   cancelamento OAuth; usuário relatou Google funcionando depois, o que supera a antiga

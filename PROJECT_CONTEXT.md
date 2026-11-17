@@ -402,6 +402,9 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
 - Plano de prontidão em `docs/context/legal-build-git.md` §17: 10 bloqueios (exclusão de conta ausente, controlador LGPD, SMTP/redirects, plano do
   Supabase, escopo restrito do Drive, moderação, @usuário, chave de assinatura, domínio/Vercel, estado das migrations), com o que é decisão do dono.
 - BLOQUEADO: a sessão do Supabase no Chrome expirou; nada remoto foi lido nem alterado. Vercel não conferido (sem CLI nem sessão verificada).
+- Banco conferido (só leitura, 17/11, a pedido do dono): estrutura das 13 migrations presente, RLS ligado em tudo, bucket igual à migration; ledger
+  registra só 7 de 13. Auth: SMTP próprio desligado, 2 e-mails/hora, confirmação de e-mail ligada, Site URL `aldus://auth/callback`, redirecionamentos
+  sem domínio fixo (só previews do Vercel). Detalhes em `docs/context/legal-build-git.md` §17 itens 3 e 10.
 - Decisões do dono: Supabase gratuito na beta pequena; Drive com verificação do Google; @usuário com Upstash; ainda sem domínio (primeiro passo).
 - Exclusão de conta ("Sim, começar"): IMPLEMENTADA só no projeto — tela `app/account/delete.tsx`, função `supabase/functions/account-delete`, migration
   `20261117120000_account_deletion.sql` (NÃO aplicada), testes `account-delete` e `account-delete-ui`, recurso `account-delete` na lista de entrega.
