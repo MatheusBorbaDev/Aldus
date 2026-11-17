@@ -138,6 +138,60 @@ export function readerAnchorDocumentScript(): string {
   // Seleção (Fase B, 16/11/2026). A captura acontece ao levantar o dedo OU quando a seleção para de mudar: as alças nativas do
   // Android ajustam a seleção sem disparar pointerup no documento, e antes disso o trecho nunca chegava ao app.
   function studyIsWord(ch){return !!ch && /[\\p{L}\\p{N}'’-]/u.test(ch);}
+  // Robustez do grifo (17/11/2026, relato do dono: "não funcionou da página 106 pra frente"). O modelo do capítulo junta os
+  // textos sem separador (as âncoras salvas dependem disso), então a palavra não pode atravessar a troca de bloco ("Capítulo 1" +
+  // "primeiro" virava "1primeiro"); o ponto do toque não pode depender só de caretRangeFromPoint; e as pontas da seleção nativa
+  // podem cair em elementos ou no capítulo seguinte.
+  var STUDY_BLOCKS='p,div,h1,h2,h3,h4,h5,h6,li,blockquote,td,th,pre,figcaption,dd,dt,section,article';
+  function studyBreaks(model){
+    if(model.breaks)return model.breaks;
+    var breaks={};
+    for(var i=1;i<model.nodes.length;i++){
+      var before=model.nodes[i-1].node.parentElement.closest(STUDY_BLOCKS),after=model.nodes[i].node.parentElement.closest(STUDY_BLOCKS);
+      if(before!==after)breaks[model.nodes[i].start]=true;
+    }
+    model.breaks=breaks;return breaks;
+  }
+  function studyWordAround(model,at){
+    var text=model.text,breaks=studyBreaks(model),start=at,end=at;
+    while(start>0 && studyIsWord(text[start-1]) && !breaks[start])start--;
+    while(end<text.length && studyIsWord(text[end]) && (end===at || !breaks[end]))end++;
+    return [start,end];
+  }
+  function studyPointPosition(x,y){
+    var caret=null,node=null,offset=0;
+    try{caret=document.caretRangeFromPoint?document.caretRangeFromPoint(x,y):null;}catch(error){caret=null;}
+    if(!caret && document.caretPositionFromPoint){try{var p=document.caretPositionFromPoint(x,y);if(p){caret=document.createRange();caret.setStart(p.offsetNode,p.offset);}}catch(error){caret=null;}}
+    if(caret){
+      node=caret.startContainer;offset=caret.startOffset;
+      if(node && node.nodeType===1){var child=node.childNodes[offset];if(child && child.nodeType===3){node=child;offset=0;}else{child=node.childNodes[offset-1];if(child && child.nodeType===3){node=child;offset=Math.max(0,child.length-1);}else node=null;}}
+      if(node && node.nodeType===3 && node.parentElement && content.contains(node) && node.parentElement.closest('.epub-chapter'))return {node:node,offset:offset};
+    }
+    // Reserva pela geometria: o caractere cujo retângulo contém o ponto (o motor pode devolver nada ou um elemento).
+    var element=document.elementFromPoint(x,y),section=element && element.closest && element.closest('.epub-chapter');
+    if(!section || !content.contains(section))return null;
+    var walker=document.createTreeWalker(element.closest(STUDY_BLOCKS)||section,NodeFilter.SHOW_TEXT),text;
+    while((text=walker.nextNode())){
+      if(!text.nodeValue.trim())continue;
+      var full=document.createRange();full.selectNodeContents(text);
+      var inside=Array.prototype.some.call(full.getClientRects(),function(r){return x>=r.left && x<=r.right && y>=r.top && y<=r.bottom;});
+      if(!inside)continue;
+      for(var i=0;i<text.length;i++){var r=document.createRange();r.setStart(text,i);r.setEnd(text,i+1);var b=r.getBoundingClientRect();if(x>=b.left && x<=b.right && y>=b.top && y<=b.bottom)return {node:text,offset:i};}
+    }
+    return null;
+  }
+  function studyTextBoundary(container,offset,section,atEnd){
+    if(container.nodeType===3)return {node:container,offset:offset};
+    var mark=document.createRange();mark.setStart(container,offset);mark.collapse(true);
+    var walker=document.createTreeWalker(section,NodeFilter.SHOW_TEXT),text,found=null;
+    while((text=walker.nextNode())){
+      if(!text.nodeValue.trim()||text.parentElement.closest('style,script'))continue;
+      if(!atEnd){if(mark.comparePoint(text,0)>=0)return {node:text,offset:0};}
+      else if(mark.comparePoint(text,text.length)<=0)found={node:text,offset:text.length};
+      else break;
+    }
+    return found;
+  }
   function studyTrim(text,start,end){while(start<end && !text[start].trim())start++;while(end>start && !text[end-1].trim())end--;return [start,end];}
   function studyAnchorFor(section,model,start,end){
     var bounds=studyTrim(model.text,start,end);start=bounds[0];end=bounds[1];
@@ -160,13 +214,16 @@ export function readerAnchorDocumentScript(): string {
   function studyCaptureSelection(request){
     var selection=window.getSelection();if(!selection || selection.isCollapsed || !selection.rangeCount)return false;
     try {
-      var range=selection.getRangeAt(0),startNode=range.startContainer,endNode=range.endContainer;
-      if(startNode.nodeType!==3 || endNode.nodeType!==3)throw new Error('Selecione um trecho de texto dentro do capítulo.');
-      var section=startNode.parentElement.closest('.epub-chapter');
-      if(!section || section!==endNode.parentElement.closest('.epub-chapter'))throw new Error('Selecione um trecho dentro de um único capítulo.');
-      var model=studyText(section),first=model.nodes.find(function(e){return e.node===startNode;}),last=model.nodes.find(function(e){return e.node===endNode;});
+      var range=selection.getRangeAt(0),startElement=range.startContainer.nodeType===3?range.startContainer.parentElement:range.startContainer;
+      var section=startElement && startElement.closest && startElement.closest('.epub-chapter');
+      if(!section || !content.contains(section))throw new Error('Selecione um trecho de texto dentro do capítulo.');
+      var startAt=studyTextBoundary(range.startContainer,range.startOffset,section,false);
+      var endElement=range.endContainer.nodeType===3?range.endContainer.parentElement:range.endContainer;
+      // Seleção que entra no capítulo seguinte: vale até o fim deste capítulo (antes era recusada).
+      var endAt=endElement && endElement.closest && endElement.closest('.epub-chapter')===section?studyTextBoundary(range.endContainer,range.endOffset,section,true):studyTextBoundary(section,section.childNodes.length,section,true);
+      var model=studyText(section),first=startAt && model.nodes.find(function(e){return e.node===startAt.node;}),last=endAt && model.nodes.find(function(e){return e.node===endAt.node;});
       if(!first || !last)throw new Error('Este trecho não pode ser selecionado.');
-      var captured=studyAnchorFor(section,model,first.start+range.startOffset,last.start+range.endOffset).anchor;
+      var captured=studyAnchorFor(section,model,first.start+startAt.offset,last.start+endAt.offset).anchor;
       var key=captured.chapterId+':'+captured.start+':'+captured.end;
       if(window.__studyLastCapture===key)return true;
       window.__studyLastCapture=key;
@@ -189,18 +246,16 @@ export function readerAnchorDocumentScript(): string {
   });
   // Pressionar e segurar sobre o texto: seleciona a palavra naquele ponto (coordenadas do viewport do documento).
   function studySelectAt(request){
-    if(isAnimating || restorationPending || getPageWidth()<=0)throw new Error('Aguarde a página terminar de carregar.');
+    // Selecionar pelo ponto não move a página nem depende da posição restaurada: só a virada em curso impede.
+    if(isAnimating || getPageWidth()<=0)throw new Error('Aguarde a página terminar de carregar.');
     var x=Number(request.x),y=Number(request.y);if(!isFinite(x)||!isFinite(y))throw new Error('Posição inválida.');
-    var caret=document.caretRangeFromPoint?document.caretRangeFromPoint(x,y):null;
-    if(!caret && document.caretPositionFromPoint){var p=document.caretPositionFromPoint(x,y);if(p){caret=document.createRange();caret.setStart(p.offsetNode,p.offset);}}
-    var node=caret&&caret.startContainer;
-    if(!node || node.nodeType!==3 || !node.parentElement.closest('.epub-chapter'))throw new Error('Pressione sobre uma palavra do texto.');
-    var section=node.parentElement.closest('.epub-chapter'),model=studyText(section),entry=model.nodes.find(function(e){return e.node===node;});
+    var position=studyPointPosition(x,y);if(!position)throw new Error('Pressione sobre uma palavra do texto.');
+    var node=position.node,section=node.parentElement.closest('.epub-chapter'),model=studyText(section),entry=model.nodes.find(function(e){return e.node===node;});
     if(!entry)throw new Error('Pressione sobre uma palavra do texto.');
-    var text=model.text,at=entry.start+caret.startOffset;
-    if(!studyIsWord(text[at]) && studyIsWord(text[at-1]))at--;
+    var text=model.text,at=entry.start+Math.min(position.offset,Math.max(0,node.length-1));
+    if(!studyIsWord(text[at]) && studyIsWord(text[at-1]) && !studyBreaks(model)[at])at--;
     if(!studyIsWord(text[at]))throw new Error('Pressione sobre uma palavra do texto.');
-    var start=at,end=at;while(start>0 && studyIsWord(text[start-1]))start--;while(end<text.length && studyIsWord(text[end]))end++;
+    var word=studyWordAround(model,at),start=word[0],end=word[1];
     // caretRangeFromPoint devolve a palavra mais próxima mesmo longe do texto: exige que o dedo esteja sobre ela.
     var wordRange=studyRange(model,start,end),slack=10;
     var hit=wordRange && Array.from(wordRange.getClientRects()).some(function(r){return x>=r.left-slack && x<=r.right+slack && y>=r.top-slack && y<=r.bottom+slack;});
@@ -215,8 +270,8 @@ export function readerAnchorDocumentScript(): string {
     var model=studyText(section),resolved=resolveStudyAnchor(model.text,a);
     if(resolved.status!=='exact' && resolved.status!=='relocated')throw new Error('O trecho não está mais nesta página.');
     var text=model.text,start=resolved.start,end=resolved.end,op=request.op,i,j;
-    if(op==='growEnd'){j=end;while(j<text.length && !studyIsWord(text[j]))j++;while(j<text.length && studyIsWord(text[j]))j++;while(j<text.length && '.,;:!?…»”)'.indexOf(text[j])>=0)j++;end=j;}
-    else if(op==='growStart'){i=start;while(i>0 && !studyIsWord(text[i-1]))i--;while(i>0 && studyIsWord(text[i-1]))i--;start=i;}
+    if(op==='growEnd'){j=end;while(j<text.length && !studyIsWord(text[j]))j++;if(j<text.length)j=studyWordAround(model,j)[1];while(j<text.length && '.,;:!?…»”)'.indexOf(text[j])>=0)j++;end=j;}
+    else if(op==='growStart'){i=start;while(i>0 && !studyIsWord(text[i-1]))i--;if(i>0)i=studyWordAround(model,i-1)[0];start=i;}
     else if(op==='shrinkEnd'){j=end;while(j>start && !studyIsWord(text[j-1]))j--;while(j>start && studyIsWord(text[j-1]))j--;while(j>start && !studyIsWord(text[j-1]))j--;if(j>start)end=j;}
     else if(op==='shrinkStart'){i=start;while(i<end && !studyIsWord(text[i]))i++;while(i<end && studyIsWord(text[i]))i++;while(i<end && !studyIsWord(text[i]))i++;if(i<end)start=i;}
     else if(op==='sentence'){

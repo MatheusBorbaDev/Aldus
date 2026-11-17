@@ -32,6 +32,7 @@
     "test:reader:settings:web": "node scripts/test-reader-settings-web.cjs",
     "test:reader:browser": "node scripts/run-reader-browser.cjs",
     "test:reader:epub:web": "node scripts/run-reader-browser.cjs --epub",
+    "test:reader:highlight:web": "node scripts/test-reader-highlight-pages.cjs",
     "test:reader:reflow:web": "node scripts/run-reader-browser.cjs --reflow",
     "test:reader:study:web": "node scripts/run-reader-browser.cjs --study",
     "test:reader:pdf:web": "node scripts/test-pdf-viewer-browser.cjs",
