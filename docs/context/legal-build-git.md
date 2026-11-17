@@ -177,3 +177,34 @@ Testes controlados não certificam produção ou Android. A matriz inclui leitur
 Native, cache/commit/cancelamento final Reflow e adapter REST com sessão/rede pendentes.
 Vercel Git integration/checks/permissões/logs dependem do operador; não presumir deploy
 com base no último commit. README contém roteiro humano; não publicar produção sozinho.
+
+## 17. Prontidão para as betas públicas (revisão de 17/11/2026)
+
+Pedido do dono: "realize ajustes e configurações nas dependências do projeto, como banco de dados, hospedagem e etc ... para podermos
+iniciar o plano das betas públicas". Revisão sobre `main` depois de `ae0ec82`. **Verificado** = conferido no código/arquivos nesta data;
+**a conferir** = depende do painel (a sessão do Supabase no Chrome tinha expirado; nada remoto foi lido nem alterado em 17/11).
+
+### Feito nesta revisão
+- Dependências: patches do SDK 57 (`expo`, `expo-linking`, `expo-router`, `expo-sqlite`) em `ae0ec82`; `expo install --check` em dia.
+  `npm audit --omit=dev`: 0 críticos, 3 altos (`decode-uri-component` dentro do `expo-router`, só sai com SDK 58), 6 moderados de ferramentas
+  de build. Exige APK novo.
+- Android: permissões de armazenamento já limitadas a API ≤ 32, SYSTEM_ALERT_WINDOW removida, backup desligado, sem `debuggable`.
+
+### Bloqueios para abrir ao público (ordem sugerida)
+| # | Área | Estado | O que falta | Decisão/ação do dono |
+| --- | --- | --- | --- | --- |
+| 1 | Exclusão de conta | **Verificado ausente**: o texto legal diz que o app "não oferece exclusão de conta". | Fluxo no app + página web + rotina no servidor (Auth + dados + arquivos), com confirmação em 2 passos. Exigência da Google Play para apps com cadastro e direito do titular na LGPD. | Autorizar migration/função remota e aprovar o texto. |
+| 2 | Identificação do controlador (LGPD) | **Verificado**: `EXPO_PUBLIC_LEGAL_CONTROLLER_NAME` vazio; texto legal "revisão profissional pendente". | Nome/CPF ou CNPJ do responsável, canal de privacidade e revisão jurídica. | Informar os dados e aprovar os textos (inclui sessões, marcos, diário, perfil publicado, clubes e fóruns). |
+| 3 | E-mails de cadastro/recuperação | **A conferir** (BUG 08: recuperação voltando para localhost). O serviço de e-mail padrão do Supabase é limitado e serve para testes. | SMTP próprio com domínio (remetente verificado), Site URL e lista de redirecionamentos (`aldus://auth/callback`, domínio web). | Escolher provedor de e-mail e domínio. |
+| 4 | Plano do Supabase | **A conferir**: projeto "Kindle reader". No plano gratuito o projeto pausa após inatividade e não há cópia de segurança diária. | Plano pago antes de abrir (cópias diárias, sem pausa) ou aceitar o risco numa beta pequena. | Decisão de custo. |
+| 5 | Google (login e Drive) | **Verificado no guia**: Drive usa o escopo restrito `drive.readonly`; em modo de teste só contas cadastradas (até 100) entram. | Verificação do app no Google (avaliação de segurança do escopo restrito) ou trocar para `drive.file` (só arquivos escolhidos) ou deixar o Drive fora da beta pública. | Escolher o caminho do Drive. |
+| 6 | Moderação da Comunidade | **Verificado**: denúncias gravadas sem fila de tratamento no Admin; fóruns são conteúdo de usuários. | Fila de denúncias no Admin (ocultar/remover, bloquear autor), termos de conduta e canal de contato. Exigência da Play para conteúdo gerado por usuários. | Aprovar termos de conduta. |
+| 7 | Login por @usuário | **Verificado** (BUG 09): função `username-login` não implantada (404 em 15/10); depende de Redis (Upstash). | Implantar com segredos só no servidor, ou esconder o login por @usuário na beta. | Escolher. |
+| 8 | Assinatura do app | **Verificado**: release cai no `debug.keystore` versionado sem `ALDUS_SIGNING_*`; `versionCode` 3. | Chave de upload própria (fora do Git) + Play App Signing; subir `versionCode`/`versionName` a cada beta. | Criar a conta Play Console e guardar a chave. |
+| 9 | Hospedagem Web (Vercel) | **Verificado**: `vercel.json` com cabeçalhos de segurança; `EXPO_PUBLIC_SITE_URL` ausente (canonical/sitemap pendentes); CSP do app Web pendente. **A conferir**: projeto, domínio e variáveis no painel. | Domínio, variáveis de produção, CSP. | Escolher o domínio. |
+| 10 | Banco: estado das migrations | **A conferir**: 12 migrations locais; as 3 da Comunidade foram aplicadas pelo painel (fora do ledger); Library/SaaS/Admin "informadas" (BUG 02/11). | Inventário somente leitura (ledger, objetos, RLS, buckets, Auth), registrar o ledger, homologar com 2 contas reais. | Entrar no painel do Supabase no Chrome. |
+
+### Não bloqueia, mas recomendado antes de abrir
+- Relato de falhas (crash reporting): hoje não há; o canal é o e-mail de feedback. Qualquer serviço externo exige decisão (regra: sem instrumentação sem pedido).
+- SDK 58 para zerar os 3 altos do `expo-router` (projeto próprio, APK novo e regressão completa).
+- Homologação no Redmi das fases A–E e do grifo endurecido.

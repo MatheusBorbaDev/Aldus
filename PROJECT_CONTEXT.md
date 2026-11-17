@@ -355,6 +355,8 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
    aprovar o texto de privacidade sobre o perfil publicado e decidir se as migrations entram no ledger.
    **Clubes e Fóruns (16/11)**: código pronto e `20261116120000_community_clubs_forums.sql` aplicada no Supabase (autorização do dono); falta
    homologar com duas contas reais e publicar o app. Denúncias de conteúdo ficam só no servidor (sem painel no Admin ainda).
+   **Betas públicas (17/11)**: plano de prontidão em `docs/context/legal-build-git.md` §17; bloqueios 1–10 com decisões do dono pendentes; inventário
+   remoto aguardando login no painel do Supabase.
    **Leitura e compartilhamento (16/11)**: plano de 5 fases em `docs/context/design-system.md` §Paletas e plano. Fase A (paletas e textura)
    , B (grifo: captura pela seleção parada, pressionar e segurar, pop-up) e C (card de trecho, `expo-sharing`, 400 caracteres) concluídas no
    código, e D (virar página: Sem animação/Deslizar/Folhear) também; B, C, D e E (rolagem no PDF, EPUB e Leitura Livre) estão no código; todas precisam de APK e Redmi. Plano dos seis itens concluído no código (PDF → EPUB num capítulo → entre capítulos). Candidato: a imagem do cartão de foco pode usar o
@@ -392,6 +394,14 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
 - **IA externa:** não enviar livros/trechos a serviço de IA sem pedido e consentimento explícito do usuário final.
 
 ## 10. Log (mais recente primeiro; máx. 5 entradas, resto → docs/context/historico/)
+
+### 17/11/2026 — Revisão para as betas públicas: dependências, banco, hospedagem (Claude)
+- Pedido do dono: ajustar dependências e configurações (banco, hospedagem etc.) e revisar o necessário para iniciar o plano das betas públicas.
+- `ae0ec82` patches do SDK 57 (`expo`, `expo-linking`, `expo-router`, `expo-sqlite`); audit 0 críticos / 3 altos (só SDK 58) / 6 moderados de build;
+  typecheck, critical 130/130, export, library web e reader browser PASS. Precisa de APK novo.
+- Plano de prontidão em `docs/context/legal-build-git.md` §17: 10 bloqueios (exclusão de conta ausente, controlador LGPD, SMTP/redirects, plano do
+  Supabase, escopo restrito do Drive, moderação, @usuário, chave de assinatura, domínio/Vercel, estado das migrations), com o que é decisão do dono.
+- BLOQUEADO: a sessão do Supabase no Chrome expirou; nada remoto foi lido nem alterado. Vercel não conferido (sem CLI nem sessão verificada).
 
 ### 16/11/2026 — Ajustes depois do teste do APK `268d62d` no Redmi (Claude)
 - Relato do dono após instalar: "As texturas não funcionam, a animação ficou ruim, quero igual a do kindle, que inicia de baixo, algo fluido e
@@ -448,20 +458,6 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
   PASS; `export:web`; lista de entrega com 33 recursos. Quadros reais do "Folhear" capturados no Chrome.
 - NÃO TESTADO: fluidez no Redmi (o "Folhear" usa 3D da WebView), arrastar a folha com o dedo (fora do escopo), PDF Original (troca como antes).
 
-### 16/11/2026 — Leitura e compartilhamento, Fase C: card de trecho (Claude)
-- Pedido do dono: compartilhar trecho "igual o Spotify", para Stories do Instagram e X, card bonito e seleção simples. Decisões do dono antes
-  de produzir: instalar `expo-sharing` = sim; limite = **400 caracteres** (nunca corta em silêncio); botão direto de Stories (cadastro Meta) = não.
-- `d1c1402` `expo-sharing ~57.0.26` (plugin sem opções não mexe no Android; avisos de licença regenerados, 41 dependências). `68e2d13`
-  `quoteCard.ts`: regras, 3 formatos (Stories 9:16, Post 4:5, Quadrado 1:1), 4 modelos (Papel, Claro, Noite, Destaque) a partir das paletas, e o
-  desenho em canvas como fonte JavaScript literal. `9e5b2ad` botão "Compartilhar" no pop-up de grifo → tela "Compartilhar trecho" com prévia
-  da imagem real, modelo, formato, título/autor e marca ocultáveis; Android desenha numa WebView invisível só de canvas e envia JPEG do cache pelo
-  `expo-sharing`; site usa o compartilhamento do navegador ou baixa a imagem. Só o trecho sai; nunca o arquivo do livro.
-- VALIDADO (local): typecheck; `test:critical` 128/128 (novas `quote-card` e `quote-card-modal`); `export:web`; lista de entrega com 32
-  recursos (`--source`/`--dist`); legal PASS. Card renderizado no Chrome com o canvas real (5 combinações) e a tela medida em fixture
-  react-native-web (24 combinações 320/390 × 1/1,3/1,6, sem estouro).
-- NÃO TESTADO: Android (WebView de desenho, folha de compartilhamento, Instagram/X), fontes do aparelho no card (Georgia não existe no Android:
-  cai em Noto Serif). Precisa de APK novo (dependência nativa).
-
 ### 06/11/2026 — Entradas anteriores
 - Fechamento UX/UI e Onboarding 1: ver `docs/context/historico/2026-11-06-ux-fechamento-e-onboarding-1.md`.
 - Onboarding 2 (auditoria e reescrita do contexto): ver `docs/context/historico/2026-11-06-onboarding-2.md`.
@@ -496,3 +492,4 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
 - Pendências antes do APK: OCR, FASE 3 e Clubes/Fóruns (16/11): ver `docs/context/historico/2026-11-16-pendencias-antes-do-apk.md`.
 - Leitura e compartilhamento, Fase A: paletas e textura (16/11): ver `docs/context/historico/2026-11-16-leitura-fase-a.md`.
 - Leitura e compartilhamento, Fase B: grifo (16/11): ver `docs/context/historico/2026-11-16-leitura-fase-b.md`.
+- Leitura e compartilhamento, Fase C: card de trecho (16/11): ver `docs/context/historico/2026-11-16-leitura-fase-c.md`.
