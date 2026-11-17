@@ -73,7 +73,7 @@ export const thirdPartyPackages: ThirdPartyPackageNotice[] = [
   },
   {
     "name": "expo",
-    "version": "57.0.32",
+    "version": "57.0.33",
     "license": "MIT",
     "repository": "https://github.com/expo/expo",
     "copyright": [
@@ -109,7 +109,7 @@ export const thirdPartyPackages: ThirdPartyPackageNotice[] = [
   },
   {
     "name": "expo-constants",
-    "version": "57.0.23",
+    "version": "57.0.24",
     "license": "MIT",
     "repository": "https://github.com/expo/expo",
     "copyright": [
@@ -181,7 +181,7 @@ export const thirdPartyPackages: ThirdPartyPackageNotice[] = [
   },
   {
     "name": "expo-linking",
-    "version": "57.0.13",
+    "version": "57.0.14",
     "license": "MIT",
     "repository": "https://github.com/expo/expo",
     "copyright": [
@@ -217,7 +217,7 @@ export const thirdPartyPackages: ThirdPartyPackageNotice[] = [
   },
   {
     "name": "expo-router",
-    "version": "57.0.30",
+    "version": "57.0.31",
     "license": "MIT",
     "repository": "https://github.com/expo/expo",
     "copyright": [],
@@ -261,7 +261,7 @@ export const thirdPartyPackages: ThirdPartyPackageNotice[] = [
   },
   {
     "name": "expo-sqlite",
-    "version": "57.0.4",
+    "version": "57.0.5",
     "license": "MIT",
     "repository": "https://github.com/expo/expo",
     "copyright": [
@@ -540,22 +540,22 @@ export const thirdPartyNoticeGroups: ThirdPartyNoticeGroup[] = [
     "id": "mit-223b647ce074",
     "license": "MIT",
     "packages": [
-      "expo@57.0.32",
+      "expo@57.0.33",
       "expo-asset@57.0.21",
       "expo-brightness@57.0.2",
-      "expo-constants@57.0.23",
+      "expo-constants@57.0.24",
       "expo-dev-client@57.0.21",
       "expo-document-picker@57.0.3",
       "expo-file-system@57.0.7",
       "expo-font@57.0.4",
       "expo-linear-gradient@57.0.2",
-      "expo-linking@57.0.13",
+      "expo-linking@57.0.14",
       "expo-network@57.0.3",
       "expo-notifications@57.0.25",
       "expo-sensors@57.0.3",
       "expo-sharing@57.0.26",
       "expo-speech@57.0.3",
-      "expo-sqlite@57.0.4"
+      "expo-sqlite@57.0.5"
     ],
     "text": "--- LICENSE ---\nThe MIT License (MIT)\n\nCopyright (c) 2015-present 650 Industries, Inc. (aka Expo)\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software\"), to deal\nin the Software without restriction, including without limitation the rights\nto use, copy, modify, merge, publish, distribute, sublicense, and/or sell\ncopies of the Software, and to permit persons to whom the Software is\nfurnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all\ncopies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\nFITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\nAUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\nLIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\nOUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\nSOFTWARE."
   },
@@ -564,7 +564,7 @@ export const thirdPartyNoticeGroups: ThirdPartyNoticeGroup[] = [
     "license": "MIT",
     "packages": [
       "@react-native-community/slider@5.2.0",
-      "expo-router@57.0.30"
+      "expo-router@57.0.31"
     ],
     "text": "O pacote não forneceu um arquivo LICENSE/NOTICE na instalação auditada; consulte os metadados e o repositório do pacote antes da distribuição."
   },
