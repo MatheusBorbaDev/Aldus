@@ -402,6 +402,7 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
 - Plano de prontidão em `docs/context/legal-build-git.md` §17: 10 bloqueios (exclusão de conta ausente, controlador LGPD, SMTP/redirects, plano do
   Supabase, escopo restrito do Drive, moderação, @usuário, chave de assinatura, domínio/Vercel, estado das migrations), com o que é decisão do dono.
 - BLOQUEADO: a sessão do Supabase no Chrome expirou; nada remoto foi lido nem alterado. Vercel não conferido (sem CLI nem sessão verificada).
+- Decisões do dono: Supabase gratuito na beta pequena; Drive com verificação do Google; @usuário com Upstash; ainda sem domínio (primeiro passo).
 
 ### 16/11/2026 — Ajustes depois do teste do APK `268d62d` no Redmi (Claude)
 - Relato do dono após instalar: "As texturas não funcionam, a animação ficou ruim, quero igual a do kindle, que inicia de baixo, algo fluido e

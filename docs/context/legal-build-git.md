@@ -204,6 +204,17 @@ iniciar o plano das betas públicas". Revisão sobre `main` depois de `ae0ec82`.
 | 9 | Hospedagem Web (Vercel) | **Verificado**: `vercel.json` com cabeçalhos de segurança; `EXPO_PUBLIC_SITE_URL` ausente (canonical/sitemap pendentes); CSP do app Web pendente. **A conferir**: projeto, domínio e variáveis no painel. | Domínio, variáveis de produção, CSP. | Escolher o domínio. |
 | 10 | Banco: estado das migrations | **A conferir**: 12 migrations locais; as 3 da Comunidade foram aplicadas pelo painel (fora do ledger); Library/SaaS/Admin "informadas" (BUG 02/11). | Inventário somente leitura (ledger, objetos, RLS, buckets, Auth), registrar o ledger, homologar com 2 contas reais. | Entrar no painel do Supabase no Chrome. |
 
+### Decisões do dono (17/11/2026)
+- **Supabase: plano gratuito na beta pequena** (risco aceito de pausa por inatividade e sem cópia diária). Mitigação: exportar o banco
+  periodicamente (`pg_dump` com a conexão do painel, feito pelo dono ou com ferramenta autorizada) e rever ao crescer.
+- **Drive: pedir a verificação do Google** para o escopo `drive.readonly`. Pré-requisitos: domínio próprio com página inicial e política de
+  privacidade publicadas, tela de consentimento completa, justificativa do escopo, vídeo de demonstração e a avaliação de segurança exigida para
+  escopos restritos. Até a aprovação, o Drive funciona só para as contas testadoras cadastradas.
+- **Login por @usuário: implantar com Upstash.** O dono cria o banco Redis no Upstash e cadastra os segredos direto nas configurações da função no
+  painel do Supabase (valores nunca passam pelo chat nem pelo Git); a implantação da função `username-login` vem depois, com autorização própria.
+- **E-mail: ainda sem domínio.** Primeiro passo é registrar um domínio; ele serve ao remetente dos e-mails (SMTP), ao site, à política de
+  privacidade exigida pelo Google e pela Play, e ao `EXPO_PUBLIC_SITE_URL`.
+
 ### Não bloqueia, mas recomendado antes de abrir
 - Relato de falhas (crash reporting): hoje não há; o canal é o e-mail de feedback. Qualquer serviço externo exige decisão (regra: sem instrumentação sem pedido).
 - SDK 58 para zerar os 3 altos do `expo-router` (projeto próprio, APK novo e regressão completa).
