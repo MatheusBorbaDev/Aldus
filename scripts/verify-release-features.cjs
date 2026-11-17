@@ -56,6 +56,7 @@ const FEATURES = [
   { id: 'community-clubs', pedido: 'Community Etapa 3: clubes por convite e marcos', markers: ['Abrir clubes', 'Entrar no clube', 'Criar um clube', 'Até onde você leu', 'Publicar comentário', 'Gerar novo código', 'community_join_club'], routes: ['community/clubs', 'community/club/[id]'] },
   { id: 'community-forums', pedido: 'Community Etapa 3: fóruns com spoiler e moderação', markers: ['Abrir fóruns', 'Publicar tópico', 'Contém spoiler · mostrar', 'Enviar denúncia', 'community_report_content'], routes: ['community/forums', 'community/thread/[id]'] },
   // Termos
+  { id: 'account-delete', pedido: '17/11: excluir conta no app (betas públicas)', markers: ['Excluir conta', 'EXCLUIR MINHA CONTA', 'Continuar para a exclusão', 'account-delete'], routes: ['account/delete'] },
   { id: 'legal-antipiracy', pedido: 'FASE 1: texto antipirataria nos termos', markers: ['não vende nem empresta livros'] },
 ];
 

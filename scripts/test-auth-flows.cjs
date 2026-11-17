@@ -50,7 +50,7 @@ function harness(options = {}) {
   const dependencies = {
     react: React, 'react/jsx-runtime': testRequire('react/jsx-runtime'),
     'react-native': { Platform: { OS: 'android' }, View: 'View', Text: 'Text', ActivityIndicator: 'ActivityIndicator' },
-    'expo-router': { router, Redirect: 'Redirect' }, 'expo-linking': {},
+    'expo-router': { router, Redirect: 'Redirect', useLocalSearchParams: () => options.params ?? {} }, 'expo-linking': {},
     '@react-native-async-storage/async-storage': {
       getItem: async key => storage.get(key) ?? null,
       setItem: async (key, value) => {

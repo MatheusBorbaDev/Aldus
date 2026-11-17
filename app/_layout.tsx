@@ -120,6 +120,7 @@ function AppShell() {
                 <Stack.Screen name="account/index" />
                 <Stack.Screen name="account/edit-profile" />
                 <Stack.Screen name="account/change-password" />
+                <Stack.Screen name="account/delete" />
                 <Stack.Screen name="plan/index" />
                 <Stack.Screen name="plan/compare" />
                 <Stack.Screen name="community" />

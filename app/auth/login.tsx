@@ -1,5 +1,7 @@
 import { useState } from "react";
-import { Redirect, router } from "expo-router";
+import { Redirect, router, useLocalSearchParams } from "expo-router";
+import { Text } from "react-native";
+import { useAppTheme } from "@/src/presentation/contexts/AppThemeContext";
 import { AuthButton, AuthDivider, AuthError, AuthForm, AuthInput, AuthLegalNotice, AuthLink } from "@/src/presentation/components/AuthForm";
 import { loginWithGoogle, loginWithIdentifier } from "@/src/data/remote/authService";
 import { useAuth } from "@/src/presentation/contexts/AuthContext";
@@ -7,6 +9,8 @@ import { authDiagnostic, beginAuthDiagnostic, finishAuthDiagnostic } from "@/src
 
 export default function Login() {
   const { session, profile } = useAuth();
+  const { palette } = useAppTheme();
+  const { notice } = useLocalSearchParams<{ notice?: string }>();
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
@@ -38,6 +42,7 @@ export default function Login() {
     finally { setBusy(false); }
   };
   return <AuthForm title="Bem-vindo" subtitle="Entre para continuar sua leitura.">
+    {notice === "account-deleted" ? <Text accessibilityRole="alert" style={{ color: palette.text, lineHeight: 21 }}>Sua conta foi excluída. As cópias guardadas neste aparelho continuam aqui até você remover o app.</Text> : null}
     <AuthInput label="Email ou nome de usuário" icon="person-outline" value={identifier} onChangeText={setIdentifier} autoComplete="username" />
     <AuthInput label="Senha" icon="lock-closed-outline" value={password} onChangeText={setPassword} secureTextEntry autoComplete="current-password" />
     <AuthError message={error} />

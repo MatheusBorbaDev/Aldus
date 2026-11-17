@@ -22,6 +22,7 @@ export default function Account() {
     <AuthButton title="Meu Plano" icon="cloud-outline" secondary onPress={() => router.push('/plan' as never)} />
     <AuthButton title="Alterar senha" icon="lock-closed-outline" secondary onPress={() => router.push("/account/change-password" as never)} />
     <AuthButton title="Sair" icon="log-out-outline" secondary onPress={() => void signOut().then(() => router.replace("/auth/login" as never)).catch(failure => setError(failure instanceof Error ? failure.message : "Não foi possível sair."))} />
+    <AuthButton title="Excluir conta" icon="trash-outline" secondary onPress={() => router.push("/account/delete" as never)} />
     {error ? <Text accessibilityRole="alert" style={{ color: palette.accent }}>{error}</Text> : null}
   </AuthForm></AuthGuard>;
 }
