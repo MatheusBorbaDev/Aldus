@@ -18,6 +18,16 @@
   usou o pdf.js 3.11 no WebView do mesmo aparelho e terminou. Relato de **usuários externos** (sem acesso ao aparelho nem ao logcat):
   falta saber a build instalada, o modelo, a versão do Android e a do Android System WebView. Preparar a Leitura Livre de PDF longo é
   lento (ver BUG 06); a importação de PDF longo também foi relatada como lenta, sem medição.
+- **CARGA 01 — Assinatura SHA-256 do arquivo calculada em JavaScript no Android** (achado ao investigar "tudo demora muito").
+  `ImportDuplicateService.hash` (antes de importar), `SupabaseBookFileDriver.hash` (envio e conferência do Sync) e
+  `PrivateBookFileService.localFingerprint` (assinatura da Leitura Livre enquanto o livro não foi enviado) leem o arquivo em base64 em
+  blocos de 1 MiB, convertem com `Uint8Array.from(atob(...), callback)` e calculam SHA-256 com `@noble/hashes` no Hermes. Medido
+  neste PC, 50 MiB: 5,0 s no Node com JIT (94% na conversão) e 50,9 s sem JIT (`node --jitless`, mais perto do interpretador do
+  Hermes; 45 s no SHA-256). Num celular intermediário, minutos por arquivo, e a mesma conta pode rodar até 3 vezes. Entre blocos a
+  thread de JS só cede por `setTimeout(0)`: cada bloco a trava por cerca de 1 s ou mais, atrasando toque, pop-up de grifo (que desiste
+  em 5 s com "O leitor não respondeu") e mensagens do leitor. Hipótese que une os três relatos (lentidão, "Carregando página" e grifo
+  que não responde) enquanto um PDF grande está sendo assinado; NÃO confirmada no aparelho. Correção proposta: SHA-256 nativo no
+  Android (leitura em fluxo no Kotlin), sem mudar o formato do hash. PENDENTE (aguarda o dono).
 - **GRIFO 02 — "não consigo grifar trechos dos livros"** (relato junto do "Marx biografia", Leitura Livre). Build dos usuários
   externos confirmada pelo dono: `79ad0a2` (18/11, já com `83f2dc6`). Causa CONFIRMADA no código: **grifo na Leitura Livre do PDF não
   existe**. `ReaderScreen.tsx` liga o segurar-para-grifar só em EPUB (`selectTextAt = isEpub ? … : undefined`), os grifos desenhados
