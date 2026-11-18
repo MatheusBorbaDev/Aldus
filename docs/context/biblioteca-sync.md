@@ -331,8 +331,25 @@ sem criar persistência ou Sync paralelos e sem placar (regras de produto de 11/
 ### Ordem sugerida
 C (card, P) → A1 → A2 → A4 → A3 (com autorização) → B. Cada item é um commit verde sozinho.
 
-### Decisões do dono (pendentes em 18/11)
-1. Livro sem arquivo conta no limite de livros do plano?
-2. Migration do formato sem arquivo: escrever no projeto agora e aplicar depois, ou ficar só no aparelho por enquanto?
-3. Nota e resenha do CSV: ignorar com aviso, ou guardar privadas?
-4. Capa no card de trecho: ligada por padrão (ocultável) ou desligada por padrão?
+### Decisões do dono (18/11/2026)
+1. Livro sem arquivo **não conta** no limite de livros do plano (a migration exclui esse formato da cota).
+2. Livro sem arquivo vira um **catálogo geral só de metadados**: a pessoa busca qualquer livro (título, autor, ISBN),
+   adiciona do jeito que quiser (quero ler, lendo, físico, outra loja) e, quando tiver o próprio arquivo, **anexa ao
+   livro** e lê no Aldus. O catálogo traz só título, autor, capa, edição e páginas; nunca conteúdo nem link de download.
+   O registro sincroniza com a conta: a migration entra no projeto e aplicar no servidor exige autorização própria.
+3. Nota e resenha: **criar** o recurso. Proposta: estrelas de 1 a 5 e resenha **privadas** na ficha do livro, preenchidas
+   à mão ou pelo CSV do Goodreads, e exportadas no CSV. Tornar públicas exige decisão futura (Comunidade sem teste real).
+4. Capa no card de trecho **ligada por padrão**, com opção de ocultar.
+
+### Ajustes no plano por causa das decisões
+- A2/A4 passam a partir da **busca no catálogo** (com cadastro manual quando o livro não for encontrado) e ganham
+  **A5 · Anexar o próprio arquivo** a um livro do catálogo: a importação normal vincula o arquivo ao registro existente,
+  sem duplicar o livro nem perder estado, nota, resenha ou organização.
+- Nova **fatia D · Nota e resenha privadas** (M): campos na organização do livro (sem placar, sem média pública),
+  ficha do livro, exportação e importação no CSV (My Rating, My Review). Entra depois de A1 e antes de B.
+- Ordem: C → A1 → catálogo (busca) → A2/A4 → D → A5 → A3 (com autorização) → B.
+
+### Pendente
+- Fonte dos metadados (serviço externo novo; as buscas saem do aparelho sem dados da conta; entra no texto de
+  privacidade, que o dono aprova antes): Google Books com Open Library de reserva (recomendado) ou só Open Library.
+  Conferir os termos de uso da fonte escolhida antes de implementar.
