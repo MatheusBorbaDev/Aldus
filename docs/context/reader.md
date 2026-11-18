@@ -72,6 +72,11 @@ envie arquivos de livros a outras pessoas.
   dos grifos (compatível: ausente = não fixado) e teste de âncora/escopo de conta.
 - A2 "Todas as anotações" entre livros (**M**): lista e busca sobre `highlightRepository`/`bookmarkRepository` de todos os livros da conta;
   abrir leva à âncora (missing/ambiguous com aviso, nunca navegação silenciosa).
+- **A3 feito em 18/11/2026** (`af90ca2`, `daf6096`, pedido "Implementar agora" após relato de usuários externos): mesma âncora de texto do
+  EPUB sobre os capítulos `<livro>-reflow-<n>` (determinísticos para o mesmo PDF e versão do processador); o grifo leva `mode:
+  "pdf-reflow"` na localização (ausente = EPUB; modo desconhecido não aparece); `highlightsForReaderMode` separa os grifos por modo.
+  Se uma nova versão do processador mudar os capítulos, o grifo aparece como "sem trecho" (missing), nunca é movido em silêncio.
+  Assinatura do cache na âncora NÃO foi adotada. Texto original do plano:
 - A3 Grifos na Leitura Livre do PDF (**M/G**): reaproveitar a seleção do documento EPUB (Reflow usa o mesmo iframe); âncora por capítulo
   derivado + assinatura SHA-256 do cache. PDF Original continua só com marcador por página (grifo no PDF Original = **G**).
 - A4 Anotar/desenhar sobre o texto (**G**, só Android no MVP): camada de traço por página paginada; quebra com repaginação (fonte, margem),

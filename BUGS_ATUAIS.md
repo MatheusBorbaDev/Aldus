@@ -22,8 +22,11 @@
   externos confirmada pelo dono: `79ad0a2` (18/11, já com `83f2dc6`). Causa CONFIRMADA no código: **grifo na Leitura Livre do PDF não
   existe**. `ReaderScreen.tsx` liga o segurar-para-grifar só em EPUB (`selectTextAt = isEpub ? … : undefined`), os grifos desenhados
   só em EPUB (`studyHighlights={isEpub ? …}`) e o painel de estudo fica fora da Leitura Livre (`onStudy: !isReflowPdf …`). É o item
-  A3 do plano (`docs/context/reader.md`, M/G), nunca implementado, e a página da beta não avisa. Não é regressão. Decisão do dono:
-  implementar A3 ou avisar primeiro. Grifo em EPUB nessa build: sem relato específico.
+  A3 do plano (`docs/context/reader.md`, M/G), nunca implementado, e a página da beta não avisa. Não é regressão. Dono: "Implementar
+  agora". **IMPLEMENTADO NO CÓDIGO** (`af90ca2`, `daf6096`): segurar para grifar, pop-up, grifos desenhados e painel Marcações na
+  Leitura Livre; grifo guarda `mode: "pdf-reflow"`. VALIDADO no PC: `test-reader-screen` (falha no ReaderScreen anterior),
+  `test-highlight-flashcard`, `test:reader:reflow-highlight:web` (construtor real, Chromium), suítes de leitor no navegador. NÃO TESTADO
+  no aparelho. Grifo em EPUB nessa build: sem relato específico.
 - **Distribuição:** o `79ad0a2` é APK de ensaio assinado com o certificado de debug (chave pública no repositório, ver revisão de 17/11):
   quem tiver o repositório consegue assinar uma atualização aceita por esse app. Distribuir a externos pede a chave privada do Beta.
 

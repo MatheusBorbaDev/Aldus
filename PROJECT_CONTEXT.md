@@ -435,6 +435,12 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
 - NÃO TESTADO: aparelho, busca real no Open Library pela tela, filtro "Quero ler" da Biblioteca (sem teste de tela). PENDENTE: migração do
   servidor para livro sem arquivo (ver `docs/context/biblioteca-sync.md` §7.3); APK novo. Textos aprovados pelo dono ("Aprovo os
   textos") e aplicados: catálogo em "Seus livros" na página da beta e item "Buscar qualquer livro" nas novidades.
+- Relato de **usuários externos** no APK `79ad0a2` (o dono distribuiu esse APK de ensaio; certificado de debug, ver BUGS_ATUAIS): EPUB por
+  "Abrir com Aldus" com "formato não identificado" → `1e4fb86` copia e identifica pela cópia (causa confirmada, teste falha na versão
+  anterior); grifo na Leitura Livre nunca existiu (A3) → dono "Implementar agora" → `af90ca2`, `daf6096` (detalhes em `docs/context/reader.md`
+  A3). "Carregando página..." infinito na Leitura Livre de PDF longo: INCONCLUSIVO, não reproduz no Chromium, sem acesso ao aparelho
+  (BUGS_ATUAIS REFLOW 02). VALIDADO no PC: typecheck, `test:critical` 137/137, suítes de leitor no navegador (`browser`, `highlight`,
+  `study`, `markings`, nova `reflow-highlight`), `export:web`, lista de entrega 42. NÃO TESTADO no aparelho; precisa de APK novo.
 
 ### 17/11/2026 — Revisão para as betas públicas: dependências, banco, hospedagem (Claude)
 - Pedido do dono: ajustar dependências e configurações (banco, hospedagem etc.) e revisar o necessário para iniciar o plano das betas públicas.
