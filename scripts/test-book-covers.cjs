@@ -1,7 +1,7 @@
 const assert=require('node:assert/strict'),JSZip=require('jszip');
 const React=require('../.expo/auth-test-tools/node_modules/react'),{act,create}=require('../.expo/auth-test-tools/node_modules/react-test-renderer');
 global.IS_REACT_ACT_ENVIRONMENT=true;
-const load=require('./community-test-loader.cjs')({react:React,'react/jsx-runtime':require('../.expo/auth-test-tools/node_modules/react/jsx-runtime'),'react-native':{View:'View',Text:'Text',Image:'Image',ActivityIndicator:'ActivityIndicator',StyleSheet:{create:v=>v,absoluteFill:{position:'absolute'}}}});
+const load=require('./community-test-loader.cjs')({react:React,'react/jsx-runtime':require('../.expo/auth-test-tools/node_modules/react/jsx-runtime'),'react-native':{View:'View',Text:'Text',Image:'Image',ActivityIndicator:'ActivityIndicator',StyleSheet:{create:v=>v,absoluteFill:{position:'absolute'},hairlineWidth:1}}});
 const {EpubParserService}=load('src/data/epub/EpubParserService.ts'),{BookCover}=load('src/presentation/components/BookCover.tsx'),{editorialCover}=load('src/presentation/components/bookCoverPresentation.ts');
 const png=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aN9sAAAAASUVORK5CYII=','base64');
 async function epub(kind,image=png){
@@ -18,6 +18,10 @@ async function epub(kind,image=png){
  const design=editorialCover('stable','Livro.pdf','');assert.equal(design.title,'Livro');assert.equal(design.author,'Autor não informado');assert.deepEqual(design,editorialCover('stable','Livro.pdf',''));
  assert.equal(editorialCover('stable','Título .pdf no meio').title,'Título .pdf no meio');
  assert.equal(editorialCover('pdf','PDF','Arquivo local').author,'Autor não informado');
+ const {aldusCoverDesign,coverHash}=load('src/domain/catalog/defaultCover.ts');
+ assert.deepEqual(editorialCover('id-1','Dom Casmurro.epub','Machado de Assis'),editorialCover('id-2','Dom Casmurro','Machado de Assis'),'same title and author, same cover');
+ assert.equal(coverHash('abc'),coverHash('abc'));const names=new Set(['Iracema','O Cortiço','Os Sertões','Dom Casmurro','Quincas Borba','A Moreninha','Senhora','Lucíola','Helena','Esaú e Jacó'].map(t=>aldusCoverDesign(t,'Autor').palette.name));assert.ok(names.size>=4,'the shelf varies: '+[...names]);
+ assert.equal(aldusCoverDesign('Iracema').titleSize,40);assert.equal(aldusCoverDesign('x'.repeat(90)).titleSize,21);assert.equal(aldusCoverDesign('x'.repeat(90)).titleLines,5);
  let view;const render=async p=>act(async()=>{const e=React.createElement(BookCover,{identity:'A',title:'Título longo '.repeat(20),author:'Autora',format:'epub',...p});if(view)view.update(e);else view=create(e);});
  try{
   await render({source:{uri:'file:///cover.jpg'},thumbnail:{uri:'file:///thumbnail.jpg'}});
@@ -32,6 +36,13 @@ async function epub(kind,image=png){
   await act(async()=>image().props.onLoad({nativeEvent:{target:{naturalWidth:1,naturalHeight:1}}}));assert.equal(image().props.source.uri,'file:///web-valid.jpg');
   await act(async()=>image().props.onLoad({nativeEvent:{}}));assert.equal(view.root.findAllByType('Image').length,0);assert.equal(view.root.findAllByProps({testID:'book-cover-loading'}).length,0);
   await render({identity:'drive-file',source:null,format:'pdf',compact:true});assert.equal(view.root.findAllByType('Image').length,0);
+  // Approved Aldus default cover (18/11): drawn after layout, top label is the real file format, compact keeps frame/label/title only.
+  const texts=()=>view.root.findAllByType('Text').map(t=>t.children.join(''));
+  await act(async()=>view.root.findByProps({testID:'book-cover'}).props.onLayout({nativeEvent:{layout:{width:200,height:300}}}));
+  assert.deepEqual(texts(),['PDF','Título longo '.repeat(20).trim()],'compact: format label and title only');
+  await render({identity:'full',source:null,format:'epub',title:'Dom Casmurro',author:'Machado de Assis'});
+  await act(async()=>view.root.findByProps({testID:'book-cover'}).props.onLayout({nativeEvent:{layout:{width:400,height:600}}}));
+  assert.deepEqual(texts(),['EPUB','Dom Casmurro','MACHADO DE ASSIS','ALDUS'],'full cover: label, title, author, mark');
  }finally{if(view)await act(async()=>view.unmount());}
  console.log('PASS covers: EPUB 3/2/guide, absent/broken/bounded/cancelled; chapters unchanged; deterministic editorial; failure/thumbnail/tiny/reset/list/Drive. No remote book downloads.');
 })().catch(e=>{console.error(e);process.exitCode=1;});
