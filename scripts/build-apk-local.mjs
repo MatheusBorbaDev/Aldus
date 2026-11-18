@@ -38,7 +38,7 @@ const result = spawnSync(
     ...command.options,
     cwd: androidDir,
     stdio: "inherit",
-    env: { ...process.env, NODE_ENV: process.env.NODE_ENV || "production" },
+    env: { ...process.env, NODE_ENV: process.env.NODE_ENV || "production", EXPO_PUBLIC_BUILD_REVISION: buildRevision() },
   },
 );
 
@@ -59,4 +59,12 @@ const features = spawnSync(process.execPath, [path.join(projectRoot, "scripts/ve
 if (features.status !== 0) {
   console.error("APK gerado, mas INCOMPLETO: falta algum recurso pedido (lista acima). Não entregue este arquivo.");
   process.exit(1);
+}
+
+/** Commit embutido no app (Ajustes → Versão), com "+" se havia mudanças locais. Sem Git: nada é embutido. */
+function buildRevision() {
+  const head = spawnSync("git", ["rev-parse", "--short=7", "HEAD"], { cwd: projectRoot, encoding: "utf8" });
+  if (head.status !== 0) return "";
+  const dirty = spawnSync("git", ["status", "--porcelain"], { cwd: projectRoot, encoding: "utf8" }).stdout.trim() !== "";
+  return head.stdout.trim() + (dirty ? "+" : "");
 }

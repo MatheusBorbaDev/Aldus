@@ -23,7 +23,9 @@ const nativeGradle=require('node:fs').readFileSync('android/app/build.gradle','u
 assert.equal(Number(nativeGradle.match(/versionCode (\d+)/)?.[1]),appConfig.android.versionCode);
 assert.equal(nativeGradle.match(/versionName "([^"]+)"/)?.[1],appConfig.version);
 const metadataLoader=require('./community-test-loader.cjs')({'expo-constants':{},'../../app.json':require('../app.json')});
-assert.deepEqual(metadataLoader('src/legal/appMetadata.ts').getAppMetadata(),{version:require('../app.json').expo.version,build:String(require('../app.json').expo.android.versionCode)});
+assert.deepEqual(metadataLoader('src/legal/appMetadata.ts').getAppMetadata(),{version:require('../app.json').expo.version,build:String(require('../app.json').expo.android.versionCode),revision:null});
+process.env.EXPO_PUBLIC_BUILD_REVISION='f30f6a8+';assert.equal(metadataLoader('src/legal/appMetadata.ts').getAppMetadata().revision,'f30f6a8+','APK shows its commit');
+process.env.EXPO_PUBLIC_BUILD_REVISION='<script>';assert.equal(metadataLoader('src/legal/appMetadata.ts').getAppMetadata().revision,null);delete process.env.EXPO_PUBLIC_BUILD_REVISION;
 const nativeLoader=require('./community-test-loader.cjs')({'expo-constants':{expoConfig:{version:'native-version'},nativeBuildVersion:'9'},'../../app.json':require('../app.json')});
-assert.deepEqual(nativeLoader('src/legal/appMetadata.ts').getAppMetadata(),{version:'native-version',build:'9'});
+assert.deepEqual(nativeLoader('src/legal/appMetadata.ts').getAppMetadata(),{version:'native-version',build:'9',revision:null});
 console.log('PASS beta: private signing fail-closed, explicit device-only compatibility, missing/partial/development keystore refusal; manual mail draft, encoding, missing contact/description, injection refusal. No remote writes or mail sent.');

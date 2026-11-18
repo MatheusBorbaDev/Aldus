@@ -54,7 +54,7 @@ export default function SettingsScreen() {
       <SettingsLink title="Legal e informações" description="Sobre o Aldus, termos, privacidade e licenças." icon="information-circle-outline" onPress={() => go('/legal')} />
     </SettingsGroup>
     <AdminEntry compact />
-    <ListRow title={`Versão ${metadata.version} · build ${metadata.build}`} icon="pricetag-outline" onPress={() => go('/legal/version')} />
+    <ListRow title={`Versão ${metadata.version} · build ${metadata.build}${metadata.revision ? ` · ${metadata.revision}` : ""}`} icon="pricetag-outline" onPress={() => go('/legal/version')} />
   </SettingsLayout><ReaderSettingsPanel visible={readerVisible} panelMode="appearance" onClose={() => setReaderVisible(false)} /></>;
 }
 
