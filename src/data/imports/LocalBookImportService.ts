@@ -42,10 +42,12 @@ export class LocalBookImportService {
     const accountRun = libraryAccountScope.capture();
     throwIfAborted(options.signal);
     options.onPhase({ phase: "preparing", cancellable: true, fileSize: file.size ?? undefined });
-    const format = await this.detectFormat(file, options.signal);
+    // Native "Abrir com" files arrive as content:// with no type or extension; their first bytes are read after the copy.
+    const declared = await this.detectFormat(file, options.signal);
     const size = file.size ?? undefined;
 
     if (this.platform === "web") {
+      const format = declared ?? unreadable();
       accountRun.check();
       return format === "pdf"
         ? this.pdfImporter.importFromUri(file.uri, normalizedName(file.name, format), undefined, file.file, {
@@ -62,10 +64,8 @@ export class LocalBookImportService {
     if (!root) throw new Error("O armazenamento local não está disponível neste aparelho.");
     const tempDirectory = `${root}books/temp/`;
     const importedDirectory = `${root}books/imported/`;
-    const safeName = safeFileName(normalizedName(file.name, format));
-    const uniqueName = `local-${options.operationId}-${safeName}`;
-    const tempUri = `${tempDirectory}${uniqueName}`;
-    const importedUri = `${importedDirectory}${uniqueName}`;
+    const tempUri = `${tempDirectory}local-${safeFileName(options.operationId)}-incoming`;
+    let importedUri = `${importedDirectory}local-${safeFileName(options.operationId)}-incoming`;
 
     await withAbort(Promise.all([
       this.files.makeDirectoryAsync(tempDirectory, { intermediates: true }),
@@ -73,7 +73,7 @@ export class LocalBookImportService {
     ]).then(() => undefined), options.signal);
 
     try {
-      options.onPhase({ phase: "copying", cancellable: true, format, fileSize: size });
+      options.onPhase({ phase: "copying", cancellable: true, ...(declared ? { format: declared } : {}), fileSize: size });
       const copy = this.files.copyAsync({ from: file.uri, to: tempUri });
       try {
         await withAbort(copy, options.signal);
@@ -82,6 +82,9 @@ export class LocalBookImportService {
         throw error;
       }
       throwIfAborted(options.signal);
+      const format = declared ?? formatFromSignature(await this.readSignature(tempUri, options.signal));
+      const safeName = safeFileName(normalizedName(file.name, format));
+      importedUri = `${importedDirectory}local-${safeFileName(options.operationId)}-${safeName}`;
       const move = this.files.moveAsync({ from: tempUri, to: importedUri });
       try {
         await withAbort(move, options.signal);
@@ -114,29 +117,40 @@ export class LocalBookImportService {
     ]);
   }
 
-  private async detectFormat(file: PickedBookFile, signal: AbortSignal): Promise<BookImportFormat> {
+  private async detectFormat(file: PickedBookFile, signal: AbortSignal): Promise<BookImportFormat | null> {
     const mimeType = file.mimeType?.toLowerCase() ?? "";
     if (mimeType === "application/pdf") return "pdf";
     if (mimeType === "application/epub+zip" || mimeType === "application/epub") return "epub";
     if (/\.pdf$/i.test(file.name)) return "pdf";
     if (/\.epub$/i.test(file.name)) return "epub";
 
-    let signature = "";
     if (file.file) {
       const header = new Uint8Array(await withAbort(file.file.slice(0, 5).arrayBuffer(), signal));
-      signature = String.fromCharCode(...header);
-    } else {
-      try {
-        const encoded = await withAbort(this.files.readAsStringAsync(file.uri, { encoding: "base64", position: 0, length: 5 }), signal);
-        signature = atob(encoded);
-      } catch {
-        throw new Error("Não foi possível identificar o formato do arquivo selecionado.");
-      }
+      return formatFromSignature(String.fromCharCode(...header));
     }
-    if (signature.startsWith("%PDF-")) return "pdf";
-    if (signature.startsWith("PK")) return "epub";
-    throw new Error("Formato não suportado. Selecione um arquivo EPUB ou PDF válido.");
+    // A content:// document often cannot be read partially before it is copied; the copy is checked instead.
+    if (/^content:/i.test(file.uri)) return null;
+    return formatFromSignature(await this.readSignature(file.uri, signal));
   }
+
+  private async readSignature(uri: string, signal: AbortSignal): Promise<string> {
+    try {
+      return atob(await withAbort(this.files.readAsStringAsync(uri, { encoding: "base64", position: 0, length: 5 }), signal));
+    } catch (error) {
+      if (signal.aborted) throw error;
+      unreadable();
+    }
+  }
+}
+
+function unreadable(): never {
+  throw new Error("Não foi possível identificar o formato do arquivo selecionado.");
+}
+
+function formatFromSignature(signature: string): BookImportFormat {
+  if (signature.startsWith("%PDF-")) return "pdf";
+  if (signature.startsWith("PK")) return "epub";
+  throw new Error("Formato não suportado. Selecione um arquivo EPUB ou PDF válido.");
 }
 
 function safeFileName(fileName: string): string {

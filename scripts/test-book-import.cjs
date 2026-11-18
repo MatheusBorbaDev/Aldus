@@ -59,11 +59,12 @@ function book(id, fileName, filePath, mimeType) {
     makeDirectoryAsync: async () => {},
     copyAsync: async ({from,to}) => {
       if (from === 'content://held') await new Promise(resolve => { heldCopy = resolve; });
-      stored.add(to);
+      stored.add(to); if (headers.has(from)) headers.set(to, headers.get(from));
     },
-    moveAsync: async ({from,to}) => { stored.delete(from); stored.add(to); },
+    moveAsync: async ({from,to}) => { stored.delete(from); stored.add(to); if (headers.has(from)) headers.set(to, headers.get(from)); },
     deleteAsync: async uri => { deleted.push(uri); stored.delete(uri); },
-    readAsStringAsync: async uri => Buffer.from(headers.get(uri) ?? 'PK\u0003\u0004x').toString('base64'),
+    // Like Android: a content:// document cannot be read partially (position/length) before it is copied.
+    readAsStringAsync: async (uri, options) => { if (/^content:/.test(uri) && options?.length) throw Error('content partial read unsupported'); return Buffer.from(headers.get(uri) ?? 'PK\u0003\u0004x').toString('base64'); },
   };
   let sequence = 0;
   const calls = [];
@@ -111,6 +112,15 @@ function book(id, fileName, filePath, mimeType) {
   headers.set('file://wrong.bin', '%PDF-');
   const wrongExtension = await run({uri:'file://wrong.bin',name:'wrong.bin',mimeType:'application/octet-stream',size:5}, 'wrong-ext');
   assert.equal(wrongExtension.mimeType, 'application/pdf', 'content signature handles an incorrect extension');
+  // "Abrir com Aldus" (owner's report, 18/11): content:// with no type and no extension is identified from the copy.
+  headers.set('content://com.whatsapp.provider/document/1234', 'PK\u0003\u0004x');
+  const received = await run({uri:'content://com.whatsapp.provider/document/1234',name:'Livro recebido',mimeType:null,size:null}, 'open-with-epub');
+  assert.equal(received.mimeType, 'application/epub+zip'); assert.match(received.filePath, /open-with-epub-Livro_recebido\.epub$/);
+  headers.set('content://media/external/file/99', '%PDF-');
+  assert.equal((await run({uri:'content://media/external/file/99',name:'Livro recebido',mimeType:null}, 'open-with-pdf')).mimeType, 'application/pdf');
+  headers.set('content://media/external/file/100', 'hello');
+  await assert.rejects(() => run({uri:'content://media/external/file/100',name:'Livro recebido',mimeType:null}, 'open-with-text'), /Formato não suportado/);
+  assert.ok(deleted.some(uri => uri.includes('open-with-text')), 'the rejected copy is removed');
   headers.set('file://invalid.txt', 'hello');
   await assert.rejects(() => run({uri:'file://invalid.txt',name:'invalid.txt',mimeType:'text/plain',size:5}, 'invalid'), /Formato não suportado/);
 
