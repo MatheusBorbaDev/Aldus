@@ -215,6 +215,11 @@ export function ReaderSettingsProvider({ children }: PropsWithChildren) {
   return <ReaderSettingsContext.Provider value={value}>{children}</ReaderSettingsContext.Provider>;
 }
 
+/** "Ocultar porcentagem e páginas" fora do leitor (Biblioteca). Sem o provedor (telas isoladas, testes): não oculta. */
+export function useHideReadingCounts(): boolean {
+  return useContext(ReaderSettingsContext)?.hideReadingCounts ?? false;
+}
+
 export function useReaderSettings() {
   const value = useContext(ReaderSettingsContext);
   if (!value) throw new Error("useReaderSettings must be used within ReaderSettingsProvider");

@@ -1,5 +1,5 @@
 import { LibraryBook, RECORD_BOOK_MIME, RECORD_BOOK_PREFIX } from "@/src/domain/entities/LibraryBook";
-import { BookOrganization } from "@/src/domain/types/libraryOrganization";
+import { BookOrganization, ManualProgress } from "@/src/domain/types/libraryOrganization";
 import { CatalogBook } from "./catalogBook";
 
 /** Como a pessoa quer guardar o livro ao adicioná-lo do catálogo. */
@@ -37,4 +37,17 @@ export function recordBookOrganization(bookId: string, start: RecordBookStart, n
 /** Livros da biblioteca que vieram deste item do catálogo (para dizer "Na sua biblioteca" e não duplicar). */
 export function libraryMatchesForCatalog(books: LibraryBook[], catalogId: string): LibraryBook[] {
   return books.filter(book => !book.isDeleted && book.catalogId === catalogId);
+}
+
+/** Fração lida de um livro sem arquivo, a partir do que a pessoa informou; sem total, não há fração (null, nunca estimada). */
+export function manualProgressFraction(progress: ManualProgress | undefined): number | null {
+  if (!progress || !progress.totalPages) return null;
+  return Math.max(0, Math.min(1, progress.page / progress.totalPages));
+}
+
+/** Texto curto do progresso informado: "p. 120 de 300", "45%" no audiolivro, "p. 120" sem total. */
+export function manualProgressLabel(progress: ManualProgress | undefined, format: RecordBookFormat | undefined): string | null {
+  if (!progress) return null;
+  if (format === "audiobook") return progress.totalPages === 100 ? `${progress.page}%` : null;
+  return progress.totalPages ? `p. ${progress.page} de ${progress.totalPages}` : `p. ${progress.page}`;
 }

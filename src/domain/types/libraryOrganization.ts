@@ -19,10 +19,26 @@ export interface BookOrganization {
   rating?: number;
   /** Resenha pessoal, privada como a nota (até 20 mil caracteres). */
   review?: string;
+  /**
+   * Progresso informado pela pessoa num livro sem arquivo (18/11/2026): página atual e total da edição dela (audiolivro: porcentagem,
+   * total 100). Só o que ela digitou; nada é estimado.
+   */
+  manualProgress?: ManualProgress;
   updatedAt: number;
   revision: number;
 }
 export type OrganizationRecords = Record<string, BookOrganization>;
+export interface ManualProgress { page: number; totalPages: number | null; updatedAt: number }
+
+export function parseManualProgress(value: unknown): ManualProgress | undefined {
+  if (value === undefined || value === null) return undefined;
+  const item = value as Record<string, unknown>;
+  const total = item?.totalPages ?? null;
+  if (typeof item !== "object" || !Number.isInteger(item.page) || (item.page as number) < 0 || (item.page as number) > 100000
+    || (total !== null && (!Number.isInteger(total) || (total as number) < 1 || (total as number) > 100000 || (item.page as number) > (total as number)))
+    || !Number.isSafeInteger(item.updatedAt) || (item.updatedAt as number) < 0) throw new Error("Progresso inválido: a página atual não pode passar do total.");
+  return { page: item.page as number, totalPages: total as number | null, updatedAt: item.updatedAt as number };
+}
 export interface LibraryOrganizationRepository {
   list(): Promise<OrganizationRecords>;
   save(record: BookOrganization): Promise<void>;
@@ -62,13 +78,14 @@ export function parseOrganizationRecord(value: unknown): BookOrganization {
   if (item.rating !== undefined && item.rating !== null && (!Number.isInteger(item.rating) || (item.rating as number) < 1 || (item.rating as number) > 5)) throw new Error("A nota deve ser de 1 a 5.");
   if (item.review !== undefined && item.review !== null && (typeof item.review !== "string" || item.review.length > 20000)) throw new Error("A resenha passa de 20 mil caracteres.");
   const review = typeof item.review === "string" ? item.review.trim() : "";
+  const manualProgress = parseManualProgress(item.manualProgress);
   const cover = item.coverImagePath;
   if (cover !== undefined && cover !== null && (typeof cover !== "string" || cover.length > 4_000_000 || !/^(https?:\/\/|file:\/\/|data:image\/(png|jpeg|webp);base64,)/i.test(cover))) throw new Error("Capa inválida; use uma imagem local ou URL HTTP/HTTPS.");
   return { bookId, ...(title === undefined ? {} : { title }), ...(author === undefined ? {} : { author }),
     ...(cover === undefined ? {} : { coverImagePath: cover as string | null }), favorite: item.favorite,
     collections: list("collections"), tags: list("tags"), series: str("series")!, volume: item.volume as number | null,
     readingStatus: item.readingStatus as ReadingStatus | null, ...(item.wantToRead === true ? { wantToRead: true } : {}),
-    ...(typeof item.rating === "number" ? { rating: item.rating } : {}), ...(review ? { review } : {}),
+    ...(typeof item.rating === "number" ? { rating: item.rating } : {}), ...(review ? { review } : {}), ...(manualProgress ? { manualProgress } : {}),
     updatedAt: item.updatedAt as number, revision: item.revision as number };
 }
 

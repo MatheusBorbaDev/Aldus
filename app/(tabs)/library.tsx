@@ -13,7 +13,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { isRecordBook, LibraryBook } from "@/src/domain/entities/LibraryBook";
-import { RECORD_FORMAT_LABELS } from "@/src/domain/catalog/recordBook";
+import { manualProgressFraction, manualProgressLabel, RECORD_FORMAT_LABELS } from "@/src/domain/catalog/recordBook";
+import { useHideReadingCounts } from "@/src/presentation/contexts/ReaderSettingsContext";
 import { useLibrary } from "@/src/presentation/hooks/useLibrary";
 import { useAppTheme } from "@/src/presentation/contexts/AppThemeContext";
 import { libraryOrganization } from "@/src/presentation/services/dependencies";
@@ -69,6 +70,7 @@ function LibraryContent() {
   const insets = useSafeAreaInsets();
   const { books, status, error, reload } = useLibrary();
   const { palette, resolvedTheme, setMode } = useAppTheme();
+  const hideCounts = useHideReadingCounts();
   const bookImport = useBookImport(reload, bookId => router.push({ pathname: "/reader/[bookId]", params: { bookId } }));
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<BookFilter>("all");
@@ -131,8 +133,8 @@ function LibraryContent() {
 
   const renderBook = useCallback(({ item }: { item: LibraryBook }) => (
     <LibraryBookCell item={item} record={organization[item.id]} selecting={selecting} selected={selection.has(item.id)} layout={layout} cellWidth={cellWidth}
-      palette={palette} themeMode={resolvedTheme} organizationDisabled={organizationDisabled} onOpen={openBook} onToggle={toggleSelection} onOrganize={organizeBook} />
-  ), [organization, selecting, selection, layout, cellWidth, palette, resolvedTheme, organizationDisabled, openBook, toggleSelection, organizeBook]);
+      palette={palette} themeMode={resolvedTheme} organizationDisabled={organizationDisabled} hideCounts={hideCounts} onOpen={openBook} onToggle={toggleSelection} onOrganize={organizeBook} />
+  ), [organization, selecting, selection, layout, cellWidth, palette, resolvedTheme, organizationDisabled, hideCounts, openBook, toggleSelection, organizeBook]);
 
   const visibleBooks = useMemo(() => {
     const normalizedQuery = normalizeLibraryText(query);
@@ -273,7 +275,7 @@ function LibraryContent() {
           <AppText variant="overline" tone="accent">Continue lendo</AppText>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.shelfRow}>
             {continueBooks.map((book, index) => {
-              const card = toCardBook(book, Boolean(organization[book.id]));
+              const card = toCardBook(book, organization[book.id]);
               return (
                 <Pressable
                   key={book.id}
@@ -376,6 +378,7 @@ function LibraryContent() {
 }
 
 interface LibraryBookCellProps {
+  hideCounts: boolean;
   item: LibraryBook;
   record: BookOrganization | undefined;
   selecting: boolean;
@@ -394,24 +397,25 @@ interface LibraryBookCellProps {
  * Uma célula da grade/lista. Memoizada: digitar na busca, abrir menus ou marcar um livro não redesenha os demais cartões
  * (com 1000 livros, cada mudança redesenhava todos os ~72 cartões montados). Só recebe dados do próprio livro e callbacks estáveis.
  */
-const LibraryBookCell = memo(function LibraryBookCell({ item, record, selecting, selected, layout, cellWidth, palette, themeMode, organizationDisabled, onOpen, onToggle, onOrganize }: LibraryBookCellProps) {
-  const cardBook = useMemo(() => toCardBook(item, Boolean(record)), [item, record]);
+const LibraryBookCell = memo(function LibraryBookCell({ hideCounts, item, record, selecting, selected, layout, cellWidth, palette, themeMode, organizationDisabled, onOpen, onToggle, onOrganize }: LibraryBookCellProps) {
+  const cardBook = useMemo(() => toCardBook(item, record), [item, record]);
+  const manual = isRecordBook(item) && !hideCounts ? manualProgressLabel(record?.manualProgress, item.recordFormat) : null;
   const open = useCallback(() => onOpen(item), [item, onOpen]);
   const toggle = useCallback(() => onToggle(item.id), [item.id, onToggle]);
   return (
     <View style={{ width: cellWidth, minWidth: 0, gap: space.xs, marginBottom: space.lg }}>
-      {selecting ? <SharedBookCard layout={layout} book={cardBook} themeMode={themeMode} colors={palette} selection={selected} onPress={toggle} /> : <>
-        <SharedBookCard layout={layout} book={cardBook} themeMode={themeMode} colors={palette} onPress={open} />
+      {selecting ? <SharedBookCard layout={layout} book={cardBook} themeMode={themeMode} colors={palette} selection={selected} onPress={toggle} showProgress={!hideCounts} /> : <>
+        <SharedBookCard layout={layout} book={cardBook} themeMode={themeMode} colors={palette} onPress={open} showProgress={!hideCounts} />
         {/* Uma linha só: situação de leitura · disponibilidade, e o menu "⋯" com abrir, organizar e remover. */}
         <BookCloudControls book={item} title={cardBook.title} organizeDisabled={organizationDisabled} onOpen={open} onOrganize={() => onOrganize(item, cardBook)}
-          status={`${record?.favorite ? "★ · " : ""}${record?.wantToRead ? "Quero ler · " : ""}${readingStatusLabels[inferredReadingStatus(item, record)]}${record?.series ? ` · ${record.series}${record.volume ? ` ${record.volume}` : ""}` : ""}`} />
+          status={`${record?.favorite ? "★ · " : ""}${record?.wantToRead ? "Quero ler · " : ""}${readingStatusLabels[inferredReadingStatus(item, record)]}${manual ? ` · ${manual}` : ""}${record?.series ? ` · ${record.series}${record.volume ? ` ${record.volume}` : ""}` : ""}`} />
       </>}
     </View>
   );
 });
 
-function toCardBook(book: LibraryBook, hasOrganization = false): Book {
-  const mockBook = catalogBookFor(book);
+function toCardBook(book: LibraryBook, record?: BookOrganization): Book {
+  const mockBook = catalogBookFor(book), hasOrganization = Boolean(record);
   return {
     id: book.id,
     title: hasOrganization ? book.title : mockBook?.title ?? book.title,
@@ -420,7 +424,8 @@ function toCardBook(book: LibraryBook, hasOrganization = false): Book {
     ...(isRecordBook(book) ? { formatLabel: RECORD_FORMAT_LABELS[book.recordFormat ?? "physical"] } : {}),
     coverUri: hasOrganization ? book.coverImagePath ?? mockBook?.coverUri : mockBook?.coverUri ?? book.coverImagePath ?? undefined,
     fileUri: book.filePath,
-    progress: book.progress,
+    // Livro sem arquivo: só o progresso que a pessoa informou (sem total, nenhum).
+    progress: isRecordBook(book) ? manualProgressFraction(record?.manualProgress) ?? 0 : book.progress,
   };
 }
 

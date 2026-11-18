@@ -58,6 +58,7 @@ const FEATURES = [
   // Termos
   { id: 'drive-renewal', pedido: '18/11: Drive sem reconectar a toda hora (renovação silenciosa, mesma conta Google)', markers: ['account-mismatch', 'Esta biblioteca foi conectada com outra conta Google'] },
   { id: 'drive-folder-picker', pedido: '18/11: escolher a pasta do Drive navegando, sem colar link', markers: ['Escolha uma pasta', 'Compartilhados comigo', 'Prefiro colar o link de uma pasta'] },
+  { id: 'manual-progress', pedido: '18/11: progresso manual de livro sem arquivo (pagina ou porcentagem)', markers: ['Total de p', 'Porcentagem', 'Quanto voc'] },
   { id: 'rating-review', pedido: '18/11: nota e resenha pessoais na ficha do livro', markers: ['de 5', 'Toque de novo para tirar a nota'] },
   { id: 'catalog-link', pedido: '18/11: ligar livro importado ao catalogo (juntar com o livro guardado sem arquivo)', markers: ['Manter separados', 'Ligar ao cat', 'catalog-link-dismissed'] },
   { id: 'catalog-shelves', pedido: '18/11: vitrine do catalogo com categorias e Para voce calculado no aparelho', markers: ['Calculado neste aparelho', 'Mais categorias', 'Voltar ', 'subject:fantasy'] },

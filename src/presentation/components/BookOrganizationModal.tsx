@@ -17,6 +17,18 @@ export function BookOrganizationModal({ book, record, onClose, onSaved }: { book
   const [favorite, setFavorite] = useState(record?.favorite ?? false);
   const [wantToRead, setWantToRead] = useState(record?.wantToRead === true);
   const [rating, setRating] = useState<number | null>(record?.rating ?? null), [review, setReview] = useState(record?.review ?? "");
+  // Progresso manual (livro sem arquivo): página e total da edição da pessoa; audiolivro em porcentagem.
+  const audiobook = book.recordFormat === "audiobook";
+  const [page, setPage] = useState(record?.manualProgress ? String(record.manualProgress.page) : "");
+  const [totalPages, setTotalPages] = useState(record?.manualProgress?.totalPages ? String(record.manualProgress.totalPages) : book.catalogPages ? String(book.catalogPages) : "");
+  const readManualProgress = () => {
+    if (!page.trim()) return undefined;
+    const current = Number(page.trim()), total = audiobook ? 100 : totalPages.trim() ? Number(totalPages.trim()) : null;
+    if (!Number.isInteger(current) || current < 0 || (total !== null && (!Number.isInteger(total) || total < 1))) throw new Error(audiobook ? "Informe uma porcentagem inteira de 0 a 100." : "Informe páginas em números inteiros.");
+    if (total !== null && current > total) throw new Error(audiobook ? "A porcentagem vai até 100." : "A página atual não pode passar do total.");
+    const previous = record?.manualProgress;
+    return previous && previous.page === current && previous.totalPages === total ? previous : { page: current, totalPages: total, updatedAt: Date.now() };
+  };
   const [collections, setCollections] = useState(record?.collections.join(", ") ?? "");
   const [tags, setTags] = useState(record?.tags.join(", ") ?? "");
   const [series, setSeries] = useState(record?.series ?? "");
@@ -35,7 +47,7 @@ export function BookOrganizationModal({ book, record, onClose, onSaved }: { book
       const split = (text: string) => text.split(",").map(v => v.trim()).filter(Boolean);
       if (volume.trim() && !/^\d+(?:[.,]\d+)?$/.test(volume.trim())) throw new Error("Informe um volume positivo, como 1 ou 2,5.");
       // Starts from the saved record so fields this sheet does not show (rating, review, manual progress) are kept.
-      await libraryOrganization.save({ ...(record ?? {}), bookId: book.id, title: title.trim(), author: author.trim(), favorite, wantToRead: wantToRead ? true : undefined, rating: rating ?? undefined, review: review.trim() || undefined, collections: split(collections), tags: split(tags), series: series.trim(), volume: volume.trim() ? Number(volume.replace(",", ".")) : null, readingStatus: status,
+      await libraryOrganization.save({ ...(record ?? {}), bookId: book.id, title: title.trim(), author: author.trim(), favorite, wantToRead: wantToRead ? true : undefined, rating: rating ?? undefined, review: review.trim() || undefined, manualProgress: isRecordBook(book) ? readManualProgress() : record?.manualProgress, collections: split(collections), tags: split(tags), series: series.trim(), volume: volume.trim() ? Number(volume.replace(",", ".")) : null, readingStatus: status,
         coverImagePath: cover.trim() ? cover.trim() : undefined, updatedAt: Date.now(), revision: (record?.revision ?? 0) + 1 });
       await onSaved(); onClose();
     } catch (failure) { setError(failure instanceof Error ? failure.message : "Não foi possível salvar. Tente novamente."); }
@@ -55,6 +67,14 @@ export function BookOrganizationModal({ book, record, onClose, onSaved }: { book
           {field("Capa (URL HTTP/HTTPS)", cover, setCover, "Vazio para usar a capa original")}
           <Text style={{ color: palette.text }}>Estado de leitura</Text>
           <View style={styles.options}>{([null, ...readingStatuses] as const).map(value => <Pressable key={value ?? "auto"} accessibilityRole="radio" accessibilityState={{ checked: status === value }} onPress={() => setStatus(value)} style={[styles.choice, { borderColor: status === value ? palette.accent : palette.separator }]}><Text style={{ color: palette.text }}>{value ? readingStatusLabels[value] : "Automático pelo progresso"}</Text></Pressable>)}</View>
+          {isRecordBook(book) ? <View style={styles.link}>
+            <Text style={{ color: palette.text }}>{audiobook ? "Quanto você já ouviu" : "Onde você está"}</Text>
+            <View style={styles.pages}>
+              <View style={{ flex: 1 }}>{field(audiobook ? "Porcentagem" : "Página atual", page, value => setPage(value.replace(/[^0-9]/g, "")), audiobook ? "0 a 100" : "Ex.: 120")}</View>
+              {!audiobook ? <View style={{ flex: 1 }}>{field("Total de páginas", totalPages, value => setTotalPages(value.replace(/[^0-9]/g, "")), book.catalogPages ? "Da sua edição" : "Opcional")}</View> : null}
+            </View>
+            {!audiobook && book.catalogPages ? <Text style={{ color: palette.secondaryText }}>O total veio do catálogo (média das edições). Ajuste para a sua edição.</Text> : null}
+          </View> : null}
           <View style={styles.link}>
             <Text style={{ color: palette.text }}>Sua nota (só você vê)</Text>
             <View accessibilityRole="radiogroup" style={styles.stars}>{[1, 2, 3, 4, 5].map(value => (
@@ -83,4 +103,4 @@ export function BookOrganizationModal({ book, record, onClose, onSaved }: { book
     </View>
   </Modal>;
 }
-const styles = StyleSheet.create({ link: { gap: 8 }, stars: { flexDirection: "row", gap: 4 }, star: { minWidth: 44, minHeight: 44, alignItems: "center", justifyContent: "center" }, backdrop: { flex: 1, backgroundColor: "rgba(0,0,0,.5)", paddingHorizontal: 16, alignItems: "center", justifyContent: "center" }, panel: { width: "100%", maxWidth: 560, maxHeight: "100%", borderRadius: 12 }, content: { padding: 20, gap: 14 }, heading: { fontSize: 22, fontWeight: "700" }, field: { gap: 6 }, input: { borderWidth: 1, borderRadius: 6, padding: 10, minHeight: 44 }, row: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" }, options: { flexDirection: "row", flexWrap: "wrap", gap: 8 }, choice: { padding: 10, borderWidth: 1, borderRadius: 6 }, actions: { flexDirection: "row", justifyContent: "flex-end", gap: 8, padding: 16 }, action: { padding: 12, borderRadius: 6 } });
+const styles = StyleSheet.create({ link: { gap: 8 }, pages: { flexDirection: "row", gap: 10 }, stars: { flexDirection: "row", gap: 4 }, star: { minWidth: 44, minHeight: 44, alignItems: "center", justifyContent: "center" }, backdrop: { flex: 1, backgroundColor: "rgba(0,0,0,.5)", paddingHorizontal: 16, alignItems: "center", justifyContent: "center" }, panel: { width: "100%", maxWidth: 560, maxHeight: "100%", borderRadius: 12 }, content: { padding: 20, gap: 14 }, heading: { fontSize: 22, fontWeight: "700" }, field: { gap: 6 }, input: { borderWidth: 1, borderRadius: 6, padding: 10, minHeight: 44 }, row: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" }, options: { flexDirection: "row", flexWrap: "wrap", gap: 8 }, choice: { padding: 10, borderWidth: 1, borderRadius: 6 }, actions: { flexDirection: "row", justifyContent: "flex-end", gap: 8, padding: 16 }, action: { padding: 12, borderRadius: 6 } });
