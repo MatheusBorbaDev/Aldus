@@ -1,5 +1,5 @@
 import { isQuotaError } from '@/src/domain/saas/quota';
-import { LibraryBook } from '@/src/domain/entities/LibraryBook';
+import { isRecordBook, LibraryBook, RECORD_BOOKS_SYNC_ENABLED } from '@/src/domain/entities/LibraryBook';
 import { LibrarySyncState, syncKey } from '@/src/domain/types/librarySync';
 import { AccountBookRepository } from './AccountBookRepository';
 import { LibraryLocalReplica } from './LibraryLocalReplica';
@@ -44,6 +44,8 @@ export class LibrarySyncCoordinator {
     if(this.engine.quotaBlockMessage('file:'+book.id,this.state) || entries.some(e=>this.engine.quotaBlockMessage(e.key,this.state)))return 'QUOTA_BLOCKED';
     const transfer=this.files.states.get(book.id);if(transfer)return transfer.state;
     const confirmed=this.state?.entries[syncKey('book',book.id)]?.shadow;
+    // A book without a file has no file to send: it is on this device until record books sync, then synced when the server confirms it.
+    if(isRecordBook(book))return !RECORD_BOOKS_SYNC_ENABLED?'LOCAL':entries.some(e=>e.dirty)?'SYNC_PENDING':confirmed&&!confirmed.deleted_at?'SYNCED':'LOCAL';
     const cloudConfirmed=!!book.remotePath && !confirmed?.deleted_at && confirmed?.payload.remotePath===book.remotePath;
     if(!book.filePath)return cloudConfirmed?'CLOUD_ONLY':'SYNC_PENDING';
     if(book.syncUnjournaled || entries.some(e=>e.dirty||e.conflict) || this.needsFile(book))return 'SYNC_PENDING';

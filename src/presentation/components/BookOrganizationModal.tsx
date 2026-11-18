@@ -14,6 +14,7 @@ export function BookOrganizationModal({ book, record, onClose, onSaved }: { book
   const [title, setTitle] = useState(book.title);
   const [author, setAuthor] = useState(book.author);
   const [favorite, setFavorite] = useState(record?.favorite ?? false);
+  const [wantToRead, setWantToRead] = useState(record?.wantToRead === true);
   const [collections, setCollections] = useState(record?.collections.join(", ") ?? "");
   const [tags, setTags] = useState(record?.tags.join(", ") ?? "");
   const [series, setSeries] = useState(record?.series ?? "");
@@ -31,7 +32,7 @@ export function BookOrganizationModal({ book, record, onClose, onSaved }: { book
     try {
       const split = (text: string) => text.split(",").map(v => v.trim()).filter(Boolean);
       if (volume.trim() && !/^\d+(?:[.,]\d+)?$/.test(volume.trim())) throw new Error("Informe um volume positivo, como 1 ou 2,5.");
-      await libraryOrganization.save({ bookId: book.id, title: title.trim(), author: author.trim(), favorite, collections: split(collections), tags: split(tags), series: series.trim(), volume: volume.trim() ? Number(volume.replace(",", ".")) : null, readingStatus: status,
+      await libraryOrganization.save({ bookId: book.id, title: title.trim(), author: author.trim(), favorite, ...(wantToRead ? { wantToRead: true } : {}), collections: split(collections), tags: split(tags), series: series.trim(), volume: volume.trim() ? Number(volume.replace(",", ".")) : null, readingStatus: status,
         ...(cover.trim() ? { coverImagePath: cover.trim() } : {}), updatedAt: Date.now(), revision: (record?.revision ?? 0) + 1 });
       await onSaved(); onClose();
     } catch (failure) { setError(failure instanceof Error ? failure.message : "Não foi possível salvar. Tente novamente."); }
@@ -44,6 +45,7 @@ export function BookOrganizationModal({ book, record, onClose, onSaved }: { book
           <Text style={[styles.heading, { color: palette.text }]}>Organizar livro</Text>
           {field("Título", title, setTitle)}{field("Autor", author, setAuthor)}
           <View style={styles.row}><Text style={{ color: palette.text }}>Favorito</Text><Switch accessibilityLabel="Favorito" value={favorite} onValueChange={setFavorite} /></View>
+          <View style={styles.row}><Text style={{ color: palette.text }}>Quero ler</Text><Switch accessibilityLabel="Quero ler" value={wantToRead} onValueChange={setWantToRead} /></View>
           {field("Coleções", collections, setCollections, "Separadas por vírgula")}
           {field("Tags", tags, setTags, "Separadas por vírgula")}
           {field("Série", series, setSeries)}{field("Volume na série", volume, setVolume)}

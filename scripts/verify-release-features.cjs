@@ -58,6 +58,7 @@ const FEATURES = [
   // Termos
   { id: 'drive-renewal', pedido: '18/11: Drive sem reconectar a toda hora (renovação silenciosa, mesma conta Google)', markers: ['account-mismatch', 'Esta biblioteca foi conectada com outra conta Google'] },
   { id: 'drive-folder-picker', pedido: '18/11: escolher a pasta do Drive navegando, sem colar link', markers: ['Escolha uma pasta', 'Compartilhados comigo', 'Prefiro colar o link de uma pasta'] },
+  { id: 'catalog-search', pedido: '18/11: buscar qualquer livro no catalogo e guardar sem arquivo (Quero ler)', markers: ['Buscar qualquer livro', 'Buscar no cat', 'x.aldus-record', 'Quero ler'], routes: ['catalog'] },
   { id: 'release-notes', pedido: '18/11: aviso de novidades com aviso de beta e link para as limitações', markers: ['Novidades do Aldus', 'O que esperar desta beta', 'release-notes-seen'], routes: ['beta'] },
   { id: 'loading-quote', pedido: '18/11: frase de livro na tela de carregamento', markers: ["O livro caindo n'alma", 'Castro Alves'] },
   { id: 'account-delete', pedido: '17/11: excluir conta no app (betas públicas)', markers: ['Excluir conta', 'EXCLUIR MINHA CONTA', 'Continuar para a exclusão', 'account-delete'], routes: ['account/delete'] },

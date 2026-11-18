@@ -1,6 +1,6 @@
 import { useEffect, useState, useSyncExternalStore } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { LibraryBook } from '@/src/domain/entities/LibraryBook';
+import { isRecordBook, LibraryBook } from '@/src/domain/entities/LibraryBook';
 import { LibrarySyncEntry, LibraryEntityKind } from '@/src/domain/types/librarySync';
 import { appDependencies } from '@/src/presentation/services/dependencies';
 import { useAppTheme } from '@/src/presentation/contexts/AppThemeContext';
@@ -67,7 +67,7 @@ export function BookCloudControls({book,title,status,onOpen,onOrganize,organizeD
   useEffect(()=>{setVisible(false);setConfirm(null);setError(null);},[book.ownerUserId]);
   const close=()=>{if(!busy){setVisible(false);setConfirm(null);setError(null);}};
   const deviceBlocked=!book.filePath||!book.remotePath||!!book.bundledAssetId;
-  const deviceHint=book.bundledAssetId?'Livro do acervo do app: não ocupa espaço extra neste aparelho.':!book.remotePath?'Disponível depois que o livro for enviado para a sua conta.':!book.filePath?'O arquivo já não está neste aparelho.':'O arquivo sai deste aparelho. O livro, o progresso e as notas continuam na sua conta e ele é baixado de novo ao abrir.';
+  const deviceHint=isRecordBook(book)?'Livro sem arquivo: só as informações estão guardadas, não há arquivo para apagar.':book.bundledAssetId?'Livro do acervo do app: não ocupa espaço extra neste aparelho.':!book.remotePath?'Disponível depois que o livro for enviado para a sua conta.':!book.filePath?'O arquivo já não está neste aparelho.':'O arquivo sai deste aparelho. O livro, o progresso e as notas continuam na sua conta e ele é baixado de novo ao abrir.';
   const run=(action:()=>void)=>{setVisible(false);setConfirm(null);action();};
   const remove=async()=>{setBusy(true);setError(null);try{if(confirm==='device')await sync.removeDeviceCopy(book.id);else{await appDependencies.bookRepository.softDelete(book.id);await useLibraryStore.getState().refresh();sync.schedule(0);}setVisible(false);setConfirm(null);}catch(e){setError(e instanceof Error?e.message:'Falha na remoção.');}finally{setBusy(false);}};
   return <><View style={menu.line}>

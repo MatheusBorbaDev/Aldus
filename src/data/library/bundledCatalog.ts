@@ -12,6 +12,8 @@ export interface BookCardModel {
   title: string;
   author: string;
   format: 'pdf' | 'epub';
+  /** Livro sem arquivo: o que mostrar no lugar de EPUB/PDF (ex.: "Livro físico"). */
+  formatLabel?: string;
   coverUri?: string;
   fileUri: string;
   progress: number;

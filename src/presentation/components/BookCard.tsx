@@ -35,7 +35,7 @@ export const BookCard: React.FC<BookCardProps> = ({
   const coverSource = getBookCover(book);
   const progress = Math.max(0, Math.min(1, book.progress));
   const percent = Math.round(progress * 100);
-  const meta = [book.format.toUpperCase(), showProgress && percent > 0 ? `${percent}%` : null].filter(Boolean).join(" · ");
+  const meta = [(book.formatLabel ?? book.format).toUpperCase(), showProgress && percent > 0 ? `${percent}%` : null].filter(Boolean).join(" · ");
 
   return (
     <Pressable
@@ -55,7 +55,7 @@ export const BookCard: React.FC<BookCardProps> = ({
       onPress={() => onPress(book)}
     >
       <View style={[styles.cover, layout === "list" && styles.listCover, { backgroundColor: theme.border }]}>
-        <BookCover identity={book.id} title={book.title} author={book.author} format={book.format} source={coverSource} compact={layout === 'list'} />
+        <BookCover identity={book.id} title={book.title} author={book.author} format={book.formatLabel ?? book.format} source={coverSource} compact={layout === 'list'} />
         {selection === undefined ? null : (
           <View style={[styles.check, { backgroundColor: selection ? theme.accent : 'rgba(0,0,0,0.35)', borderColor: '#FFFFFF' }]}>
             <Text style={styles.checkMark}>{selection ? '✓' : ''}</Text>

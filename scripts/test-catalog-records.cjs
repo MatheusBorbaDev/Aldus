@@ -51,6 +51,12 @@ const dom = { id: 'ol:OL45883W', source: 'openlibrary', title: 'Dom Casmurro', s
   assert.ok(sent.every(row => !row.book_id.startsWith('record-')), 'nothing about the record book reaches the server');
   assert.equal(sent.find(row => row.kind === 'organization' && row.book_id === file.id).payload.wantToRead, true, '"Quero ler" of a file book syncs');
   assert.equal((await b.org.list())[file.id].wantToRead, true); assert.equal(await b.books.findById(record.id), null, 'the other device does not see it yet');
+  // Its status says where it is, never "pending sync" for something that is not sent.
+  const { LibrarySyncCoordinator, availabilityLabels } = a.load('src/data/library/LibrarySyncCoordinator.ts');
+  const view = { scope: { userId: A }, state: { entries: {} }, engine: { quotaBlockMessage: () => null }, files: { states: new Map() }, needsFile: () => false };
+  const availability = book => LibrarySyncCoordinator.prototype.availability.call(view, book);
+  assert.equal(availabilityLabels[availability(owned)], 'Neste dispositivo');
+  assert.equal(availability({ ...file, filePath: '' }), 'SYNC_PENDING', 'a file book without its file still reports pending');
   await a.books.softDelete(record.id); assert.equal(a.sync.status.pending, 0, 'deleting it journals nothing');
   assert.equal(await a.books.findById(record.id).then(book => book?.isDeleted ?? true), true);
   await a.synchronize(); assert.ok([...remote.rows.values()].every(row => !row.book_id.startsWith('record-')));

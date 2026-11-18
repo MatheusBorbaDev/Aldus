@@ -12,7 +12,8 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
-import { LibraryBook } from "@/src/domain/entities/LibraryBook";
+import { isRecordBook, LibraryBook } from "@/src/domain/entities/LibraryBook";
+import { RECORD_FORMAT_LABELS } from "@/src/domain/catalog/recordBook";
 import { useLibrary } from "@/src/presentation/hooks/useLibrary";
 import { useAppTheme } from "@/src/presentation/contexts/AppThemeContext";
 import { libraryOrganization } from "@/src/presentation/services/dependencies";
@@ -31,12 +32,13 @@ import { libraryAccountScope } from '@/src/data/library/LibraryAccountScope';
 import { LibraryBulkModal } from '@/src/presentation/components/LibraryBulkModal';
 import { ActionMenu, ActionMenuItem, AppText, Button, Chip, ChipRow, EmptyState, IconButton, layout as uiLayout, ListGroup, ListRow, radius, ScreenHeader, SearchField, space } from '@/src/ui';
 
-type BookFilter = "all" | "reading" | "completed" | "unread" | "interrupted" | "favorites" | "stalled";
+type BookFilter = "all" | "want" | "reading" | "completed" | "unread" | "interrupted" | "favorites" | "stalled";
 type BookSort = "recent" | "title" | "author" | "progress" | "series";
 type OpenMenu = "add" | "more" | "format" | "sort" | null;
 
 const filters: { value: BookFilter; label: string }[] = [
   { value: "all", label: "Todos" },
+  { value: "want", label: "Quero ler" },
   { value: "reading", label: "Lendo" },
   { value: "completed", label: "Concluídos" },
   { value: "unread", label: "Não lidos" },
@@ -111,6 +113,8 @@ function LibraryContent() {
   // Callbacks estáveis: a célula memoizada (LibraryBookCell) só redesenha quando os próprios dados mudam (onda 2, P1).
   const toggleSelection = useCallback((id: string) => setSelection(previous => { const next = new Set(previous); if (next.has(id)) next.delete(id); else next.add(id); return next; }), []);
   const openBook = useCallback((item: LibraryBook) => {
+    // A book without a file has nothing to read here: it opens its organization (status, Quero ler, collections).
+    if (isRecordBook(item)) { setOrganizing(item); return; }
     if (item.mimeType === "application/epub+zip" && item.filePath.startsWith("bundled-epub://")) {
       startEpubOpenTrace(item.id, { fileName: item.fileName, source: "bundled-epub" });
     }
@@ -139,7 +143,7 @@ function LibraryContent() {
         normalizeLibraryText(`${book.title} ${book.author} ${record?.series ?? ""} ${record?.collections.join(" ") ?? ""} ${record?.tags.join(" ") ?? ""}`).includes(normalizedQuery);
       const matchesFilter =
         filter === "all" ||
-        (filter === "favorites" ? record?.favorite : filter === "stalled" ? isStalled(book, record) : filter === readingStatus);
+        (filter === "favorites" ? record?.favorite : filter === "want" ? record?.wantToRead === true : filter === "stalled" ? isStalled(book, record) : filter === readingStatus);
       const matchesFormat = format === 'all' || book.mimeType === (format === 'pdf' ? 'application/pdf' : 'application/epub+zip');
       return matchesQuery && matchesFilter && matchesFormat && (!collection || record?.collections.includes(collection));
     });
@@ -179,6 +183,7 @@ function LibraryContent() {
     { key: "file", label: "Importar arquivo", description: "EPUB ou PDF deste dispositivo", icon: "document-text-outline", disabled: bookImport.busy, onPress: () => void bookImport.start() },
     { key: "drive", label: "Conectar Google Drive", description: "Leia os livros das suas pastas", icon: "logo-google", onPress: () => router.push("/sources?add=drive" as never) },
     { key: "link", label: "Adicionar biblioteca por link", description: "Uma coleção de livros disponível na internet", icon: "link-outline", onPress: () => router.push("/sources?add=link" as never) },
+    { key: "catalog", label: "Buscar qualquer livro", description: "Catálogo de informações: guarde mesmo sem o arquivo", icon: "search-outline", onPress: () => router.push("/catalog" as never) },
     { key: "discover", label: "Buscar em catálogos públicos", description: "Gutenberg, Gutendex e suas fontes", icon: "compass-outline", onPress: () => router.push("/(tabs)/search" as never) },
   ];
   const moreItems: ActionMenuItem[] = [
@@ -397,7 +402,7 @@ const LibraryBookCell = memo(function LibraryBookCell({ item, record, selecting,
         <SharedBookCard layout={layout} book={cardBook} themeMode={themeMode} colors={palette} onPress={open} />
         {/* Uma linha só: situação de leitura · disponibilidade, e o menu "⋯" com abrir, organizar e remover. */}
         <BookCloudControls book={item} title={cardBook.title} organizeDisabled={organizationDisabled} onOpen={open} onOrganize={() => onOrganize(item, cardBook)}
-          status={`${record?.favorite ? "★ · " : ""}${readingStatusLabels[inferredReadingStatus(item, record)]}${record?.series ? ` · ${record.series}${record.volume ? ` ${record.volume}` : ""}` : ""}`} />
+          status={`${record?.favorite ? "★ · " : ""}${record?.wantToRead ? "Quero ler · " : ""}${readingStatusLabels[inferredReadingStatus(item, record)]}${record?.series ? ` · ${record.series}${record.volume ? ` ${record.volume}` : ""}` : ""}`} />
       </>}
     </View>
   );
@@ -410,6 +415,7 @@ function toCardBook(book: LibraryBook, hasOrganization = false): Book {
     title: hasOrganization ? book.title : mockBook?.title ?? book.title,
     author: hasOrganization ? book.author : mockBook?.author ?? book.author,
     format: book.mimeType === "application/pdf" ? "pdf" : "epub",
+    ...(isRecordBook(book) ? { formatLabel: RECORD_FORMAT_LABELS[book.recordFormat ?? "physical"] } : {}),
     coverUri: hasOrganization ? book.coverImagePath ?? mockBook?.coverUri : mockBook?.coverUri ?? book.coverImagePath ?? undefined,
     fileUri: book.filePath,
     progress: book.progress,
