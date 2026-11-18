@@ -11,12 +11,16 @@
 - **REFLOW 02 — Leitura Livre de PDF longo ("Marx biografia") pronta, texto na tela, mas "Carregando página..." e "Calculando
   páginas..." não saem.** O overlay de `EpubPageViewer.native.tsx` só some com a primeira mensagem `page` do documento; ela não chegou.
   Causa INCONCLUSIVA. Descartado no Chrome (`EpubReaderDocument` real, 2 milhões de caracteres, 1 ou 30 capítulos, CPU 6× mais
-  lenta, com as injeções que o app faz no carregamento): primeira `page` com `layoutReady` em 7–14 s, cerca de 2.900 páginas. Falta
-  evidência do aparelho (logcat do processo durante a abertura) e saber a build instalada. Preparar a Leitura Livre de PDF longo é lento
-  (ver BUG 06); a importação de PDF longo também foi relatada como lenta, sem medição.
-- **GRIFO 02 — "não consigo grifar trechos dos livros".** A correção de grifo em livros longos (`83f2dc6`, 17/11) não está no APK
-  `4e7ddbe` e está no `79ad0a2`; sem saber a build instalada, não dá para dizer se é regressão. No REFLOW 02 o documento nunca terminou
-  de carregar, o que também impediria grifar. INCONCLUSIVO.
+  lenta, com as injeções que o app faz no carregamento): primeira `page` com `layoutReady` em 7–14 s, cerca de 2.900 páginas. Com o
+  script vivo, o `beginInitialRestore` injetado no `onLoadEnd` reenvia o estado (zera `lastReportedKey`), então uma mensagem inicial
+  perdida não basta: ou o `onLoadEnd` não chegou, ou o documento foi remontado, ou o script parou. Script parado por WebView antigo foi
+  considerado (o script do Reader exige ES2020, Chrome 80+, por `??`, `catch {}` e regex `\p{}`), mas é improvável aqui: a preparação
+  usou o pdf.js 3.11 no WebView do mesmo aparelho e terminou. Relato de **usuários externos** (sem acesso ao aparelho nem ao logcat):
+  falta saber a build instalada, o modelo, a versão do Android e a do Android System WebView. Preparar a Leitura Livre de PDF longo é
+  lento (ver BUG 06); a importação de PDF longo também foi relatada como lenta, sem medição.
+- **GRIFO 02 — "não consigo grifar trechos dos livros"** (o EPUB aberto pelo Drive funcionou, então o script estava vivo). A correção
+  de grifo em livros longos (`83f2dc6`, 17/11) não está no APK `4e7ddbe` e está no `79ad0a2`; sem saber a build que os usuários externos
+  têm, não dá para dizer se é regressão. INCONCLUSIVO.
 
 ## GRIFO 01 — Seleção do grifo ruim e pop-up que não abre (relato do dono, 16/11/2026)
 
