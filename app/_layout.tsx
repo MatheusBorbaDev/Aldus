@@ -2,7 +2,7 @@ import { router, Stack, useSegments, type ErrorBoundaryProps } from "expo-router
 import { ErrorScreen } from "@/src/ui/ErrorScreen";
 import Head from "expo-router/head";
 import { useEffect } from "react";
-import { ActivityIndicator, AppState, DimensionValue, Linking, Platform, StatusBar, StyleSheet, useWindowDimensions, View } from "react-native";
+import { AppState, DimensionValue, Linking, Platform, StatusBar, StyleSheet, useWindowDimensions, View } from "react-native";
 import { addNetworkStateListener } from 'expo-network';
 import { appDependencies } from '@/src/presentation/services/dependencies';
 import { SafeAreaProvider, useSafeAreaInsets } from "react-native-safe-area-context";
@@ -13,6 +13,8 @@ import { AppThemeProvider, useAppTheme } from "@/src/presentation/contexts/AppTh
 import { AuthProvider, useAuth } from "@/src/presentation/contexts/AuthContext";
 import { authDiagnostic, correlatedAuthDiagnostic } from "@/src/utils/authDiagnostics";
 import { useReviewReminderNavigation } from "@/src/presentation/hooks/useReviewReminderNavigation";
+import { AppLoadingScreen } from "@/src/presentation/components/AppLoadingScreen";
+import { ReleaseNotesModal } from "@/src/presentation/components/ReleaseNotesModal";
 import { nativeAuthCallbacks } from '@/src/data/remote/nativeAuthCallback';
 
 /**
@@ -37,7 +39,7 @@ export default function RootLayout() {
   }, []);
 
   if (!fontsLoaded && !fontError) {
-    return <View style={styles.fontLoading}><ActivityIndicator color="#D97757" /></View>;
+    return <AppLoadingScreen />;
   }
 
   return (
@@ -95,9 +97,10 @@ function AppShell() {
             } : { backgroundColor: palette.background },
           ]}
         >
-          {loading && !publicLanding ? <View style={styles.fontLoading}><ActivityIndicator color={palette.accent} /></View> :
+          {loading && !publicLanding ? <AppLoadingScreen /> :
             <Stack screenOptions={{ headerShown: false }}>
               <Stack.Screen name="index" />
+              <Stack.Screen name="beta" />
               <Stack.Screen name="legal/index" />
               <Stack.Screen name="legal/privacy" />
               <Stack.Screen name="legal/terms" />
@@ -127,6 +130,7 @@ function AppShell() {
                 <Stack.Screen name="admin/index" />
               </Stack.Protected>
             </Stack>}
+          {appReady && !publicLanding && !loading ? <ReleaseNotesModal /> : null}
         </View>
       </View>
     </>
@@ -135,7 +139,6 @@ function AppShell() {
 
 const styles = StyleSheet.create({
   fill: { flex: 1 },
-  fontLoading: { flex: 1, alignItems: "center", justifyContent: "center" },
   webBackground: {
     alignItems: "center",
     height: "100vh" as DimensionValue,

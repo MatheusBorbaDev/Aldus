@@ -50,6 +50,7 @@ export default function SettingsScreen() {
     <SettingsGroup title="Privacidade e informações">
       <SettingsLink title="Ajuda e feedback" icon="chatbubble-ellipses-outline" onPress={() => go('/support')} />
       <SettingsLink title="Privacidade e Dados" description="Exportar ou apagar seus dados" icon="shield-checkmark-outline" onPress={() => go('/legal/data')} />
+      <SettingsLink title="O que esperar desta beta" description="Limites desta fase de testes e como nos ajudar" icon="flask-outline" onPress={() => go('/beta')} />
       <SettingsLink title="Legal e informações" description="Sobre o Aldus, termos, privacidade e licenças." icon="information-circle-outline" onPress={() => go('/legal')} />
     </SettingsGroup>
     <AdminEntry compact />

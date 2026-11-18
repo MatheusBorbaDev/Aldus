@@ -17,6 +17,7 @@ const svgs = {
   // Adaptive foreground: 108 units, the mask shows the central 72 and the safe zone is the central 66.
   'aldus-icone-frente.svg': `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 108 108">${head(C.creme, 25, 30, 58, 63)}</svg>`,
   'aldus-medalha.svg': `<svg xmlns="http://www.w3.org/2000/svg" viewBox="90 332 760 760"><defs><clipPath id="m"><circle cx="470" cy="712" r="360"/></clipPath></defs><circle cx="470" cy="712" r="372" fill="${C.terracota}"/><circle cx="470" cy="712" r="360" fill="${C.creme}"/><g clip-path="url(#m)">${profile(C.noite)}</g></svg>`,
+  'aldus-medalha-noite.svg': `<svg xmlns="http://www.w3.org/2000/svg" viewBox="90 332 760 760"><defs><clipPath id="n"><circle cx="470" cy="712" r="360"/></clipPath></defs><circle cx="470" cy="712" r="372" fill="${C.terracotaClara}"/><circle cx="470" cy="712" r="360" fill="${C.creme}"/><g clip-path="url(#n)">${profile(C.noite)}</g></svg>`,
   'aldus-assinatura.svg': `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1500 560"><g transform="translate(20 -330) scale(0.82)">${profile(C.noite)}</g><line x1="640" y1="110" x2="640" y2="470" stroke="${C.terracota}" stroke-width="3"/><text x="700" y="330" font-family="'EB Garamond', Georgia, serif" font-size="230" fill="${C.noite}" letter-spacing="4">Aldus</text><text x="708" y="420" font-family="'EB Garamond', Georgia, serif" font-size="58" font-style="italic" fill="${C.terracota}" letter-spacing="10">Reader</text></svg>`,
   'aldus-abertura.svg': `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 288 288"><svg x="84" y="40" width="120" height="120" viewBox="90 332 760 760"><defs><clipPath id="s"><circle cx="470" cy="712" r="360"/></clipPath></defs><circle cx="470" cy="712" r="372" fill="${C.terracotaClara}"/><circle cx="470" cy="712" r="360" fill="${C.creme}"/><g clip-path="url(#s)">${profile(C.noite)}</g></svg><text x="144" y="208" text-anchor="middle" font-family="'EB Garamond', Georgia, serif" font-size="44" fill="${C.creme}" letter-spacing="1">Aldus</text><text x="144" y="234" text-anchor="middle" font-family="'EB Garamond', Georgia, serif" font-size="13" font-style="italic" fill="${C.terracotaClara}" letter-spacing="4">Reader</text></svg>`,
 };
@@ -32,6 +33,7 @@ for (const [density, scale] of Object.entries(densities)) {
 }
 targets.push({ svg: 'aldus-icone.svg', out: 'assets/brand/icon-512.png', size: 512 });
 targets.push({ svg: 'aldus-icone-redondo.svg', out: 'assets/brand/favicon.png', size: 196 });
+targets.push({ svg: 'aldus-medalha-noite.svg', out: 'assets/brand/medalha-noite.png', size: 288 });
 
 fs.mkdirSync(path.join(root, 'assets/brand'), { recursive: true });
 for (const [name, svg] of Object.entries(svgs)) fs.writeFileSync(path.join(root, 'assets/brand', name), svg + '\n');
