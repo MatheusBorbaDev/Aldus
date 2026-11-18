@@ -62,4 +62,4 @@ export function isRecordBook(book: Pick<LibraryBook, "id" | "kind"> | null | und
 /** Organização de um livro sem arquivo também fica só no aparelho enquanto o servidor não aceitar o formato. */
 export function isRecordBookId(bookId: string): boolean { return bookId.startsWith(RECORD_BOOK_PREFIX); }
 /** Liga quando a migration 20261118120000_record_books for aplicada no servidor (autorização própria do dono). */
-export const RECORD_BOOKS_SYNC_ENABLED = false;
+export const RECORD_BOOKS_SYNC_ENABLED = true;

@@ -51,7 +51,7 @@ const EXPORT = [HEADER,
   const org = await a.org.list(), byTitle = title => org[books.find(book => book.title === title).id];
   assert.deepEqual([byTitle('Dom Casmurro').readingStatus, byTitle('Dom Casmurro').rating, byTitle('Dom Casmurro').review], ['completed', 5, 'Capitu\nolhos de ressaca']);
   assert.equal(byTitle('Abandonado').readingStatus, 'interrupted'); assert.equal(byTitle('Abandonado').wantToRead, undefined);
-  assert.equal(a.sync.status.pending, 0, 'books without a file stay on the device');
+  assert.equal(a.sync.status.pending, 6, 'three books and their organization are journaled for the account (migration 20261118120000)');
   let failAt = 2, m = 0;
   await assert.rejects(importGoodreadsCandidates({ books: { save: async () => { if (++m === failAt) throw Error('disco cheio'); } }, organization: { save: async () => {} }, newId: () => `gr-fail-${m}0000` }, [dom, torto, quoted], 'physical'),
     /1 livro entrou; os demais não puderam ser gravados \(disco cheio\)/);
@@ -90,5 +90,5 @@ const EXPORT = [HEADER,
   assert.match(text(tree.root), /2 livros entraram na sua estante/);
   await press('Ir para a Biblioteca'); assert.deepEqual(routes, ['/library']);
   await act(async () => tree.unmount());
-  console.log('PASS Goodreads import: RFC 4180 CSV, real export mapping (ISBN ="…", rating 0, <br/>, shelves, interrupted, duplicates), round trip with the Aldus export, saved as local books without a file with partial-failure count, review screen with owned unchecked, format and selection. Nothing leaves the device.');
+  console.log('PASS Goodreads import: RFC 4180 CSV, real export mapping (ISBN ="…", rating 0, <br/>, shelves, interrupted, duplicates), round trip with the Aldus export, saved as books without a file (journaled for the account) with partial-failure count, review screen with owned unchecked, format and selection. Nothing leaves the device.');
 })().catch(error => { console.error(error); process.exit(1); });

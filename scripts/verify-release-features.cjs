@@ -58,6 +58,7 @@ const FEATURES = [
   // Termos
   { id: 'drive-renewal', pedido: '18/11: Drive sem reconectar a toda hora (renovação silenciosa, mesma conta Google)', markers: ['account-mismatch', 'Esta biblioteca foi conectada com outra conta Google'] },
   { id: 'drive-folder-picker', pedido: '18/11: escolher a pasta do Drive navegando, sem colar link', markers: ['Escolha uma pasta', 'Compartilhados comigo', 'Prefiro colar o link de uma pasta'] },
+  { id: 'record-books-sync', pedido: '18/11: livro sem arquivo em todos os aparelhos (migration 20261118120000)', markers: ['quando a biblioteca sincronizar'] },
   { id: 'goodreads-import', pedido: '18/11: importar estante do Goodreads (CSV) com revisao', markers: ['Importar do Goodreads', 'Export Library', 'Desmarcar todos'], routes: ['import/goodreads'] },
   { id: 'manual-progress', pedido: '18/11: progresso manual de livro sem arquivo (pagina ou porcentagem)', markers: ['Total de p', 'Porcentagem', 'Quanto voc'] },
   { id: 'rating-review', pedido: '18/11: nota e resenha pessoais na ficha do livro', markers: ['de 5', 'Toque de novo para tirar a nota'] },

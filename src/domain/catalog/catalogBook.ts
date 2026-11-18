@@ -79,6 +79,8 @@ function isbn13Check(twelve: string): string {
 }
 
 const COVER_URL = /^https:\/\/covers\.openlibrary\.org\/b\/id\/\d{1,12}-[SML]\.jpg$/;
+/** Capa pública do catálogo (Open Library por número de capa); qualquer outro endereço não é aceito como capa de catálogo. */
+export function isCatalogCoverUrl(value: unknown): value is string { return typeof value === "string" && COVER_URL.test(value); }
 const SOURCE_URL = /^https:\/\/(?:openlibrary\.org\/works\/OL\d+W|www\.wikidata\.org\/wiki\/Q\d+)$/;
 
 /** Valida um item vindo de fora (rede ou cache). Inválido = null; nunca completa campo com valor inventado. */

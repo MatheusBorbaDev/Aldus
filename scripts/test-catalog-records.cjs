@@ -14,7 +14,7 @@ const dom = { id: 'ol:OL45883W', source: 'openlibrary', title: 'Dom Casmurro', s
   const { createRecordBook, recordBookOrganization, libraryMatchesForCatalog, RECORD_START_LABELS } = a.load('src/domain/catalog/recordBook.ts');
   const { isRecordBook, isRecordBookId, RECORD_BOOK_MIME, RECORD_BOOKS_SYNC_ENABLED } = a.load('src/domain/entities/LibraryBook.ts');
   const { parseOrganizationRecord } = a.load('src/domain/types/libraryOrganization.ts');
-  assert.equal(RECORD_BOOKS_SYNC_ENABLED, false, 'stays local until the server migration is applied');
+  assert.equal(RECORD_BOOKS_SYNC_ENABLED, true, 'synced since migration 20261118120000');
   const record = createRecordBook({ catalog: dom, format: 'physical', id: 'abc12345-xyz', now: 1000 });
   assert.equal(record.id, 'record-abc12345-xyz'); assert.equal(record.kind, 'record'); assert.equal(record.catalogId, dom.id);
   assert.deepEqual([record.filePath, record.fileHash, record.fileSize, record.mimeType, record.totalChapters], ['', null, 0, RECORD_BOOK_MIME, 0], 'no file data invented');
@@ -34,32 +34,36 @@ const dom = { id: 'ol:OL45883W', source: 'openlibrary', title: 'Dom Casmurro', s
   assert.throws(() => parseOrganizationRecord({ ...base, wantToRead: 'yes' }), /Quero ler/);
   assert.equal(libraryMatchesForCatalog([record, { ...record, id: 'record-2', isDeleted: true }, { ...record, id: 'record-3', catalogId: 'ol:OTHER' }], dom.id).length, 1);
 
-  // 2. Sync guards: a record book and its organization stay on this device; a normal book's "Quero ler" travels.
+  // 2. Sync (migration 20261118120000): a record book and its organization reach the other device; its status tells the truth.
   const owned = { ...record, ownerUserId: A };
-  await a.books.save(owned); assert.equal(a.sync.status.pending, 0, 'saving a record book journals nothing');
+  const { LibrarySyncCoordinator, availabilityLabels } = a.load('src/data/library/LibrarySyncCoordinator.ts');
+  await a.books.save(owned); assert.equal(a.sync.status.pending, 1, 'a record book is journaled like any book');
   const stored = await a.books.findById(record.id);
   assert.deepEqual([stored.kind, stored.catalogId, stored.recordFormat], ['record', dom.id, 'physical'], 'SQLite keeps the record fields');
   assert.equal((await a.books.listActive()).filter(isRecordBook).length, 1, 'shown in the library');
-  await a.org.save(recordBookOrganization(record.id, 'want', 2)); assert.equal(a.sync.status.pending, 0, 'its organization journals nothing');
-  assert.equal((await a.org.list())[record.id].wantToRead, true);
+  await a.org.save({ ...recordBookOrganization(record.id, 'want', 2), rating: 5, manualProgress: { page: 12, totalPages: 256, updatedAt: 2 } });
   const file = { ownerUserId: A, id: 'book-file', title: 'Com arquivo', author: 'Autora', fileName: 'f.epub', filePath: 'file:///f.epub', fileHash: null, mimeType: 'application/epub+zip', fileSize: 10, coverImagePath: null, totalChapters: 1, totalWords: 5, addedDate: 1, lastOpenedDate: null, isDeleted: false, progress: 0, importComplete: true };
   await a.books.save(file); await a.org.save({ ...base, bookId: file.id, wantToRead: true });
-  await a.org.saveMany([{ ...recordBookOrganization(record.id, 'reading', 3), revision: 2 }]);
-  await a.org.merge({ [record.id]: recordBookOrganization(record.id, 'completed', 4) }, 'use-imported');
   await a.synchronize(); await b.synchronize();
-  const sent = [...remote.rows.values()];
-  assert.ok(sent.every(row => !row.book_id.startsWith('record-')), 'nothing about the record book reaches the server');
-  assert.equal(sent.find(row => row.kind === 'organization' && row.book_id === file.id).payload.wantToRead, true, '"Quero ler" of a file book syncs');
-  assert.equal((await b.org.list())[file.id].wantToRead, true); assert.equal(await b.books.findById(record.id), null, 'the other device does not see it yet');
-  // Its status says where it is, never "pending sync" for something that is not sent.
-  const { LibrarySyncCoordinator, availabilityLabels } = a.load('src/data/library/LibrarySyncCoordinator.ts');
-  const view = { scope: { userId: A }, state: { entries: {} }, engine: { quotaBlockMessage: () => null }, files: { states: new Map() }, needsFile: () => false };
-  const availability = book => LibrarySyncCoordinator.prototype.availability.call(view, book);
-  assert.equal(availabilityLabels[availability(owned)], 'Neste dispositivo');
-  assert.equal(availability({ ...file, filePath: '' }), 'SYNC_PENDING', 'a file book without its file still reports pending');
-  await a.books.softDelete(record.id); assert.equal(a.sync.status.pending, 0, 'deleting it journals nothing');
-  assert.equal(await a.books.findById(record.id).then(book => book?.isDeleted ?? true), true);
-  await a.synchronize(); assert.ok([...remote.rows.values()].every(row => !row.book_id.startsWith('record-')));
+  const sentBook = [...remote.rows.values()].find(row => row.kind === 'book' && row.id === record.id).payload;
+  assert.deepEqual([sentBook.format, sentBook.kind, sentBook.recordFormat, sentBook.remotePath, sentBook.coverUrl, sentBook.catalogId], ['record', 'record', 'physical', null, dom.coverUrl, dom.id], 'only metadata, never a path');
+  const there = await b.books.findById(record.id);
+  assert.deepEqual([there.kind, there.recordFormat, there.filePath, there.fileHash, there.mimeType, there.coverImagePath, there.catalogId], ['record', 'physical', '', null, RECORD_BOOK_MIME, dom.coverUrl, dom.id], 'the other device rebuilds the book without a file');
+  assert.deepEqual(there.catalogCategories, ['literatura-brasileira']);
+  const otherOrg = (await b.org.list())[record.id];
+  assert.deepEqual([otherOrg.wantToRead, otherOrg.rating, otherOrg.manualProgress.page], [true, 5, 12], 'organization, rating and manual progress travel');
+  assert.equal((await b.org.list())[file.id].wantToRead, true, '"Quero ler" of a file book syncs');
+  const view = { scope: { userId: A }, state: await a.persistence.read(A), engine: { quotaBlockMessage: () => null }, files: { states: new Map() }, needsFile: () => false };
+  assert.equal(availabilityLabels[LibrarySyncCoordinator.prototype.availability.call(view, owned)], 'Sincronizado na nuvem');
+  assert.equal(LibrarySyncCoordinator.prototype.availability.call({ ...view, state: { entries: {} } }, { ...file, filePath: '' }), 'SYNC_PENDING', 'a file book without its file still reports pending');
+  // A remote row this version does not know (a newer app's format) is skipped; the sync continues.
+  await a.replica.apply(A, { kind: 'book', id: 'future-1', bookId: 'future-1', deleted: false, payload: { title: 'Futuro', format: 'audio-file' } });
+  assert.equal(await a.books.findById('future-1'), null);
+  // A record can never replace a file book, and a file payload never takes a record- id.
+  await assert.rejects(a.replica.apply(A, { kind: 'book', id: file.id, bookId: file.id, deleted: false, payload: { title: 'X', format: 'record' } }), /inválidos/);
+  // Deleting travels as a tombstone.
+  await a.books.softDelete(record.id); await a.synchronize(); await b.synchronize();
+  assert.equal(await b.books.findById(record.id), null, 'deleted on the other device');
 
   // 3. The catalog screen: search only on request, show results, add from the sheet, then "Na sua biblioteca".
   const saved = [], organized = [], searches = [], shelfRequests = [], routes = []; let params = {}; let fail = null, resolveSearch = null;
@@ -117,7 +121,7 @@ const dom = { id: 'ol:OL45883W', source: 'openlibrary', title: 'Dom Casmurro', s
   await press('Audiolivro'); await press('Quero ler');
   assert.equal(saved.length, 1); assert.equal(saved[0].recordFormat, 'audiobook'); assert.equal(saved[0].catalogId, dom.id); assert.ok(saved[0].id.startsWith('record-'));
   assert.equal(organized[0].bookId, saved[0].id); assert.equal(organized[0].wantToRead, true);
-  assert.match(text(tree.root), /Guardado na sua biblioteca como “Quero ler”/); assert.match(text(tree.root), /ficam só neste aparelho/, 'says honestly that it stays local');
+  assert.match(text(tree.root), /Guardado na sua biblioteca como “Quero ler”/); assert.match(text(tree.root), /outros aparelhos quando a biblioteca sincronizar/);
   assert.equal(tree.root.findAll(n => n.props.accessibilityLabel === 'Já li').length, 0, 'no duplicate add after saving');
   await press('Ver a fonte destas informações no Open Library'); assert.deepEqual(opened, [dom.sourceUrl]);
   await press('Fechar'); assert.match(text(tree.root), /Dom Casmurro, Machado de Assis · 1899, na sua biblioteca|Na sua biblioteca/);
@@ -169,5 +173,5 @@ const dom = { id: 'ol:OL45883W', source: 'openlibrary', title: 'Dom Casmurro', s
   const remoteBook = await b.books.findById(fileB.id); assert.equal(remoteBook.catalogId, dom.id); assert.deepEqual(remoteBook.catalogCategories, ['literatura-brasileira'], 'link travels with the fileB book');
   assert.equal((await b.org.list())[fileB.id].readingStatus, 'completed', 'merged organization travels too');
   a.db.close(); b.db.close();
-  console.log('catalog records: domain, local-only Sync guards, "Quero ler" and the catalog screen OK');
+  console.log('catalog records: domain, Sync of books without a file, "Quero ler" and the catalog screen OK');
 })().catch(error => { console.error(error); process.exit(1); });

@@ -127,7 +127,7 @@ function CatalogBookSheet({ book, inLibrary, onClose, onAdded, linkTarget, onLin
       await appDependencies.bookRepository.save(record);
       await libraryOrganization.save(recordBookOrganization(record.id, start, now));
       setAdded(true); onAdded();
-      setMessage(`Guardado na sua biblioteca como “${RECORD_START_LABELS[start]}”. Por enquanto, livros sem arquivo ficam só neste aparelho.`);
+      setMessage(`Guardado na sua biblioteca como “${RECORD_START_LABELS[start]}”. Ele aparece nos seus outros aparelhos quando a biblioteca sincronizar.`);
     } catch (failure) { setMessage(failure instanceof Error ? failure.message : "Não foi possível guardar o livro."); }
     finally { setBusy(false); }
   };

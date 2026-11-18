@@ -1,4 +1,5 @@
-import { isRecordBook, LibraryBook, RECORD_BOOKS_SYNC_ENABLED } from '@/src/domain/entities/LibraryBook';
+import { isRecordBook, isRecordBookId, LibraryBook, RECORD_BOOK_MIME, RECORD_BOOKS_SYNC_ENABLED } from '@/src/domain/entities/LibraryBook';
+import { isCatalogCoverUrl } from '@/src/domain/catalog/catalogBook';
 import { parseCatalogLinkFields } from '@/src/domain/catalog/catalogLink';
 import { ReadingProgressRepository } from '@/src/domain/repositories/ReadingProgressRepository';
 import { BookmarkRepository } from '@/src/domain/repositories/BookmarkRepository';
@@ -26,14 +27,17 @@ export class LibraryLocalReplica {
     if (previous && previous.ownerUserId !== owner) throw new Error('Identidade remota colide com dados de outra conta. Os dados locais foram preservados.');
     const p = entry.payload;
     if (entry.kind === 'book') {
-      if (entry.id !== entry.bookId || !['epub','pdf'].includes(p.format)) throw new Error('Metadados de livro inválidos.');
+      if (entry.id !== entry.bookId || typeof p.format !== 'string') throw new Error('Metadados de livro inválidos.');
+      // A format this version does not know (written by a newer app) waits for that app instead of stopping the whole sync (18/11/2026).
+      if (!['epub','pdf','record'].includes(p.format)) return;
+      if (p.format === 'record') { await this.books.save(recordBookFromRemote(owner, entry, previous)); run.check(); return; }
       const text = (name: string, fallback = '') => { if (p[name] === undefined) return fallback;
         if (typeof p[name] !== 'string' || p[name].length > 2000) throw new Error('Metadados de livro inválidos.'); return p[name]; };
       const title = text('title'); if (!title.trim()) throw new Error('Título remoto inválido.');
       const size = p.fileSize ?? 0;
       if (!Number.isSafeInteger(size) || size < 0 || size > 512 * 1024 * 1024) throw new Error('Tamanho remoto inválido.');
       if (p.fileHash != null && !/^[a-f0-9]{64}$/.test(p.fileHash)) throw new Error('Hash remoto inválido.');
-      if (p.remotePath != null && p.remotePath !== privateBookPath(owner, entry.id, p.fileHash, p.format)) throw new Error('Caminho remoto inválido.');
+      if (p.remotePath != null && p.remotePath !== privateBookPath(owner, entry.id, p.fileHash, p.format as 'epub' | 'pdf')) throw new Error('Caminho remoto inválido.');
       const asset = p.bundledAssetId ? findBundledAsset(p.bundledAssetId) : undefined;
       const bundled = asset && asset.hash === p.fileHash && asset.size === size && asset.format === p.format ? asset : undefined;
       let filePath = previous?.filePath ?? '';
@@ -115,4 +119,22 @@ export class LibraryLocalReplica {
       if(pdf)await sync.seed('pdf_position',book.id,book.id,async()=>pdfPositionPayload(await this.pdf.get(book.id)??pdf));
     }
   }
+}
+
+/**
+ * Livro sem arquivo vindo do servidor (18/11/2026): só metadados, nunca caminho, hash nem arquivo. Identidade `record-` obrigatória;
+ * um livro com arquivo com o mesmo id nunca é trocado por um registro.
+ */
+function recordBookFromRemote(owner: string, entry: LibrarySyncEntry, previous: LibraryBook | undefined): LibraryBook {
+  const p = entry.payload;
+  if (!isRecordBookId(entry.id) || (p.kind !== undefined && p.kind !== 'record') || (previous && !isRecordBook(previous))) throw new Error('Metadados de livro inválidos.');
+  const text = (name: string, fallback: string) => { const value = p[name]; if (value === undefined || value === null) return fallback;
+    if (typeof value !== 'string' || value.length > 2000) throw new Error('Metadados de livro inválidos.'); return value; };
+  const title = text('title', ''); if (!title.trim()) throw new Error('Título remoto inválido.');
+  const recordFormat = p.recordFormat === 'ebook' || p.recordFormat === 'audiobook' ? p.recordFormat : 'physical';
+  return { ...previous, id: entry.id, ownerUserId: owner, importComplete: true, kind: 'record', recordFormat,
+    title, author: text('author', 'Autor não informado'), fileName: '', filePath: '', fileHash: null, mimeType: RECORD_BOOK_MIME,
+    fileSize: 0, remotePath: null, coverImagePath: isCatalogCoverUrl(p.coverUrl) ? p.coverUrl : previous?.coverImagePath ?? null,
+    totalChapters: 0, totalWords: 0, addedDate: Number.isSafeInteger(p.addedDate) && p.addedDate >= 0 ? p.addedDate : previous?.addedDate ?? Date.now(),
+    lastOpenedDate: previous?.lastOpenedDate ?? null, isDeleted: entry.deleted, progress: previous?.progress ?? 0, ...parseCatalogLinkFields(p) };
 }

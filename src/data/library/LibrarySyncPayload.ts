@@ -1,18 +1,21 @@
-import { LibraryBook } from '@/src/domain/entities/LibraryBook';
+import { isRecordBook, LibraryBook } from '@/src/domain/entities/LibraryBook';
 import { BookOrganization } from '@/src/domain/types/libraryOrganization';
 import { PdfReaderSettings } from '@/src/domain/types/pdfReader';
 import { findBundledAsset } from './BundledBookIdentity';
 import { catalogSyncFields } from '@/src/domain/catalog/catalogLink';
+import { isCatalogCoverUrl } from '@/src/domain/catalog/catalogBook';
 
 export function bookSyncPayload(book: LibraryBook) {
   const asset = book.bundledAssetId ? findBundledAsset(book.bundledAssetId) : undefined;
   return { title: book.title, author: book.author, fileName: book.fileName,
-    format: book.mimeType === 'application/pdf' ? 'pdf' : 'epub', fileSize: book.fileSize,
+    format: isRecordBook(book) ? 'record' : book.mimeType === 'application/pdf' ? 'pdf' : 'epub', fileSize: book.fileSize,
     fileHash: book.fileHash, remotePath: book.remotePath ?? null,
     bundledAssetId: asset?.hash === book.fileHash ? asset.id : null,
     totalChapters: book.totalChapters, totalWords: book.totalWords, addedDate: book.addedDate,
     // Ligação ao catálogo (18/11/2026): campos extras; o servidor guarda o payload e apps antigos os ignoram.
-    ...catalogSyncFields(book) };
+    ...catalogSyncFields(book),
+    // Livro sem arquivo (18/11/2026): só metadados; a capa é o endereço público do catálogo, nunca um arquivo do aparelho.
+    ...(isRecordBook(book) ? { kind: 'record', recordFormat: book.recordFormat ?? 'physical', coverUrl: isCatalogCoverUrl(book.coverImagePath) ? book.coverImagePath : null } : {}) };
 }
 export function organizationSyncPayload(record: BookOrganization) {
   const { revision: _revision, updatedAt: _date, coverImagePath: _localCover, ...data } = record;
