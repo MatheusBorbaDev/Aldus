@@ -481,6 +481,8 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
   `0d9a008d…ec0d9c`, instalado 18/11 14:59), não o `f30f6a8`. Instalado por USB (`adb install -r`, pedido "celular conectado") o `fbc0332`:
   versionCode 5, hash instalado `7da4820e…6c3f54bd`, firstInstallTime 2026-10-11 21:38:27 preservado. Abriu logado na Biblioteca ("Sincronizado na
   nuvem") com o aviso de novidades `2026-11-18.2`. Recursos novos NÃO exercitados no aparelho (catálogo, grifo, Goodreads, assinatura nativa).
+- Segundo celular (pedido "somente a instalação"): `7xe6aqqk6lkn4hw4`, 24117RN76L, Android 16, tinha Aldus versionCode 3 (instalado 17/10). `adb install -r`
+  do `fbc0332`: Success, versionCode 5, hash instalado `7da4820e…6c3f54bd`, firstInstallTime 2026-10-17 11:52:54 preservado. App NÃO aberto nem testado.
 
 ### 17/11/2026 — Revisão para as betas públicas: dependências, banco, hospedagem (Claude)
 - Pedido do dono: ajustar dependências e configurações (banco, hospedagem etc.) e revisar o necessário para iniciar o plano das betas públicas.
