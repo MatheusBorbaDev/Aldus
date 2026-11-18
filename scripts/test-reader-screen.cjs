@@ -135,6 +135,17 @@ const flushTimers=async()=>act(async()=>{const due=[...timers.values()];timers.c
  await act(async()=>getDoc().props.onEpubPageInfo({...restored,pageNumber:52,operationId:1,origin:'TAP_NEXT',anchorRestoreStatus:null}));assert.equal(writes.at(-1).pageNumber,52);
  await act(async()=>renderer.unmount());dependencies.openBook.execute=oldOpen;
  // Leitura Livre (owner's report, 18/11): press-and-hold highlights, the highlight panel is available, and each mode shows only its own highlights.
+ // 18/11: the processor validates before handing over; the screen no longer repeats that pass (validated=true), and still
+ // refuses an unvalidated document from anyone else.
+ { const forged={...valid,extractionQuality:{...valid.extractionQuality,version:99}};
+   fixture='reflow';await act(async()=>{renderer=create(React.createElement(ReaderScreen,{bookId:'validated-skip'}));});
+   await act(async()=>renderer.root.findByType('PdfReflowProcessor').props.onComplete(forged));
+   assert.equal(renderer.root.findAllByType('DocumentReaderAdapter').some(d=>d.props.pdfReadingMode==='reflow'&&d.props.pdfReflowChapters.length>0),false,'unvalidated document refused');
+   await act(async()=>renderer.unmount());
+   await act(async()=>{renderer=create(React.createElement(ReaderScreen,{bookId:'validated-skip-2'}));});
+   await act(async()=>renderer.root.findByType('PdfReflowProcessor').props.onComplete(forged,undefined,true));
+   assert.equal(getDoc().props.pdfReadingMode,'reflow');assert.ok(getDoc().props.pdfReflowChapters.length>0,'processor-validated document published without a second pass');
+   await act(async()=>renderer.unmount()); }
  const study=load('src/domain/usecases/StudyHighlights.ts');
  const reflowAnchor={version:1,kind:'epub-text',chapterId:'reflow-hl-reflow-0',start:2,end:10,quote:'readable',prefix:'A ',suffix:' p',path:[0]};
  const epubOne=study.createStudyHighlight({bookId:'reflow-hl',anchor:{...reflowAnchor,chapterId:'other'},chapterTitle:'EPUB',color:'blue',id:'h-epub',now:1});

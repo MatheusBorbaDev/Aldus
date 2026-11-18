@@ -111,7 +111,7 @@ export function PdfReflowProcessor({ uri, onProgress, onComplete, onError, onCan
     update({ stage: "finalizing", currentPage: document.pageCount, totalPages: document.pageCount });
     pages.current = [];
     setProcessingState(ocrPages.length > 0 ? "OCR_VALID" : "TEXT_VALID");
-    await callbacks.current.onComplete(document, run.signal);
+    await callbacks.current.onComplete(document, run.signal, true);
     if (run.finish()) {
       reflowDiagnostic("SUCCESS", { operationId: generation.current, phase: ocrPages.length > 0 ? "ocr" : "extraction" });
     }

@@ -569,7 +569,7 @@ export function ReaderScreen({ bookId }: Props) {
     setReflowProgress(nextProgress);
   }, []);
 
-  const handleReflowComplete = useCallback(async (document: PdfReflowDocument, signal?: AbortSignal) => {
+  const handleReflowComplete = useCallback(async (document: PdfReflowDocument, signal?: AbortSignal, validated = false) => {
     const generation = reflowModeGeneration.current;
     const publication = new AbortController();
     reflowPublication.current?.abort();
@@ -578,7 +578,8 @@ export function ReaderScreen({ bookId }: Props) {
     signal?.addEventListener("abort", abort, { once: true });
     if (signal?.aborted) abort();
     try {
-      if (!await isValidatedReflowDocumentAsync(document, publication.signal) || document.classification === "image-based" || document.characterCount < 1 || document.chapters.length === 0) {
+      // The processor validates before handing over (validated): a second pass over 2 million characters cost ~20 s on the Redmi.
+      if (!(validated || await isValidatedReflowDocumentAsync(document, publication.signal)) || document.classification === "image-based" || document.characterCount < 1 || document.chapters.length === 0) {
         returnToOriginal(document.classification === "image-based" ? "O Reflow requer OCR para este PDF. Você voltou ao PDF Original." : "O texto extraído não pôde ser validado. Você voltou ao PDF Original.");
         return;
       }

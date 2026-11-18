@@ -10,7 +10,8 @@ export interface PdfReflowProgress {
 export interface PdfReflowProcessorProps {
   uri: string;
   onProgress: (progress: PdfReflowProgress) => void;
-  onComplete: (document: PdfReflowDocument, signal?: AbortSignal) => void | Promise<void>;
+  /** `validated`: the processor already ran isValidatedReflowDocumentAsync on this document (18/11/2026: the screen used to repeat it). */
+  onComplete: (document: PdfReflowDocument, signal?: AbortSignal, validated?: boolean) => void | Promise<void>;
   onError: (message: string) => void;
   onCancel: () => void;
 }

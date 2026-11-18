@@ -114,7 +114,7 @@ export function PdfReflowProcessor({ uri, onProgress, onComplete, onError, onCan
           update({ stage: "finalizing", currentPage: pdf.numPages, totalPages: pdf.numPages });
           pages.length = 0;
           release(); // Extraction resources are no longer needed while committing the cache.
-          await callbacks.current.onComplete(document, operation.signal);
+          await callbacks.current.onComplete(document, operation.signal, true);
           operation.finish();
         }
       })
