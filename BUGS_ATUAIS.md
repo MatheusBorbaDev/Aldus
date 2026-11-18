@@ -18,9 +18,14 @@
   usou o pdf.js 3.11 no WebView do mesmo aparelho e terminou. Relato de **usuários externos** (sem acesso ao aparelho nem ao logcat):
   falta saber a build instalada, o modelo, a versão do Android e a do Android System WebView. Preparar a Leitura Livre de PDF longo é
   lento (ver BUG 06); a importação de PDF longo também foi relatada como lenta, sem medição.
-- **GRIFO 02 — "não consigo grifar trechos dos livros"** (o EPUB aberto pelo Drive funcionou, então o script estava vivo). A correção
-  de grifo em livros longos (`83f2dc6`, 17/11) não está no APK `4e7ddbe` e está no `79ad0a2`; sem saber a build que os usuários externos
-  têm, não dá para dizer se é regressão. INCONCLUSIVO.
+- **GRIFO 02 — "não consigo grifar trechos dos livros"** (relato junto do "Marx biografia", Leitura Livre). Build dos usuários
+  externos confirmada pelo dono: `79ad0a2` (18/11, já com `83f2dc6`). Causa CONFIRMADA no código: **grifo na Leitura Livre do PDF não
+  existe**. `ReaderScreen.tsx` liga o segurar-para-grifar só em EPUB (`selectTextAt = isEpub ? … : undefined`), os grifos desenhados
+  só em EPUB (`studyHighlights={isEpub ? …}`) e o painel de estudo fica fora da Leitura Livre (`onStudy: !isReflowPdf …`). É o item
+  A3 do plano (`docs/context/reader.md`, M/G), nunca implementado, e a página da beta não avisa. Não é regressão. Decisão do dono:
+  implementar A3 ou avisar primeiro. Grifo em EPUB nessa build: sem relato específico.
+- **Distribuição:** o `79ad0a2` é APK de ensaio assinado com o certificado de debug (chave pública no repositório, ver revisão de 17/11):
+  quem tiver o repositório consegue assinar uma atualização aceita por esse app. Distribuir a externos pede a chave privada do Beta.
 
 ## GRIFO 01 — Seleção do grifo ruim e pop-up que não abre (relato do dono, 16/11/2026)
 
