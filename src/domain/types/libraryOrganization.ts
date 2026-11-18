@@ -15,6 +15,10 @@ export interface BookOrganization {
   readingStatus: ReadingStatus | null;
   /** "Quero ler" (18/11/2026): campo à parte, não um quinto estado, para apps antigos não recusarem o registro. */
   wantToRead?: boolean;
+  /** Nota pessoal de 1 a 5 (18/11/2026). Privada: só a conta vê; nunca aparece para outras pessoas nem em ranking. */
+  rating?: number;
+  /** Resenha pessoal, privada como a nota (até 20 mil caracteres). */
+  review?: string;
   updatedAt: number;
   revision: number;
 }
@@ -55,12 +59,16 @@ export function parseOrganizationRecord(value: unknown): BookOrganization {
   if (item.readingStatus !== null && !readingStatuses.includes(item.readingStatus as ReadingStatus)) throw new Error("Estado de leitura inválido.");
   if (item.volume !== null && (typeof item.volume !== "number" || !Number.isFinite(item.volume) || item.volume <= 0 || item.volume > 100000)) throw new Error("O volume deve ser um número positivo.");
   if (item.wantToRead !== undefined && typeof item.wantToRead !== "boolean") throw new Error("Quero ler inválido.");
+  if (item.rating !== undefined && item.rating !== null && (!Number.isInteger(item.rating) || (item.rating as number) < 1 || (item.rating as number) > 5)) throw new Error("A nota deve ser de 1 a 5.");
+  if (item.review !== undefined && item.review !== null && (typeof item.review !== "string" || item.review.length > 20000)) throw new Error("A resenha passa de 20 mil caracteres.");
+  const review = typeof item.review === "string" ? item.review.trim() : "";
   const cover = item.coverImagePath;
   if (cover !== undefined && cover !== null && (typeof cover !== "string" || cover.length > 4_000_000 || !/^(https?:\/\/|file:\/\/|data:image\/(png|jpeg|webp);base64,)/i.test(cover))) throw new Error("Capa inválida; use uma imagem local ou URL HTTP/HTTPS.");
   return { bookId, ...(title === undefined ? {} : { title }), ...(author === undefined ? {} : { author }),
     ...(cover === undefined ? {} : { coverImagePath: cover as string | null }), favorite: item.favorite,
     collections: list("collections"), tags: list("tags"), series: str("series")!, volume: item.volume as number | null,
     readingStatus: item.readingStatus as ReadingStatus | null, ...(item.wantToRead === true ? { wantToRead: true } : {}),
+    ...(typeof item.rating === "number" ? { rating: item.rating } : {}), ...(review ? { review } : {}),
     updatedAt: item.updatedAt as number, revision: item.revision as number };
 }
 

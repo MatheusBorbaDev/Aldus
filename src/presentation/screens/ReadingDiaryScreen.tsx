@@ -46,12 +46,13 @@ export function ReadingDiaryScreen() {
       const csv = goodreadsCsv(books.filter(book => !book.isDeleted).map(book => ({
         title: readableBookTitle(book), author: book.author || null, addedDate: book.addedDate ?? null,
         status: inferredReadingStatus(book, records[book.id]), collections: records[book.id]?.collections ?? [],
+        rating: records[book.id]?.rating ?? null, review: records[book.id]?.review ?? null,
       })));
       if (Platform.OS === "web") {
         const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
         const link = document.createElement("a"); link.href = url; link.download = "aldus-biblioteca-goodreads.csv"; link.click(); URL.revokeObjectURL(url);
       } else await Share.share({ title: "Biblioteca para o Goodreads (CSV)", message: csv });
-      setNotice("Lista da biblioteca exportada. Só título, autor, data de entrada, situação e coleções; nenhum arquivo de livro.");
+      setNotice("Lista da biblioteca exportada. Só título, autor, data de entrada, situação, coleções e sua nota e resenha, se houver; nenhum arquivo de livro.");
     } catch (failure) {
       setNotice(failure instanceof Error ? failure.message : "Não foi possível exportar.");
     } finally { setBusy(false); }

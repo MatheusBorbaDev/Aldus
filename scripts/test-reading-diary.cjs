@@ -47,6 +47,11 @@ assert.equal(lines[4], 'Em leitura,A,,,,,,2026/02/01,,currently-reading,,');
 assert.ok(output.endsWith('\r\n'));
 for (const line of lines.slice(1)) assert.equal(line.split(',').length >= 12, true);
 assert.equal(csv.exclusiveShelf('unread'), 'to-read');
+// Personal rating and review (18/11/2026): exported only when the person wrote them; a rating out of 1–5 is never written.
+const rated = csv.goodreadsCsv([{ title: 'T', author: 'A', addedDate: null, status: 'completed', collections: [], rating: 4, review: 'Bom, "muito".' },
+  { title: 'U', author: 'B', addedDate: null, status: 'completed', collections: [], rating: 9, review: '=1+1' }]).trimEnd().split('\r\n');
+assert.equal(rated[1], 'T,A,,,4,,,,,read,"Bom, ""muito"".",');
+assert.equal(rated[2], `U,B,,,,,,,,read,'=1+1,`, 'invalid rating left empty; formula neutralized in the review');
 
 (async () => {
   // Tela: minutos seguem "Ocultar porcentagem e páginas"; exportação só com dados da conta.
