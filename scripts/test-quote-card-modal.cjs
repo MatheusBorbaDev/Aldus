@@ -11,7 +11,7 @@ function FakeCanvas({ spec, onImage }) {
 }
 const load = require('./community-test-loader.cjs')({
   react: React, 'react/jsx-runtime': require('../.expo/auth-test-tools/node_modules/react/jsx-runtime'),
-  'react-native': { View: 'View', Text: 'Text', Pressable: 'Pressable', ScrollView: 'ScrollView', Image: 'Image', Switch: 'Switch', Modal: ({ children }) => React.createElement('Modal', null, children), Platform: { OS: 'android' }, StyleSheet: { create: x => x } },
+  'react-native': { View: 'View', Text: 'Text', Pressable: 'Pressable', ScrollView: 'ScrollView', Image: 'Image', Switch: 'Switch', Modal: ({ children }) => React.createElement('Modal', null, children), Platform: { OS: 'android' }, StyleSheet: { create: x => x, absoluteFill: {} } },
   '@/src/presentation/components/reader/QuoteCardCanvas': { QuoteCardCanvas: FakeCanvas },
   '@/src/presentation/services/shareQuoteCard': { shareQuoteCard: async (dataUrl, name) => { shares.push([dataUrl, name]); if (shareResult instanceof Error) throw shareResult; return shareResult; } },
 });
@@ -45,13 +45,29 @@ const flat = style => Object.assign({}, ...[style].flat(Infinity).filter(Boolean
   shareResult = 'downloaded'; await act(async () => byLabel('Compartilhar imagem').props.onPress()); assert.match(text(), /Imagem baixada/);
   shareResult = 'unavailable'; await act(async () => byLabel('Compartilhar imagem').props.onPress()); assert.match(text(), /não está disponível neste aparelho/);
   shareResult = Error('Sem espaço no aparelho.'); await act(async () => byLabel('Compartilhar imagem').props.onPress()); assert.match(text(), /Sem espaço no aparelho/);
-  for (const p of tree.root.findAllByType('Pressable')) { assert.notEqual(typeof p.props.style, 'function', 'static Pressable style'); assert.ok(flat(p.props.style).minHeight >= 44, `${p.props.accessibilityLabel}: 44 px`); }
+  // The dimmed backdrop also closes the sheet; it is hidden from screen readers and is not a button of its own.
+  for (const p of tree.root.findAllByType('Pressable').filter(p => p.props.importantForAccessibility !== 'no')) { assert.notEqual(typeof p.props.style, 'function', 'static Pressable style'); assert.ok(flat(p.props.style).minHeight >= 44, `${p.props.accessibilityLabel}: 44 px`); }
   await act(async () => byLabel('Fechar').props.onPress()); assert.equal(closed, 1);
+  await act(async () => tree.unmount());
+  // Cover (on by default, owner 18/11) and chapter, each hideable; only an embedded image counts as a cover.
+  const cover = 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQ==';
+  await act(async () => { tree = create(React.createElement(QuoteCardModal, { quote: 'Capítulo curto.', title: 'Dom Casmurro', author: 'Machado de Assis', cover, chapter: 'CXXIII. Olhos de ressaca', paletteName: 'classic', palette, onClose() {} })); });
+  assert.deepEqual(tree.root.findAllByType('Switch').map(s => [s.props.accessibilityLabel, s.props.value]), [['Mostrar título e autor', true], ['Mostrar capa', true], ['Mostrar capítulo', true]]);
+  assert.equal(specs.at(-1).cover, cover); assert.equal(specs.at(-1).chapter, 'CXXIII. Olhos de ressaca');
+  assert.match(text(), /A imagem leva só este trecho, o título e o autor, a capa e o capítulo. O arquivo do livro nunca é enviado./);
+  await act(async () => tree.root.findAllByType('Switch').find(s => s.props.accessibilityLabel === 'Mostrar capa').props.onValueChange(false));
+  assert.equal(specs.at(-1).cover, null, 'cover hidden');
+  await act(async () => tree.root.findAllByType('Switch').find(s => s.props.accessibilityLabel === 'Mostrar capítulo').props.onValueChange(false));
+  assert.equal(specs.at(-1).chapter, null, 'chapter hidden');
+  await act(async () => tree.unmount());
+  await act(async () => { tree = create(React.createElement(QuoteCardModal, { quote: 'Outro trecho.', title: 'X', author: 'Y', cover: 'file:///data/cover.jpg', chapter: '  ', paletteName: 'classic', palette, onClose() {} })); });
+  assert.deepEqual(tree.root.findAllByType('Switch').map(s => s.props.accessibilityLabel), ['Mostrar título e autor'], 'no cover switch for a non-embedded cover, no chapter switch for a blank chapter');
+  assert.equal(specs.at(-1).cover, null); assert.equal(specs.at(-1).chapter, null);
   await act(async () => tree.unmount());
   // Over the owner's 400-character limit: explained, no image generated, nothing to share.
   const before = specs.length; await render('palavra '.repeat(60));
   assert.match(text(), /O card aceita até 400 caracteres \(este trecho tem 479\)/); assert.equal(byLabel('Compartilhar imagem'), undefined);
   assert.equal(tree.root.findAllByType(FakeCanvas).length, 0); assert.equal(specs.length, before, 'no card is drawn for an over-limit trecho');
   await act(async () => tree.unmount());
-  console.log('PASS quote card screen: Papel + Stories by default, template/format/book choices reach the spec, Aldus mark always on, Noite follows the palette, share passes the image and file name, downloaded/unavailable/error messages, 400-character limit explained with nothing drawn, 44 px static targets. Image generator and share service are fakes; no Android share sheet proof.');
+  console.log('PASS quote card screen: Papel + Stories by default, template/format/book choices reach the spec, Aldus mark always on, cover and chapter on by default and hideable (embedded images only), Noite follows the palette, share passes the image and file name, downloaded/unavailable/error messages, 400-character limit explained with nothing drawn, 44 px static targets. Image generator and share service are fakes; no Android share sheet proof.');
 })().catch(error => { console.error(error); process.exitCode = 1; });

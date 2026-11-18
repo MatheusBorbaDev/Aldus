@@ -1136,7 +1136,7 @@ export function ReaderScreen({ bookId }: Props) {
         {selectionPopup ? <HighlightSelectionPopup quote={selectionPopup.anchor?.quote ?? null} error={selectionPopup.error} busy={selectionPopup.busy} palette={activePalette}
           bottom={Math.max(insets.bottom, 12) + 12} onColor={color => void saveSelection(color)} onAdjust={adjustSelection} onNote={noteSelection}
           onShare={() => { if (selectionPopup.anchor) setQuoteCard(selectionPopup.anchor.quote); }} onCancel={closeSelectionPopup} /> : null}
-        {quoteCard !== null ? <QuoteCardModal quote={quoteCard} title={bookTitle} author={currentBook?.author ?? null} paletteName={appPaletteName ?? "classic"} palette={activePalette} onClose={() => setQuoteCard(null)} /> : null}
+        {quoteCard !== null ? <QuoteCardModal quote={quoteCard} title={bookTitle} author={currentBook?.author ?? null} cover={currentBook?.coverImagePath ?? null} chapter={chapterTitle && chapterTitle !== "Abrindo livro..." ? chapterTitle : null} paletteName={appPaletteName ?? "classic"} palette={activePalette} onClose={() => setQuoteCard(null)} /> : null}
         {studyVisible && currentBook ? <StudyBookmarksPanel book={currentBook} capture={studyAnchor} chapterTitle={chapterTitle} loading={studyLoading} feedback={studyStorageError ?? studyFeedback ?? studyRenderFeedback}
           highlights={isEpub ? studyHighlights : undefined} onHighlightsSaved={reloadHighlights}
           selectionCaptured={studySelectionCaptured} onCaptureConsumed={() => { setStudySelectionCaptured(false); setStudyAnchor(null); }}

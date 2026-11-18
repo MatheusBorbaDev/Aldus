@@ -32,6 +32,7 @@ function fakeContext() {
   const size = () => Number(/(\d+)px/.exec(state.font)[1]);
   const ctx = {
     drawn, set font(v) { state.font = v; }, get font() { return state.font; }, fillStyle: '', textBaseline: '',
+    images: [], save() {}, restore() {}, drawImage(...args) { ctx.images.push(args); },
     fillRect() {}, beginPath() {}, arc() {}, fill() {}, createPattern: () => 'pattern', measureText: text => ({ width: text.length * size() * 0.52 }),
     fillText(text, x, y) { drawn.push({ text, x, y, width: text.length * size() * 0.52, size: size(), font: state.font }); },
   };
@@ -57,4 +58,30 @@ assert.ok(ctx.drawn.some(d => d.text === 'ALDUS'), 'brand always drawn');
 const bookLines = ctx.drawn.filter(d => /^T+-?…?$/.test(d.text)); assert.equal(bookLines.length, 2); assert.ok(bookLines[1].text.endsWith('…'), 'long title clamped to two lines');
 const word = renderQuoteCard(fakeContext(), buildQuoteCardSpec({ quote: 'x'.repeat(120), title: null, author: null, showBook: true, format: 'square', template: 'light', paletteName: 'ink' }), makeCanvas);
 assert.ok(word.lines.length > 1 && word.lines.slice(0, -1).every(l => l.endsWith('-')), 'a word wider than the card is hyphen-split, not overflowing');
+// Cover beside the book (18/11): decoded image drawn inside the card, text moved right, chapter in italic; a wide cover is cropped.
+{
+  const { quoteCardCover } = load('src/domain/reader/quoteCard.ts');
+  const coverUrl = 'data:image/png;base64,iVBORw0KGgo=';
+  for (const [format, image] of [['story', { width: 600, height: 900 }], ['square', { width: 1600, height: 900 }]]) {
+    const spec = buildQuoteCardSpec({ quote, title: 'Memórias Póstumas de Brás Cubas', author: 'Machado de Assis', showBook: true, format, template: 'paper', paletteName: 'classic', cover: coverUrl, showCover: true, chapter: 'Capítulo I. Óbito do autor', showChapter: true });
+    assert.equal(spec.cover, coverUrl); assert.equal(spec.chapter, 'Capítulo I. Óbito do autor');
+    const c = fakeContext(); renderQuoteCard(c, spec, makeCanvas, image);
+    assert.equal(c.images.length, 1, format + ': cover drawn once');
+    const [, sx, sy, sw, sh, dx, dy, dw, dh] = c.images[0];
+    const M = Math.round(spec.width * 0.09);
+    assert.ok(dx === M && dy > 0 && dy + dh <= spec.height && dw <= dh, format + ': cover inside the card, book-shaped');
+    assert.ok(sx >= 0 && sy >= 0 && sx + sw <= image.width + 0.01 && sy + sh <= image.height + 0.01, format + ': source crop inside the image');
+    const titleLine = c.drawn.find(d => d.text.startsWith('Memórias'));
+    assert.ok(titleLine.x >= dx + dw + 20, format + ': text beside the cover');
+    const chapterLine = c.drawn.find(d => d.text.startsWith('Capítulo I'));
+    assert.ok(chapterLine && /italic/.test(chapterLine.font), format + ': chapter in italic');
+    assert.ok(fits(spec, c), format + ': everything inside with a cover');
+  }
+  const spec = buildQuoteCardSpec({ quote, title: 'Livro', author: 'Autora', showBook: true, format: 'story', template: 'night', paletteName: 'classic', cover: coverUrl, showCover: true });
+  const c = fakeContext(); renderQuoteCard(c, spec, makeCanvas, null);
+  assert.equal(c.images.length, 0, 'image not decoded: card without cover'); assert.equal(c.drawn.find(d => d.text === 'Livro').x, Math.round(spec.width * 0.09));
+  assert.equal(buildQuoteCardSpec({ quote, title: 'L', author: 'A', showBook: true, format: 'story', template: 'paper', paletteName: 'classic', cover: coverUrl, showCover: false }).cover, null, 'cover hideable');
+  for (const bad of ['file:///data/cover.jpg', 'https://example.invalid/c.jpg', 'data:image/svg+xml;base64,PHN2Zz4=', 'data:image/png;base64,' + 'A'.repeat(1_400_001), 'data:image/png;base64,<script>', null, undefined]) assert.equal(quoteCardCover(bad), null, 'not a usable cover: ' + String(bad).slice(0, 30));
+}
+console.log('PASS quote card: cover beside the book (decoded first, cropped to book shape, hideable, embedded images only) and chapter in italic;');
 console.log('PASS quote card: 400-character limit without silent cuts, 3 formats, 4 templates x 3 palettes with AA text, book/author optional and the Aldus mark always on, renderer keeps every line inside, shrinks letter for longer trechos, clamps long titles and splits huge words. Simulated text widths; not a device render.');
