@@ -17,14 +17,35 @@ export function* assessTextQualitySteps(items: Iterable<{ text: string }>): Gene
   let slice = 0;
   for (const { text } of items) {
     totalChars += text.length;
-    for (const char of text) {
-      if (char === "\uFFFD") replacementChars++;
-      if (/^[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]$/u.test(char)) controlChars++;
-      if (/\p{L}/u.test(char)) letterChars++;
+    // Same counts as testing each code point with regular expressions, without two regex runs per character
+    // (18/11/2026: millions of them per Leitura Livre preparation on the phone).
+    for (let index = 0; index < text.length; index++) {
+      let code = text.charCodeAt(index);
+      if (code >= 0xd800 && code <= 0xdbff && index + 1 < text.length) {
+        const low = text.charCodeAt(index + 1);
+        if (low >= 0xdc00 && low <= 0xdfff) { code = ((code - 0xd800) << 10) + (low - 0xdc00) + 0x10000; index++; }
+      }
+      if (code === 0xfffd) replacementChars++;
+      if (code <= 0x08 || code === 0x0b || code === 0x0c || (code >= 0x0e && code <= 0x1f) || code === 0x7f) controlChars++;
+      if (isLetterCode(code)) letterChars++;
       if (++slice >= 4096) { slice = 0; yield; }
     }
   }
   return { version: PDF_REFLOW_QUALITY_VERSION, totalChars, controlChars, letterChars, replacementChars };
+}
+
+const LETTER = /\p{L}/u;
+const letterCache = new Map<number, boolean>();
+/** \p{L} for one code point: ASCII and Latin-1 by table, everything else by the regular expression once per code point. */
+export function isLetterCode(code: number): boolean {
+  if (code < 0x80) return (code >= 0x41 && code <= 0x5a) || (code >= 0x61 && code <= 0x7a);
+  if (code <= 0xff) return code === 0xaa || code === 0xb5 || code === 0xba || (code >= 0xc0 && code !== 0xd7 && code !== 0xf7);
+  let letter = letterCache.get(code);
+  if (letter === undefined) {
+    letter = LETTER.test(String.fromCodePoint(code));
+    if (letterCache.size < 4096) letterCache.set(code, letter);
+  }
+  return letter;
 }
 
 // Same conservative rule previously used on Web. Numeric/PUA glyphs alone
