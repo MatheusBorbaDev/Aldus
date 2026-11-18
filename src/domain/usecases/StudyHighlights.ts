@@ -1,14 +1,21 @@
 import { Highlight } from "@/src/domain/repositories/HighlightRepository";
 import { LibraryBook } from "@/src/domain/entities/LibraryBook";
 import { parseReadingAnchor, TextReadingAnchor } from "@/src/domain/types/readingAnchor";
-export interface StudyHighlightLocation { format: "kindle-study-highlight"; version: 1; anchor: TextReadingAnchor; chapterTitle: string; note: string }
+/**
+ * `mode` (18/11/2026): grifo feito na Leitura Livre de um PDF. A âncora é a mesma do EPUB, sobre os capítulos derivados do PDF
+ * (`<livro>-reflow-<n>`). Ausente = EPUB, como em todos os grifos anteriores; apps antigos ignoram o campo.
+ */
+export type HighlightReaderMode = "epub" | "pdf-reflow";
+export interface StudyHighlightLocation { format: "kindle-study-highlight"; version: 1; anchor: TextReadingAnchor; chapterTitle: string; note: string; mode?: "pdf-reflow" }
 export function readHighlightLocation(highlight: Highlight): StudyHighlightLocation | null {
   try {
     const value = JSON.parse(highlight.startCfi);
     if (value?.format !== "kindle-study-highlight" || value.version !== 1 || typeof value.note !== "string" || typeof value.chapterTitle !== "string") return null;
     const anchor = parseReadingAnchor(value.anchor);
     if (anchor.kind !== "epub-text") return null;
-    return { format: "kindle-study-highlight", version: 1, anchor, note: value.note, chapterTitle: value.chapterTitle };
+    // A mode this version does not know is not shown in the wrong reader.
+    if (value.mode !== undefined && value.mode !== "pdf-reflow") return null;
+    return { format: "kindle-study-highlight", version: 1, anchor, note: value.note, chapterTitle: value.chapterTitle, ...(value.mode === "pdf-reflow" ? { mode: "pdf-reflow" as const } : {}) };
   } catch { return null; }
 }
 export function exportStudyHighlights(book: LibraryBook, highlights: Highlight[], format: "json" | "markdown" | "text"): string {
@@ -42,11 +49,23 @@ export function parseStudyHighlightsBackup(text: string, book: LibraryBook): Hig
  * Registro de um grifo novo a partir de um trecho capturado (painel e pop-up de seleção usam o mesmo formato). Relógio e
  * identificador injetáveis para teste. A nota acima de 100 mil caracteres é recusada, como no painel.
  */
-export function createStudyHighlight(input: { bookId: string; anchor: TextReadingAnchor; chapterTitle: string; color: Highlight["colorLabel"]; note?: string; now?: number; id?: string }): Highlight {
+export function createStudyHighlight(input: { bookId: string; anchor: TextReadingAnchor; chapterTitle: string; color: Highlight["colorLabel"]; note?: string; now?: number; id?: string; mode?: HighlightReaderMode }): Highlight {
   const note = (input.note ?? "").trim();
   if (note.length > 100000) throw new Error("A nota excede 100 mil caracteres.");
-  const location: StudyHighlightLocation = { format: "kindle-study-highlight", version: 1, anchor: input.anchor, chapterTitle: input.chapterTitle, note };
+  const location: StudyHighlightLocation = { format: "kindle-study-highlight", version: 1, anchor: input.anchor, chapterTitle: input.chapterTitle, note, ...(input.mode === "pdf-reflow" ? { mode: "pdf-reflow" as const } : {}) };
   const encoded = JSON.stringify(location);
   const now = input.now ?? Date.now();
   return { id: input.id ?? `highlight-${now}-${Math.random().toString(36).slice(2)}`, bookId: input.bookId, chapterId: input.anchor.chapterId, startCfi: encoded, endCfi: encoded, highlightedText: input.anchor.quote, colorLabel: input.color, createdAt: now, pinned: false };
+}
+
+/** Grifos que este modo de leitura sabe mostrar: a Leitura Livre só os seus; o EPUB os sem modo (inclusive os antigos sem localização). */
+export function highlightsForReaderMode(highlights: Highlight[], mode: HighlightReaderMode): Highlight[] {
+  return highlights.filter(highlight => {
+    const location = readHighlightLocation(highlight);
+    return mode === "pdf-reflow" ? location?.mode === "pdf-reflow" : location ? location.mode === undefined : !isStudyHighlightRecord(highlight);
+  });
+}
+
+function isStudyHighlightRecord(highlight: Highlight): boolean {
+  try { return JSON.parse(highlight.startCfi)?.format === "kindle-study-highlight"; } catch { return false; }
 }

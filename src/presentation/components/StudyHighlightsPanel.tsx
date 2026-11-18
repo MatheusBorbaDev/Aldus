@@ -3,7 +3,7 @@ import { Platform, Pressable, Share, StyleSheet, Text, TextInput, View } from "r
 import { LibraryBook } from "@/src/domain/entities/LibraryBook";
 import { Highlight, HighlightColor } from "@/src/domain/repositories/HighlightRepository";
 import { TextReadingAnchor } from "@/src/domain/types/readingAnchor";
-import { exportStudyHighlights, parseStudyHighlightsBackup, readHighlightLocation, StudyHighlightLocation } from "@/src/domain/usecases/StudyHighlights";
+import { exportStudyHighlights, HighlightReaderMode, parseStudyHighlightsBackup, readHighlightLocation, StudyHighlightLocation } from "@/src/domain/usecases/StudyHighlights";
 import { appDependencies } from "@/src/presentation/services/dependencies";
 import { useAppTheme } from "@/src/presentation/contexts/AppThemeContext";
 import { createFlashcardDeckId, createFlashcardId, flashcardsForUser } from "@/src/data/local/FlashcardRepository";
@@ -14,7 +14,7 @@ import { readableBookTitle } from "@/src/presentation/services/bookDisplay";
 import { StudyAction, StudyDisclosure, StudyQuote, studyColorNames as colors, studyColorSwatches } from "@/src/presentation/components/StudyPanelControls";
 import { isPinned, orderHighlights, withPinned } from "@/src/domain/study/pinnedHighlights";
 
-export function StudyHighlightsPanel({ book, capture, chapterTitle, highlights, onSaved, onSelect, onNavigate, onCaptureConsumed, onBusyChange, onCompose }: { book: LibraryBook; capture: TextReadingAnchor | null; chapterTitle: string; highlights: Highlight[]; onSaved: () => Promise<void>; onSelect: () => void; onNavigate: (anchor: TextReadingAnchor) => void; onCaptureConsumed?: () => void; onBusyChange?: (busy: boolean) => void; onCompose?: () => void }) {
+export function StudyHighlightsPanel({ book, capture, mode, chapterTitle, highlights, onSaved, onSelect, onNavigate, onCaptureConsumed, onBusyChange, onCompose }: { book: LibraryBook; mode?: HighlightReaderMode; capture: TextReadingAnchor | null; chapterTitle: string; highlights: Highlight[]; onSaved: () => Promise<void>; onSelect: () => void; onNavigate: (anchor: TextReadingAnchor) => void; onCaptureConsumed?: () => void; onBusyChange?: (busy: boolean) => void; onCompose?: () => void }) {
   const { palette } = useAppTheme();
   const { user, canUse } = useAuth();
   const [color, setColor] = useState<HighlightColor>("yellow"); const [filter, setFilter] = useState<HighlightColor | "all">("all");
@@ -29,7 +29,9 @@ export function StudyHighlightsPanel({ book, capture, chapterTitle, highlights, 
     const old = editing ? readHighlightLocation(editing) : null; const anchor = old?.anchor ?? capture;
     if (!anchor) throw new Error("Selecione ou capture um trecho antes de grifar.");
     if (note.length > 100000) throw new Error("A nota excede 100 mil caracteres.");
-    const location: StudyHighlightLocation = { format: "kindle-study-highlight", version: 1, anchor, chapterTitle: old?.chapterTitle ?? chapterTitle, note: note.trim() };
+    // An edited highlight keeps its own mode; a new one takes the reader's (Leitura Livre or EPUB).
+    const savedMode = old ? old.mode : mode === "pdf-reflow" ? "pdf-reflow" : undefined;
+    const location: StudyHighlightLocation = { format: "kindle-study-highlight", version: 1, anchor, chapterTitle: old?.chapterTitle ?? chapterTitle, note: note.trim(), ...(savedMode ? { mode: savedMode } : {}) };
     const encoded = JSON.stringify(location);
     const saved: Highlight = { id: editing?.id ?? `highlight-${Date.now()}-${Math.random().toString(36).slice(2)}`, bookId: book.id, chapterId: anchor.chapterId, startCfi: encoded, endCfi: encoded, highlightedText: anchor.quote, colorLabel: color, createdAt: editing?.createdAt ?? Date.now(), pinned: editing?.pinned === true };
     await appDependencies.highlightRepository.save(saved);

@@ -8,11 +8,12 @@ import { encodeStudyLocation, exportStudyBookmarks, parseStudyBookmarksBackup, r
 import { appDependencies } from "@/src/presentation/services/dependencies";
 import { Highlight } from "@/src/domain/repositories/HighlightRepository";
 import { StudyHighlightsPanel } from "@/src/presentation/components/StudyHighlightsPanel";
+import { HighlightReaderMode } from "@/src/domain/usecases/StudyHighlights";
 import { useAppTheme } from "@/src/presentation/contexts/AppThemeContext";
 import { Ionicons } from "@expo/vector-icons";
 import { StudyAction, StudyDisclosure, StudyQuote } from "@/src/presentation/components/StudyPanelControls";
 
-export function StudyBookmarksPanel({ book, capture, chapterTitle, loading, feedback, onCapture, onNavigate, onClose, highlights, onHighlightsSaved, onSelectText, selectionCaptured = false, onCaptureConsumed }: { book: LibraryBook; capture: ReadingAnchor | null; chapterTitle: string; loading: boolean; feedback: string | null; onCapture: () => void; onNavigate: (anchor: ReadingAnchor) => void; onClose: () => void; highlights?: Highlight[]; onHighlightsSaved?: () => Promise<void>; onSelectText?: () => void; selectionCaptured?: boolean; onCaptureConsumed?: () => void }) {
+export function StudyBookmarksPanel({ book, capture, highlightMode, chapterTitle, loading, feedback, onCapture, onNavigate, onClose, highlights, onHighlightsSaved, onSelectText, selectionCaptured = false, onCaptureConsumed }: { book: LibraryBook; highlightMode?: HighlightReaderMode; capture: ReadingAnchor | null; chapterTitle: string; loading: boolean; feedback: string | null; onCapture: () => void; onNavigate: (anchor: ReadingAnchor) => void; onClose: () => void; highlights?: Highlight[]; onHighlightsSaved?: () => Promise<void>; onSelectText?: () => void; selectionCaptured?: boolean; onCaptureConsumed?: () => void }) {
   const { palette } = useAppTheme(); const insets = useSafeAreaInsets();
   const [bookmarks, setBookmarks] = useState<Bookmark[]>([]); const [name, setName] = useState(""); const [note, setNote] = useState(""); const [query, setQuery] = useState("");
   const [editing, setEditing] = useState<Bookmark | null>(null); const [error, setError] = useState<string | null>(null); const [busy, setBusy] = useState(false); const [backup, setBackup] = useState(""); const [preview, setPreview] = useState<Bookmark[] | null>(null);
@@ -47,7 +48,7 @@ export function StudyBookmarksPanel({ book, capture, chapterTitle, loading, feed
     <ScrollView ref={scroll} keyboardShouldPersistTaps="handled" style={{ flexShrink: 1 }} contentContainerStyle={styles.content}>
     {error ? <Text accessibilityRole="alert" style={{ color: palette.text }}>{error}</Text> : null}
     {feedback ? <Text accessibilityRole="alert" style={{ color: palette.text }}>{feedback}</Text> : null}
-    {tab === "highlights" && canHighlight ? <StudyHighlightsPanel book={book} capture={selectionCaptured && capture?.kind === "epub-text" ? capture : null} chapterTitle={chapterTitle} highlights={highlights!} onSaved={onHighlightsSaved!} onSelect={onSelectText!} onNavigate={onNavigate} onCaptureConsumed={onCaptureConsumed} onBusyChange={setHighlightBusy} onCompose={() => scroll.current?.scrollTo({ y: 0, animated: false })} /> : <>
+    {tab === "highlights" && canHighlight ? <StudyHighlightsPanel book={book} mode={highlightMode} capture={selectionCaptured && capture?.kind === "epub-text" ? capture : null} chapterTitle={chapterTitle} highlights={highlights!} onSaved={onHighlightsSaved!} onSelect={onSelectText!} onNavigate={onNavigate} onCaptureConsumed={onCaptureConsumed} onBusyChange={setHighlightBusy} onCompose={() => scroll.current?.scrollTo({ y: 0, animated: false })} /> : <>
     <Text style={{ color: palette.secondaryText, lineHeight: 21 }}>Guarde sua posição para continuar depois. Adicionar uma nota é opcional.</Text>
     {capture ? capture.kind === "epub-text" ? <StudyQuote text={capture.quote} /> : <Text style={{ color: palette.text, fontWeight: "700" }}>Página {capture.sourcePage}</Text> : null}
     <TextInput accessibilityLabel="Nome do marcador" placeholder="Nome (opcional)" placeholderTextColor={palette.secondaryText} value={name} onChangeText={setName} editable={!working} style={[styles.input, { color: palette.text, borderColor: palette.separator, backgroundColor: palette.input }]} />

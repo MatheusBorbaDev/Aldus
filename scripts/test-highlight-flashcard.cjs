@@ -38,5 +38,15 @@ const text = node => typeof node === 'string' ? node : (node.children ?? []).map
   await press('Opções do grifo 1'); await press('Criar flashcard');
   assert.equal(cards.length, 1, 'no duplicate flashcard'); assert.ok(text(tree.root).includes('Este grifo já tem um flashcard'), 'duplicate is explained');
   await act(async () => tree.unmount());
+  // Leitura Livre (18/11): a new highlight from the panel takes the reader's mode; editing keeps the highlight's own mode.
+  const { readHighlightLocation } = load('src/domain/usecases/StudyHighlights.ts');
+  highlights.length = 0;
+  await act(async () => { tree = create(React.createElement(StudyHighlightsPanel, props({ mode: 'pdf-reflow', capture: { ...capture, chapterId: 'b1-reflow-0' } }))); });
+  await press('Salvar grifo');
+  assert.equal(readHighlightLocation(highlights[0]).mode, 'pdf-reflow');
+  await act(async () => tree.update(React.createElement(StudyHighlightsPanel, props({ mode: undefined, capture: null }))));
+  await press('Opções do grifo 1'); await press('Editar grifo'); await press('Salvar alterações');
+  assert.equal(highlights.length, 1); assert.equal(readHighlightLocation(highlights[0]).mode, 'pdf-reflow', 'editing keeps the mode');
+  await act(async () => tree.unmount());
   console.log('PASS highlight → flashcard: shortcut after saving, readable deck title, creation confirmed, duplicate explained (no silent return). Controlled components; not Android.');
 })().catch(e => { console.error(e); process.exitCode = 1; });
