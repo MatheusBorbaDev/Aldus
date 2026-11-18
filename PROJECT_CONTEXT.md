@@ -475,8 +475,12 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
   beta sem "Em construção", novidades id `2026-11-18.2`). O Web publicado e o APK `79ad0a2` precisam ser atualizados (rejeitam livro sem arquivo).
 - APK de ensaio do HEAD `fbc0332` (versionCode 5; árvore limpa; migration já aplicada): Gradle 1m19s (log `.expo/apk-fbc0332-build.log`), checagem
   PASS (49 recursos). `artifacts/apk/Aldus-fbc0332-device-rehearsal.apk`, 157.173.667 bytes, SHA-256 `7da4820e…6c3f54bd`, `com.aldus.reader`
-  1.0.0-beta.2 (5), não depurável, certificado de debug `fac61745…033b9c`; commit `fbc0332` e textos novos no bundle. NÃO instalado. Web NÃO
+  1.0.0-beta.2 (5), não depurável, certificado de debug `fac61745…033b9c`; commit `fbc0332` e textos novos no bundle. Web NÃO
   publicado (o site atual rejeita livro sem arquivo; publicar exige autorização própria).
+- "Não mudou nada" explicado: o Redmi (`7lzdto7l55wcd68l`, 23117RA68G, Android 16) tinha o APK `79ad0a2` (hash do base.apk instalado =
+  `0d9a008d…ec0d9c`, instalado 18/11 14:59), não o `f30f6a8`. Instalado por USB (`adb install -r`, pedido "celular conectado") o `fbc0332`:
+  versionCode 5, hash instalado `7da4820e…6c3f54bd`, firstInstallTime 2026-10-11 21:38:27 preservado. Abriu logado na Biblioteca ("Sincronizado na
+  nuvem") com o aviso de novidades `2026-11-18.2`. Recursos novos NÃO exercitados no aparelho (catálogo, grifo, Goodreads, assinatura nativa).
 
 ### 17/11/2026 — Revisão para as betas públicas: dependências, banco, hospedagem (Claude)
 - Pedido do dono: ajustar dependências e configurações (banco, hospedagem etc.) e revisar o necessário para iniciar o plano das betas públicas.
