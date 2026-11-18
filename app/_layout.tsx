@@ -1,7 +1,7 @@
 import { router, Stack, useSegments, type ErrorBoundaryProps } from "expo-router";
 import { ErrorScreen } from "@/src/ui/ErrorScreen";
 import Head from "expo-router/head";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { AppState, DimensionValue, Linking, Platform, StatusBar, StyleSheet, useWindowDimensions, View } from "react-native";
 import { addNetworkStateListener } from 'expo-network';
 import { appDependencies } from '@/src/presentation/services/dependencies';
@@ -69,6 +69,8 @@ function AppShell() {
   // Preserve the tested Reader viewport; other task screens own their responsive width.
   const usePhoneFrame = Platform.OS === "web" && width > 480 && String(segments[0]) === 'reader';
   const appReady = !loading && !!session && !!profile?.username && profile.account_status === "active";
+  // Uma vez por abertura do app: a frase de abertura espera o toque em Continuar.
+  const [welcomed, setWelcomed] = useState(false);
   useEffect(()=>{
     if(!appReady||publicLanding)return;
     const sync=appDependencies.librarySync;sync.start();
@@ -130,7 +132,9 @@ function AppShell() {
                 <Stack.Screen name="admin/index" />
               </Stack.Protected>
             </Stack>}
-          {appReady && !publicLanding && !loading ? <ReleaseNotesModal /> : null}
+          {/* A frase fica por cima do app já carregado até a pessoa tocar em Continuar (o app, os links e o login seguem por baixo). */}
+          {!loading && !publicLanding && !welcomed ? <View style={StyleSheet.absoluteFill}><AppLoadingScreen onContinue={() => setWelcomed(true)} /></View> : null}
+          {appReady && !publicLanding && !loading && welcomed ? <ReleaseNotesModal /> : null}
         </View>
       </View>
     </>

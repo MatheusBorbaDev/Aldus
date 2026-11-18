@@ -61,6 +61,19 @@ const flush = () => act(async () => { for (let i = 0; i < 5; i++) await Promise.
   const loading = text(tree.root);
   for (const line of LOADING_QUOTE.lines) assert.ok(loading.includes(line));
   assert.ok(loading.includes('Castro Alves · O livro e a América'));
+  assert.equal(tree.root.findAllByType('Spinner').length, 1, 'loading: spinner'); assert.ok(!loading.includes('Continuar'));
   await act(async () => tree.unmount());
+  // Owner (18/11): the quote vanished too fast. When the app is ready the spinner becomes "Continuar" and waits for the tap.
+  let continued = 0;
+  await act(async () => { tree = create(React.createElement(AppLoadingScreen, { onContinue: () => continued++ })); });
+  assert.equal(tree.root.findAllByType('Spinner').length, 0);
+  const go = tree.root.findAllByType('Pressable').find(n => n.props.accessibilityLabel === 'Continuar');
+  assert.ok(go, 'Continuar button'); assert.ok(go.props.style.minHeight >= 44, 'touch target');
+  assert.equal(continued, 0, 'never continues by itself'); await act(async () => go.props.onPress()); assert.equal(continued, 1);
+  await act(async () => tree.unmount());
+  // The layout keeps the quote over the loaded app until Continuar, and shows the release notes only after it.
+  const layout = require('node:fs').readFileSync('app/_layout.tsx', 'utf8');
+  assert.match(layout, /!welcomed \? <View style=\{StyleSheet\.absoluteFill\}><AppLoadingScreen onContinue=\{\(\) => setWelcomed\(true\)\} \/>/);
+  assert.match(layout, /appReady && !publicLanding && !loading && welcomed \? <ReleaseNotesModal \/>/);
   console.log('PASS release notes: shown once per version with every item, the beta notice and the link to the beta page; Entendi and the link mark as seen; read failure does not nag, write failure does not trap; beta page has no placeholders and a filled report channel; loading screen shows the Castro Alves quote with credit.');
 })().catch(error => { console.error(error); process.exitCode = 1; });

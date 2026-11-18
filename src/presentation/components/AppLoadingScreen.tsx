@@ -1,4 +1,4 @@
-import { ActivityIndicator, Image, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Image, Pressable, StyleSheet, Text, View } from "react-native";
 
 /**
  * Frase da tela de carregamento (pedido do dono em 18/11/2026: "uma frase bem bonita de algum livro, contextualizada no projeto").
@@ -12,11 +12,12 @@ export const LOADING_QUOTE = {
 
 /**
  * Tela de carregamento do Aldus: mesma cor da abertura nativa (azul-noite), para a troca não piscar; medalha, nome e a frase.
- * Usa cores fixas porque aparece antes do tema do app estar disponível.
+ * Usa cores fixas porque aparece antes do tema do app estar disponível. Com `onContinue` (app pronto), o indicador vira o botão
+ * "Continuar": pedido do dono em 18/11/2026, a frase sumia rápido demais para ser lida.
  */
-export function AppLoadingScreen() {
+export function AppLoadingScreen({ onContinue }: { onContinue?: () => void } = {}) {
   return (
-    <View accessibilityLabel="Abrindo o Aldus" style={styles.screen}>
+    <View accessibilityLabel={onContinue ? undefined : "Abrindo o Aldus"} style={styles.screen}>
       <Image source={require("../../../assets/brand/medalha-noite.png")} style={styles.medal} accessibilityIgnoresInvertColors accessible={false} />
       <Text style={styles.name}>Aldus</Text>
       <View style={styles.quote} accessibilityRole="text" accessibilityLabel={`${LOADING_QUOTE.lines.join(" ")} ${LOADING_QUOTE.author}, ${LOADING_QUOTE.source}.`}>
@@ -24,7 +25,11 @@ export function AppLoadingScreen() {
         {LOADING_QUOTE.lines.map(line => <Text key={line} style={styles.line}>{line}</Text>)}
         <Text style={styles.credit}>{`${LOADING_QUOTE.author} · ${LOADING_QUOTE.source}`}</Text>
       </View>
-      <ActivityIndicator color="#E59A76" style={styles.spinner} />
+      {onContinue ? (
+        <Pressable accessibilityRole="button" accessibilityLabel="Continuar" onPress={onContinue} android_ripple={{ color: "#2B2D45" }} style={styles.continue}>
+          <Text style={styles.continueText}>Continuar</Text>
+        </Pressable>
+      ) : <ActivityIndicator color="#E59A76" style={styles.spinner} />}
     </View>
   );
 }
@@ -38,4 +43,6 @@ const styles = StyleSheet.create({
   line: { color: "#EFE6D6", fontFamily: "serif", fontStyle: "italic", fontSize: 18, lineHeight: 27, textAlign: "center" },
   credit: { color: "#E59A76", fontSize: 12, letterSpacing: 1.5, marginTop: 14, textAlign: "center" },
   spinner: { marginTop: 36 },
+  continue: { marginTop: 36, minHeight: 48, minWidth: 180, paddingHorizontal: 28, borderRadius: 24, borderWidth: 1, borderColor: "#E59A76", alignItems: "center", justifyContent: "center" },
+  continueText: { color: "#EFE6D6", fontSize: 16, fontWeight: "700", letterSpacing: 0.5 },
 });
