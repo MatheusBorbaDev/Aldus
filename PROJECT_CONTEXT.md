@@ -414,6 +414,9 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
 - NÃO TESTADO: aparelho e conta Google real; o módulo Kotlin do Drive mudou e só um APK novo confirma; com o app Google em modo de teste a
   permissão pode vencer de vez após alguns dias. Bibliotecas do Drive já existentes pedem uma reconexão a mais, a primeira depois da
   atualização, para gravar a conta.
+- APK de ensaio `artifacts/apk/Aldus-79ad0a2-device-rehearsal.apk` (157.042.801 bytes, SHA-256 `0d9a008d…ec0d9c`): `com.aldus.reader`
+  1.0.0-beta.2 (versionCode 3), não depurável, certificado de debug (ensaio, não distribuir), 4 ABIs; build 5m55s e `verify-release-features
+  --apk` PASS (38 recursos, só acervo de domínio público). NÃO instalado (o celular está ligado a outro PC).
 
 ### 17/11/2026 — Revisão para as betas públicas: dependências, banco, hospedagem (Claude)
 - Pedido do dono: ajustar dependências e configurações (banco, hospedagem etc.) e revisar o necessário para iniciar o plano das betas públicas.
