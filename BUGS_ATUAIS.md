@@ -368,6 +368,8 @@ e 7f50a90^:DIAGNOSTICO_BUGS_APK.md. Não restaurar esses arquivos como contexto.
 ## BUG 03 — Drive real preso em conectar/indexar
 
 - Prioridade: ALTA. Status: IMPLEMENTADO / VALIDAÇÃO ANDROID PENDENTE.
+- 18/11/2026: reconexão a toda hora corrigida no código (`67457a5`, renovação silenciosa; ver `docs/context/sources-drive.md` §8.x).
+  NÃO TESTADO no aparelho.
 - Sintoma/reprodução: cadastrar/atualizar ROOT 1PwrGP2UiCNGhyhvhDUpszZZwFjfkjaw4 pode manter
   “Conectando / indexando…” no Android. Login Google foi relatado funcional.
 - Evidência: diagnóstico controlado e HEAD confirmavam fonte ausente na fila deixando loading,

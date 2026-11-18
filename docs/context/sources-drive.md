@@ -55,3 +55,16 @@ Missão integrada: mudança síncrona do LibraryAccountScope limpa todos os gran
 Drive em memória, incluindo consentimentos pendentes; retorno antigo não pode autorizar B.
 Snapshots/configuração Sources continuam DEVICE-scoped, não são promessa de isolamento
 persistido por conta; não atribuir automaticamente os legados a uma identidade.
+
+### 8.x Renovação silenciosa (18/11/2026, `67457a5`)
+Relato do dono: o Drive "fica desconectando e precisa reconectar a toda hora". Causa: o grant vivia só na memória por
+~45 min; vencimento ou reabertura do app levavam a "Reconecte o Google Drive". Agora a fonte guarda `driveAccountId`
+(Drive `about.user.permissionId`, nunca o e-mail) e `GoogleDriveService.ensureAuthorized` renova sem tela antes de
+listar, descrever a pasta ou baixar: Android chama o AuthorizationClient com `interactive=false` (com `hasResolution`,
+falha como `DRIVE_AUTH_REQUIRED`, sem abrir janela); a Web não renova em silêncio (o Google exige toque) e reconecta sem o
+seletor de conta (`prompt: ""`). Token de outra conta Google é descartado e limpo; fonte antiga sem conta gravada
+reconecta uma vez; chamadas simultâneas dividem uma renovação; troca de conta do Aldus descarta token atrasado; 401 no
+meio da leitura das pastas renova uma vez e recomeça. Reconexão manual de fonte conhecida só aceita a mesma conta
+(`account-mismatch`). Teste `test-drive-renewal` (critical). NÃO TESTADO: aparelho e conta Google real; o módulo
+Kotlin mudou e exige APK novo. Limite possível: com o app Google em modo de teste, a permissão pode vencer de vez após
+alguns dias (a confirmar no aparelho).
