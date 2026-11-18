@@ -18,18 +18,61 @@ interface Index extends SourceCatalogListing { rootFolderId: string; folders: So
 const FOLDER_MIME = "application/vnd.google-apps.folder", SHORTCUT_MIME = "application/vnd.google-apps.shortcut";
 const FIELDS = "id,name,mimeType,size,modifiedTime,resourceKey,driveId,trashed,shortcutDetails(targetId,targetMimeType,targetResourceKey),capabilities(canDownload)";
 const API = "https://www.googleapis.com/drive/v3/files";
+const ABOUT = "https://www.googleapis.com/drive/v3/about?fields=user(permissionId)";
 
 /** A light, session-only metadata index. No file bytes or credentials are cached here. */
 export class GoogleDriveService {
   private readonly indexes = new Map<string, Index>();
   private readonly generations = new Map<string, number>();
   constructor(public readonly authorization: DriveAuthorization, private readonly request: typeof fetch = (...args) => fetch(...args)) {}
-  async connect(source: UserSource, signal?: AbortSignal, context?: SourceOperationContext): Promise<void> {
+  /**
+   * Asks the person (Google screen when needed) and returns the Drive account id the source must keep in `driveAccountId`.
+   * A source already tied to an account only accepts that same account back.
+   */
+  async connect(source: UserSource, signal?: AbortSignal, context?: SourceOperationContext): Promise<string> {
     const operation = sourceOperationContext(context);
     this.clearIndex(source.id);
     sourceProgress(operation, "authorizing");
-    try { await this.authorization.connect(source.id, signal, operation.operationId); }
+    let accountId = "";
+    try {
+      await this.authorization.connect(source.id, signal, operation.operationId, { reconnect: Boolean(source.driveAccountId), check: async (token, checkSignal) => {
+        accountId = await this.accountId(token, checkSignal);
+        if (source.driveAccountId && source.driveAccountId !== accountId) throw new DriveError("account-mismatch");
+      } });
+      return accountId;
+    }
     catch (error) { sourceProgress(operation, signal?.aborted || (error as Error)?.name === "AbortError" ? "cancelled" : "error", {}, sourceOperationErrorCode(error)); throw error; }
+  }
+  /** True when access can be renewed without the person: the source remembers the Google account it was connected with. */
+  renewable(source: UserSource): boolean { return source.kind === "google-drive" && typeof source.driveAccountId === "string" && source.driveAccountId.length > 0; }
+  /** Valid access for this source, renewing silently when possible; otherwise the usual `disconnected`/`expired` error. */
+  async ensureAuthorized(source: UserSource, signal?: AbortSignal): Promise<void> {
+    if (this.authorization.connected(source.id)) return;
+    if (!this.renewable(source)) { this.authorization.token(source.id); return; }
+    const expected = source.driveAccountId!;
+    await this.authorization.renew(source.id, async (token, checkSignal) => {
+      if (await this.accountId(token, checkSignal) !== expected) throw new DriveError("disconnected");
+    }, signal);
+  }
+  /** Drive account id (`about.user.permissionId`) for a token not yet kept. Never the e-mail. */
+  private async accountId(token: string, signal?: AbortSignal): Promise<string> {
+    const controller = new AbortController();
+    const abort = () => controller.abort();
+    signal?.addEventListener("abort", abort, { once: true });
+    const timer = setTimeout(abort, 20000);
+    try {
+      const response = await withAbort(this.request(ABOUT, { headers: { Authorization: `Bearer ${token}`, Accept: "application/json" }, signal: controller.signal }), controller.signal);
+      let body: unknown;
+      try { body = await withAbort(response.json(), controller.signal); } catch { body = undefined; }
+      assertDriveResponse(response.status, body);
+      const id = (body as { user?: { permissionId?: unknown } } | undefined)?.user?.permissionId;
+      if (typeof id !== "string" || !/^[\w-]{1,128}$/.test(id)) throw new DriveError("api");
+      return id;
+    } catch (error) {
+      throwIfAborted(signal);
+      if (error instanceof DriveError) throw error;
+      throw new DriveError("network");
+    } finally { clearTimeout(timer); signal?.removeEventListener("abort", abort); }
   }
   clearIndex(sourceId: string): void {
     this.indexes.delete(sourceId);
@@ -52,6 +95,7 @@ export class GoogleDriveService {
   async validateRoot(source: UserSource, signal?: AbortSignal, context?: SourceOperationContext): Promise<void> {
     throwIfAborted(signal);
     sourceProgress(context, "verifying");
+    await this.ensureAuthorized(source, signal);
     const folder = this.folder(source);
     await this.folderMetadata(source.id, folder.folderId, folder.resourceKey, signal);
   }
@@ -60,6 +104,7 @@ export class GoogleDriveService {
     sourceProgress(operation, "verifying");
     try {
       throwIfAborted(signal);
+      await this.ensureAuthorized(source, signal);
       const folder = this.folder(source), metadata = await this.folderMetadata(source.id, folder.folderId, folder.resourceKey, signal);
       throwIfAborted(signal);
       if (typeof metadata.name !== "string" || !metadata.name.trim()) throw new DriveError("api");
@@ -78,7 +123,16 @@ export class GoogleDriveService {
   }
   async listCatalog(source: UserSource, signal?: AbortSignal, refresh = false, context?: SourceOperationContext): Promise<SourceCatalogListing> {
     const operation = sourceOperationContext(context);
-    try { return await this.indexCatalog(source, signal, refresh, operation); }
+    try {
+      await this.ensureAuthorized(source, signal);
+      try { return await this.indexCatalog(source, signal, refresh, operation); }
+      catch (error) {
+        // Google ended the access mid-way (401): renew once without the person and start the traversal again.
+        if (!(error instanceof DriveError) || error.code !== "expired" || !this.renewable(source) || signal?.aborted) throw error;
+        await this.ensureAuthorized(source, signal);
+        return await this.indexCatalog(source, signal, true, operation);
+      }
+    }
     catch (error) { sourceProgress(operation, signal?.aborted || (error as Error)?.name === "AbortError" ? "cancelled" : "error", {}, sourceOperationErrorCode(error)); throw error; }
   }
   private async indexCatalog(source: UserSource, signal: AbortSignal | undefined, refresh: boolean, context: SourceOperationContext): Promise<SourceCatalogListing> {
@@ -166,6 +220,7 @@ export class GoogleDriveService {
     return result;
   }
   async downloadRequest(source: UserSource, fileId: string, signal?: AbortSignal): Promise<{ url: string; headers: Record<string, string> }> {
+    await this.ensureAuthorized(source, signal);
     const books = await this.list(source, signal);
     const book = books.find(item => item.drive?.fileId === fileId);
     if (!book?.drive) throw new DriveError("not-found");

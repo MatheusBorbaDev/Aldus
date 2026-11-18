@@ -26,6 +26,8 @@ function setup(adapter = { list: async () => [link(1)], authorizationRequired: (
     const authorization = new DriveAuthorization({ prepare: async () => {}, authorize: async (_signal, id) => { authorizations++; correlation = id; return { accessToken: 'PRIVATE_TOKEN_NEVER_TRACE', expiresAt: Date.now() + 3600000 }; }, revoke: async () => {} });
     const drive = new GoogleDriveService(authorization, async raw => {
       calls++; const url = new URL(raw);
+      // Connecting now identifies the Google account (Drive about.user.permissionId) before keeping the grant.
+      if (url.pathname.endsWith('/about')) { calls--; return Response.json({ user: { permissionId: 'fixture-account' } }); }
       if (failure) { const value = failure; failure = null; if (value === 'network') throw new Error('PRIVATE_PROVIDER_MESSAGE https://private.invalid/folder'); return Response.json({ error: { errors: [{ reason: value === 403 ? 'insufficientFilePermissions' : 'authError' }] } }, { status: value }); }
       if (url.pathname.endsWith(source.folderId)) return Response.json({ id: source.folderId, name: 'PRIVATE_FOLDER_NAME', mimeType: 'application/vnd.google-apps.folder' });
       if (url.pathname.endsWith('child_fixture')) {

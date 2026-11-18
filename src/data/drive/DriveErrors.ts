@@ -1,10 +1,10 @@
-export type DriveErrorCode = "disconnected" | "expired" | "cancelled" | "popup-blocked" | "auth-denied" | "api-disabled" | "permission" | "not-found" | "rate-limit" | "network" | "api" | "invalid-folder" | "unsupported" | "configuration" | "busy";
+export type DriveErrorCode = "disconnected" | "expired" | "cancelled" | "popup-blocked" | "auth-denied" | "api-disabled" | "permission" | "not-found" | "rate-limit" | "network" | "api" | "invalid-folder" | "unsupported" | "configuration" | "busy" | "account-mismatch";
 export type DriveErrorCategory = "AUTH_CANCELLED" | "AUTH_REQUIRED" | "AUTH_DENIED" | "TOKEN_EXPIRED" | "DRIVE_API_DISABLED" | "FOLDER_NOT_FOUND" | "FOLDER_FORBIDDEN" | "NETWORK_ERROR" | "RATE_LIMIT" | "INVALID_FOLDER" | "UNKNOWN";
 const categories: Record<DriveErrorCode, DriveErrorCategory> = {
   disconnected: "AUTH_REQUIRED", expired: "TOKEN_EXPIRED", cancelled: "AUTH_CANCELLED", "popup-blocked": "AUTH_REQUIRED", "auth-denied": "AUTH_DENIED",
   "api-disabled": "DRIVE_API_DISABLED", permission: "FOLDER_FORBIDDEN", "not-found": "FOLDER_NOT_FOUND",
   "rate-limit": "RATE_LIMIT", network: "NETWORK_ERROR", api: "UNKNOWN", "invalid-folder": "INVALID_FOLDER",
-  unsupported: "INVALID_FOLDER", configuration: "UNKNOWN", busy: "UNKNOWN",
+  unsupported: "INVALID_FOLDER", configuration: "UNKNOWN", busy: "UNKNOWN", "account-mismatch": "AUTH_REQUIRED",
 };
 const messages: Record<DriveErrorCode, string> = {
   disconnected: "Drive desconectado. Use Conectar ou Reconectar em Minhas bibliotecas.",
@@ -22,6 +22,7 @@ const messages: Record<DriveErrorCode, string> = {
   unsupported: "O destino não é uma pasta do Google Drive. Use uma pasta real; atalhos para arquivos não são percorridos.",
   configuration: "Não foi possível preparar a conexão com o Google Drive neste aplicativo.",
   busy: "Já existe uma autorização Drive em andamento. Conclua ou cancele a janela do Google e tente novamente.",
+  "account-mismatch": "Esta biblioteca foi conectada com outra conta Google. Toque em Reconectar e escolha a mesma conta, ou remova a biblioteca e adicione de novo com a conta nova.",
 };
 export class DriveError extends Error {
   readonly category: DriveErrorCategory;

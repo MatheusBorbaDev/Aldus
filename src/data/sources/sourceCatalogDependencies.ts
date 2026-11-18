@@ -21,6 +21,8 @@ export const sourceCatalogAdapter: SourceCatalogAdapter = {
   },
   authorizationRequired: source => {
     if (source.kind !== "google-drive") return false;
+    // A source tied to a Google account renews its access silently when it is next used; only ask when that is impossible.
+    if (googleDrive.renewable(source)) return false;
     try { googleDrive.authorization.token(source.id); return false; } catch { return true; }
   },
 };

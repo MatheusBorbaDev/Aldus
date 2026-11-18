@@ -22,7 +22,9 @@ class AldusDriveAuthModule : Module() {
   override fun definition() = ModuleDefinition {
     Name("AldusDriveAuth")
     Events("onAuthorizationState")
-    AsyncFunction("authorize") { id: String, promise: Promise ->
+    // interactive = false: silent renewal. When Google needs the person (consent or account choice), no screen opens and the
+    // call fails with DRIVE_AUTH_REQUIRED, so the app shows "Reconectar" instead of a surprise Google window.
+    AsyncFunction("authorize") { id: String, interactive: Boolean, promise: Promise ->
       if (pending != null) { promise.reject("DRIVE_BUSY", "Authorization already pending", null); return@AsyncFunction }
       val activity = appContext.currentActivity
       if (activity == null) { promise.reject("DRIVE_CONFIGURATION", "Android activity unavailable", null); return@AsyncFunction }
@@ -36,6 +38,7 @@ class AldusDriveAuthModule : Module() {
         .addOnSuccessListener { result ->
           if (requestCode != code || pending == null) return@addOnSuccessListener
           if (result.hasResolution()) {
+            if (!interactive) { fail("DRIVE_AUTH_REQUIRED"); return@addOnSuccessListener }
             try {
               emitState("resolution")
               activity.startIntentSenderForResult(result.pendingIntent!!.intentSender, code, Intent(), 0, 0, 0)

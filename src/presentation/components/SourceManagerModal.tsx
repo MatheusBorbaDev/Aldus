@@ -37,6 +37,8 @@ function SourceManagerContent({ visible, onClose, sourceId = null, action = 'man
   const [prepared, setPrepared] = useState<SourceCatalog | null>(null), [progress, setProgress] = useState<SourceOperationProgress | null>(null);
   const [busy, setBusy] = useState(false), [cancellable, setCancellable] = useState(true), [notice, setNotice] = useState<string | null>(null);
   const [confirmation, setConfirmation] = useState<'remove' | 'disconnect' | 'toggle' | null>(null);
+  // Google account confirmed by the last connection in this modal; saved with the library so access can renew silently.
+  const driveAccount = useRef<string | null>(null);
   const draft = useRef({ id: '', createdAt: 0 }), operation = useRef<Operation | null>(null), alive = useRef(true);
   const flowId = useRef(sourceOperationId()), preparedId = useRef<string | null>(null);
   const discardPrepared = () => { if (preparedId.current) sourceCatalogs.cancel(preparedId.current); preparedId.current = null; setPrepared(null); };
@@ -50,6 +52,7 @@ function SourceManagerContent({ visible, onClose, sourceId = null, action = 'man
     setBusy(false); setManageOptions(false); setError(null); setNotice(null); setProgress(null); setPrepared(null);
     if (!visible) return;
     const current = sourceId ? useSourceStore.getState().sources.find(source => source.id === sourceId && sourceVisibleInAccount(source, accountId)) : undefined;
+    driveAccount.current = null;
     draft.current = { id: current?.id ?? `source-draft-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`, createdAt: current?.createdAt ?? Date.now() };
     setName(current?.name ?? ''); setUrl(current?.url ?? ''); setKind(current?.kind ?? initialKind);
     setMode(current ? action === 'edit' ? 'edit' : 'manage' : sourceId ? 'manage' : 'add');
@@ -96,13 +99,15 @@ function SourceManagerContent({ visible, onClose, sourceId = null, action = 'man
       if (!/^https?:$/.test(endpoint.protocol)) throw new SourceFormError('Informe um endereço HTTP ou HTTPS válido.');
     }
     return { ...(target ?? {}), id: draft.current.id, ownerId: accountId, name: cleanName || 'Minha biblioteca', url: url.trim(), kind,
-      folderId: folder?.folderId, resourceKey: folder?.resourceKey ?? (folder && target?.folderId === folder.folderId ? target.resourceKey : undefined), enabled: true, status: 'active', lastError: null, lastCheckedAt: Date.now(), createdAt: draft.current.createdAt };
+      folderId: folder?.folderId, resourceKey: folder?.resourceKey ?? (folder && target?.folderId === folder.folderId ? target.resourceKey : undefined),
+      driveAccountId: kind === 'google-drive' ? driveAccount.current ?? target?.driveAccountId : undefined, enabled: true, status: 'active', lastError: null, lastCheckedAt: Date.now(), createdAt: draft.current.createdAt };
   };
   const connect = () => void run('authorizing', async op => {
     discardPrepared();
     // This call starts synchronously from the click, preserving the GIS popup gesture.
     const source: UserSource = { id: draft.current.id, name: name.trim() || 'Minha biblioteca', url, kind: 'google-drive', enabled: true, createdAt: draft.current.createdAt, ownerId: accountId };
-    await googleDrive.connect(source, op.controller.signal, op.context);
+    const googleAccount = await googleDrive.connect({ ...source, driveAccountId: target?.driveAccountId }, op.controller.signal, op.context);
+    if (active(op)) driveAccount.current = googleAccount;
     if (active(op)) { setConnected(true); setNotice('Drive conectado nesta sessão. Agora informe a pasta da sua biblioteca.'); }
   });
   const searchBooks = () => void run('verifying', async op => {
@@ -140,7 +145,7 @@ function SourceManagerContent({ visible, onClose, sourceId = null, action = 'man
     if (!target) return;
     const source = { ...target, enabled: true, status: 'active' as const, lastError: null, lastCheckedAt: Date.now() };
     void run(source.kind === 'google-drive' && !googleDrive.authorization.connected(source.id) ? 'authorizing' : 'verifying', async op => {
-      if (source.kind === 'google-drive' && !googleDrive.authorization.connected(source.id)) await googleDrive.connect(source, op.controller.signal, op.context);
+      if (source.kind === 'google-drive' && !googleDrive.authorization.connected(source.id)) source.driveAccountId = await googleDrive.connect(source, op.controller.signal, op.context);
       if (sourceCapabilities(source).supportsCatalog) {
         const catalog = await sourceCatalogs.prepare(source, op.controller.signal, op.context);
         await update(source.id, source, op.controller.signal, { prepared: catalog, context: op.context });

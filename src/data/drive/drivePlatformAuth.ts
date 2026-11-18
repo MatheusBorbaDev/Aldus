@@ -34,8 +34,10 @@ export const drivePlatformAuth: DriveAuthorizationProvider = {
     }).catch(error => { preparation = undefined; throw error; });
     return preparation;
   },
-  authorize: (signal, correlationId) => {
+  authorize: (signal, correlationId, options) => {
     try { throwIfAborted(signal); } catch (error) { return Promise.reject(error); }
+    // The browser only opens the Google window from a tap: silent renewal is not possible on the Web.
+    if (options?.silent && Platform.OS === "web") return Promise.reject(new DriveError("disconnected"));
     const operationId = correlationId && /^(?:source|drive)-[a-z0-9]+-\d+$/.test(correlationId) ? correlationId : driveOperationId();
     const implementation = Platform.OS === "web" ? "GIS_WEB" : Platform.OS === "android" ? "AUTHORIZATION_CLIENT" : "UNAVAILABLE";
     driveDiagnostic({ operationId, implementation, callbackReceived: false, authorizationResult: "started" });
@@ -65,12 +67,13 @@ export const drivePlatformAuth: DriveAuthorizationProvider = {
             },
             error_callback: error => finish(new DriveError(error?.type === "popup_closed" ? "cancelled" : error?.type === "popup_failed_to_open" ? "popup-blocked" : "api"), undefined, true),
           });
-          client.requestAccessToken({ prompt: "select_account consent" });
+          // A known source reconnects without the account picker; Google still asks when it needs to.
+          client.requestAccessToken({ prompt: options?.reconnect ? "" : "select_account consent" });
         } catch { finish(new DriveError("configuration")); }
       });
     }
     const native = Platform.OS === "android" ? requireOptionalNativeModule<{
-      authorize(operationId: string): Promise<{ accessToken: string; expiresAt: number; callbackReceived?: boolean }>;
+      authorize(operationId: string, interactive: boolean): Promise<{ accessToken: string; expiresAt: number; callbackReceived?: boolean }>;
       cancelAuthorization(operationId: string): Promise<void>;
       addListener?(event: string, listener: (result: { operationId?: string; stage?: string }) => void): { remove(): void };
     }>("AldusDriveAuth") : null;
@@ -88,7 +91,7 @@ export const drivePlatformAuth: DriveAuthorizationProvider = {
     });
     const timer = setTimeout(forward, 120000);
     let request: Promise<{ accessToken: string; expiresAt: number; callbackReceived?: boolean }>;
-    try { request = native.authorize(operationId); } catch (error) { request = Promise.reject(error); }
+    try { request = native.authorize(operationId, !options?.silent); } catch (error) { request = Promise.reject(error); }
     return withAbort(request, deadline.signal).then(grant => {
       driveDiagnostic({ operationId, implementation, callbackReceived: callbackReceived || grant.callbackReceived === true, authorizationResult: "success" });
       return grant;

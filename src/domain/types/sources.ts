@@ -5,6 +5,9 @@ export interface UserSource {
   /** Non-secret Drive configuration. id is the persistent sourceId. */
   folderId?: string;
   resourceKey?: string;
+  /** Google Drive account the folder was connected with (Drive `about.user.permissionId`, not an e-mail). Lets the app renew
+   *  access silently only for that same account; missing means the next renewal needs the person. */
+  driveAccountId?: string;
 	id: string;
 	name: string;
 	url: string;
