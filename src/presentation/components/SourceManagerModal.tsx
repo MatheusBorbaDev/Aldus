@@ -11,7 +11,8 @@ import { useAppTheme } from '@/src/presentation/contexts/AppThemeContext';
 import { appDependencies } from '@/src/presentation/services/dependencies';
 import { useSourceStore } from '@/src/presentation/stores/sourceStore';
 import { googleDrive } from '@/src/data/drive/driveDependencies';
-import { parseDriveFolder } from '@/src/data/drive/driveFolder';
+import { driveFolderLink, parseDriveFolder } from '@/src/data/drive/driveFolder';
+import { DriveFolderPicker } from './DriveFolderPicker';
 import { sourceCatalogs } from '@/src/data/sources/sourceCatalogDependencies';
 import { DriveError } from '@/src/data/drive/DriveErrors';
 import { sourceOperationId } from '@/src/utils/sourceDiagnostics';
@@ -31,6 +32,9 @@ function SourceManagerContent({ visible, onClose, sourceId = null, action = 'man
   const { sources, load, add, update, remove } = useSourceStore();
   const [mode, setMode] = useState<'add' | 'manage' | 'edit'>(sourceId ? 'manage' : 'add');
   const [name, setName] = useState(''), [url, setUrl] = useState(''), [kind, setKind] = useState<SourceKind>('google-drive');
+  const currentUrl = url;
+  // The folder picker is the main way to choose a Drive folder; pasting a link stays available.
+  const [pasteLink, setPasteLink] = useState(false);
   const [advanced, setAdvanced] = useState(false), [connected, setConnected] = useState(false), [ready, setReady] = useState(false);
   const [manageOptions, setManageOptions] = useState(false);
   const [preparationError, setPreparationError] = useState<string | null>(null), [error, setError] = useState<string | null>(null);
@@ -89,7 +93,8 @@ function SourceManagerContent({ visible, onClose, sourceId = null, action = 'man
       if (operation.current === op) { operation.current = null; if (alive.current) { setBusy(false); if (controller.signal.aborted) setProgress({ operationId: context.operationId, phase: 'cancelled' }); } }
     }
   };
-  const candidate = (requireName = false): UserSource => {
+  const candidate = (requireName = false, chosenUrl?: string): UserSource => {
+    const url = chosenUrl ?? currentUrl;
     const cleanName = name.trim();
     if (requireName && !cleanName) throw new SourceFormError('Dê um nome para esta biblioteca.');
     if (requireName && (['Todos', ...BUILTIN_CATALOG_NAMES, 'BNDigital', 'Minhas Fontes', 'Minhas bibliotecas'].some(reserved => reserved.toLocaleLowerCase() === cleanName.toLocaleLowerCase()) || sources.some(source => source.id !== draft.current.id && source.name.toLocaleLowerCase() === cleanName.toLocaleLowerCase()))) throw new SourceFormError('Já existe uma biblioteca com esse nome. Escolha outro nome.');
@@ -110,9 +115,9 @@ function SourceManagerContent({ visible, onClose, sourceId = null, action = 'man
     if (active(op)) driveAccount.current = googleAccount;
     if (active(op)) { setConnected(true); setNotice('Drive conectado nesta sessão. Agora informe a pasta da sua biblioteca.'); }
   });
-  const searchBooks = () => void run('verifying', async op => {
+  const searchBooks = (chosenUrl?: string) => void run('verifying', async op => {
     discardPrepared();
-    const source = candidate();
+    const source = candidate(false, chosenUrl);
     if (!googleDrive.authorization.connected(source.id)) throw new DriveError('disconnected');
     const folder = await googleDrive.describeRoot(source, op.controller.signal, op.context);
     if (!active(op)) return;
@@ -191,8 +196,14 @@ function SourceManagerContent({ visible, onClose, sourceId = null, action = 'man
         {mode !== 'manage' && kind === 'google-drive' ? <>
           <View style={styles.intro}><Ionicons name="logo-google" size={26} color={palette.accent} /><Text accessibilityRole="header" style={[styles.heading, { color: palette.text }]}>Sua pasta vira uma biblioteca.</Text><Text style={{ color: palette.secondaryText, lineHeight: 21 }}>Conecte o Drive, escolha uma pasta e encontre seus EPUB e PDF. Os arquivos só são baixados quando você escolhe importar um livro.</Text></View>
           <View style={styles.steps} accessibilityLabel="Etapas para adicionar biblioteca"><Step number="1" title="Conectar" complete={connected} palette={palette} /><Step number="2" title="Buscar livros" complete={!!prepared} palette={palette} /><Step number="3" title="Salvar" complete={false} palette={palette} /></View>
-          <View style={[styles.panel, { borderColor: palette.border, backgroundColor: palette.surface }]}><Text style={[styles.label, { color: palette.text }]}>{connected ? 'Google Drive conectado nesta sessão' : '1. Conecte seu Google Drive'}</Text><Text style={[styles.help, { color: palette.secondaryText }]}>A conexão é separada do login no Aldus. A permissão do Google permite ler e baixar arquivos de todo o Drive; o Aldus consulta apenas a pasta informada e suas subpastas.</Text>{primary(connected ? 'Conectar outra conta Google' : 'Conectar Google Drive', connect, !ready)}{!ready ? <Text style={[styles.help, { color: palette.secondaryText }]}>{preparationError ?? 'Preparando conexão segura…'}</Text> : null}{preparationError ? secondary('Tentar preparar conexão novamente', prepareAuthorization) : null}</View>
-          {connected ? <View style={[styles.panel, { borderColor: palette.border }]}>{field('Link da pasta do Google Drive', url, changeUrl, 'Cole o link da pasta', true)}<Text style={[styles.help, { color: palette.secondaryText }]}>Abra a pasta no Google Drive e copie o link. A pasta precisa estar acessível à conta Google conectada.</Text>{primary(prepared ? 'Buscar livros novamente' : 'Buscar livros', searchBooks, !url.trim())}</View> : null}
+          <View style={[styles.panel, { borderColor: palette.border, backgroundColor: palette.surface }]}><Text style={[styles.label, { color: palette.text }]}>{connected ? 'Google Drive conectado nesta sessão' : '1. Conecte seu Google Drive'}</Text><Text style={[styles.help, { color: palette.secondaryText }]}>A conexão é separada do login no Aldus. A permissão do Google permite ler e baixar arquivos de todo o Drive. O Aldus mostra os nomes das suas pastas para você escolher e só lê a pasta escolhida e as subpastas dela.</Text>{primary(connected ? 'Conectar outra conta Google' : 'Conectar Google Drive', connect, !ready)}{!ready ? <Text style={[styles.help, { color: palette.secondaryText }]}>{preparationError ?? 'Preparando conexão segura…'}</Text> : null}{preparationError ? secondary('Tentar preparar conexão novamente', prepareAuthorization) : null}</View>
+          {connected && !pasteLink ? <DriveFolderPicker sourceId={draft.current.id} disabled={busy} onChoose={folder => {
+            const link = driveFolderLink({ folderId: folder.id, resourceKey: folder.resourceKey });
+            changeUrl(link);
+            searchBooks(link);
+          }} /> : null}
+          {connected ? <Pressable accessibilityRole="button" accessibilityLabel={pasteLink ? 'Escolher a pasta navegando' : 'Colar link de uma pasta'} disabled={busy} onPress={() => setPasteLink(!pasteLink)} style={styles.linkChoice}><Text style={{ color: palette.accent }}>{pasteLink ? 'Escolher a pasta navegando' : 'Prefiro colar o link de uma pasta'}</Text></Pressable> : null}
+          {connected && pasteLink ? <View style={[styles.panel, { borderColor: palette.border }]}>{field('Link da pasta do Google Drive', url, changeUrl, 'Cole o link da pasta', true)}<Text style={[styles.help, { color: palette.secondaryText }]}>Abra a pasta no Google Drive e copie o link. A pasta precisa estar acessível à conta Google conectada.</Text>{primary(prepared ? 'Buscar livros novamente' : 'Buscar livros', () => searchBooks(), !url.trim())}</View> : null}
           {prepared ? <View style={[styles.panel, { borderColor: palette.border, backgroundColor: palette.surface }]}><Text accessibilityRole="header" style={[styles.heading, { color: palette.text }]}>Biblioteca encontrada</Text><Text style={{ color: palette.secondaryText }}>{prepared.items.length.toLocaleString('pt-BR')} {prepared.items.length === 1 ? 'livro encontrado' : 'livros encontrados'} · {Math.max(0, (prepared.folders?.length ?? 1) - 1).toLocaleString('pt-BR')} subpastas</Text>{prepared.items.length ? prepared.items.slice(0, 3).map(item => <Text key={item.remoteBookId} numberOfLines={1} style={{ color: palette.text, fontSize: 12 }}>• {item.title}</Text>) : <Text style={{ color: palette.secondaryText }}>A pasta é válida, mas ainda não contém EPUB ou PDF. Você pode salvá-la e atualizar depois.</Text>}{field('Nome da biblioteca', name, setName, 'Ex.: Minhas leituras')}{primary(mode === 'edit' ? 'Salvar alterações' : 'Salvar biblioteca', savePrepared)}<Text style={[styles.help, { color: palette.secondaryText }]}>Esta busca consultou apenas informações dos arquivos. Nada foi importado para sua biblioteca pessoal.</Text></View> : null}
           {mode === 'edit' && !prepared ? field('Nome da biblioteca', name, setName, 'Nome da biblioteca') : null}
         </> : null}

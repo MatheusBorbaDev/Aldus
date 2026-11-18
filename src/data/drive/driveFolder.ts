@@ -15,3 +15,8 @@ export function parseDriveFolder(input: string): DriveFolder {
     return { folderId: id, resourceKey: key };
   } catch { throw new DriveError("invalid-folder"); }
 }
+/** Canonical link for a folder chosen in the picker; parseDriveFolder reads it back. */
+export function driveFolderLink(folder: DriveFolder): string {
+  if (!/^[\w-]{10,200}$/.test(folder.folderId) || (folder.resourceKey && !/^[\w-]{1,200}$/.test(folder.resourceKey))) throw new DriveError("invalid-folder");
+  return `https://drive.google.com/drive/folders/${folder.folderId}${folder.resourceKey ? `?resourcekey=${folder.resourceKey}` : ""}`;
+}

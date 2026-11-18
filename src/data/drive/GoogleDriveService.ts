@@ -15,6 +15,11 @@ interface DriveFile {
 }
 interface DrivePage { files?: DriveFile[]; nextPageToken?: string; incompleteSearch?: boolean; }
 interface Index extends SourceCatalogListing { rootFolderId: string; folders: SourceFolder[]; updatedAt: number; }
+/** Where the folder picker looks: the person's own Drive or what was shared with them, optionally inside one folder. */
+export interface DriveBrowsePlace { area: "mine" | "shared"; folderId?: string; resourceKey?: string; }
+export interface DriveBrowseFolder { id: string; name: string; resourceKey?: string; }
+export interface DriveBrowsePage { folders: DriveBrowseFolder[]; nextPageToken?: string; }
+const DRIVE_ID = /^[\w-]{10,200}$/, RESOURCE_KEY = /^[\w-]{1,200}$/;
 const FOLDER_MIME = "application/vnd.google-apps.folder", SHORTCUT_MIME = "application/vnd.google-apps.shortcut";
 const FIELDS = "id,name,mimeType,size,modifiedTime,resourceKey,driveId,trashed,shortcutDetails(targetId,targetMimeType,targetResourceKey),capabilities(canDownload)";
 const API = "https://www.googleapis.com/drive/v3/files";
@@ -53,6 +58,39 @@ export class GoogleDriveService {
     await this.authorization.renew(source.id, async (token, checkSignal) => {
       if (await this.accountId(token, checkSignal) !== expected) throw new DriveError("disconnected");
     }, signal);
+  }
+  /**
+   * One level of folders for the picker (owner's request, 18/11/2026: choose the folder instead of pasting a link).
+   * Lists only folders and shortcuts to folders directly inside the place, one page at a time; never walks the whole Drive.
+   */
+  async browseFolders(sourceId: string, place: DriveBrowsePlace, pageToken?: string, signal?: AbortSignal): Promise<DriveBrowsePage> {
+    if (place.folderId !== undefined && !DRIVE_ID.test(place.folderId)) throw new DriveError("invalid-folder");
+    if (place.resourceKey !== undefined && !RESOURCE_KEY.test(place.resourceKey)) throw new DriveError("invalid-folder");
+    if (pageToken !== undefined && !/^[\w\-.~+/=]{1,1000}$/.test(pageToken)) throw new DriveError("api");
+    const kinds = `(mimeType = '${FOLDER_MIME}' or mimeType = '${SHORTCUT_MIME}')`;
+    const scope = place.folderId ? `'${place.folderId}' in parents` : place.area === "shared" ? "sharedWithMe = true" : "'root' in parents";
+    const params = new URLSearchParams({
+      q: `${scope} and trashed = false and ${kinds}`, pageSize: "100", orderBy: "name",
+      fields: "nextPageToken,files(id,name,mimeType,resourceKey,shortcutDetails(targetId,targetMimeType,targetResourceKey))",
+      supportsAllDrives: "true", includeItemsFromAllDrives: "true",
+    });
+    if (pageToken) params.set("pageToken", pageToken);
+    const headers = place.folderId ? resourceHeaders(place.folderId, place.resourceKey) : {};
+    const page = await this.json<DrivePage>(sourceId, `${API}?${params}`, headers, signal);
+    const folders: DriveBrowseFolder[] = [];
+    for (const file of page.files ?? []) {
+      const shortcut = file.mimeType === SHORTCUT_MIME;
+      if (shortcut && file.shortcutDetails?.targetMimeType !== FOLDER_MIME) continue;
+      if (!shortcut && file.mimeType !== FOLDER_MIME) continue;
+      const id = shortcut ? file.shortcutDetails?.targetId : file.id;
+      const resourceKey = shortcut ? file.shortcutDetails?.targetResourceKey : file.resourceKey;
+      const name = typeof file.name === "string" ? file.name.trim() : "";
+      if (!id || !DRIVE_ID.test(id) || !name || (resourceKey && !RESOURCE_KEY.test(resourceKey))) continue;
+      if (folders.some(folder => folder.id === id)) continue;
+      folders.push(resourceKey ? { id, name, resourceKey } : { id, name });
+    }
+    const next = typeof page.nextPageToken === "string" && page.nextPageToken ? page.nextPageToken : undefined;
+    return next ? { folders, nextPageToken: next } : { folders };
   }
   /** Drive account id (`about.user.permissionId`) for a token not yet kept. Never the e-mail. */
   private async accountId(token: string, signal?: AbortSignal): Promise<string> {

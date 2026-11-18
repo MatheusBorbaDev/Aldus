@@ -57,6 +57,7 @@ const FEATURES = [
   { id: 'community-forums', pedido: 'Community Etapa 3: fóruns com spoiler e moderação', markers: ['Abrir fóruns', 'Publicar tópico', 'Contém spoiler · mostrar', 'Enviar denúncia', 'community_report_content'], routes: ['community/forums', 'community/thread/[id]'] },
   // Termos
   { id: 'drive-renewal', pedido: '18/11: Drive sem reconectar a toda hora (renovação silenciosa, mesma conta Google)', markers: ['account-mismatch', 'Esta biblioteca foi conectada com outra conta Google'] },
+  { id: 'drive-folder-picker', pedido: '18/11: escolher a pasta do Drive navegando, sem colar link', markers: ['Escolha uma pasta', 'Compartilhados comigo', 'Prefiro colar o link de uma pasta'] },
   { id: 'account-delete', pedido: '17/11: excluir conta no app (betas públicas)', markers: ['Excluir conta', 'EXCLUIR MINHA CONTA', 'Continuar para a exclusão', 'account-delete'], routes: ['account/delete'] },
   { id: 'legal-antipiracy', pedido: 'FASE 1: texto antipirataria nos termos', markers: ['não vende nem empresta livros'] },
 ];
