@@ -120,6 +120,7 @@ export const privacyDocument: LegalDocument = {
         "Supabase: autenticação, perfil, biblioteca privada, arquivos EPUB/PDF e dados de leitura sincronizados.",
         "Google: autenticação escolhida pela pessoa e autorização/consultas/downloads da fonte Drive, quando conectada.",
         "Catálogos, sites e serviços escolhidos: consulta, navegação e download solicitado.",
+        "Open Library (Internet Archive) e Wikidata (Wikimedia): quando você busca um livro no catálogo do Aldus, só o texto buscado ou o ISBN é enviado do seu aparelho a esses serviços, para trazer título, autor, edição, assuntos e capa. Nenhum dado da sua conta, da sua biblioteca ou dos seus arquivos é enviado. As buscas recentes ficam guardadas só neste aparelho, separadas por conta, por até 7 dias.",
         "Autoridades ou terceiros quando houver fundamento e obrigação jurídica aplicável.",
       ],
       paragraphs: [
