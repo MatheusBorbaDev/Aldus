@@ -15,8 +15,10 @@
   Android era cortado ali (o Chrome do PC não corta). `createEpubReaderDocument` remove controles invisíveis; com a correção o mesmo livro
   carregou inteiro (11 capítulos, 2.350.563 caracteres, script presente) e, no APK final `727c69a`, abriu sem o overlay. Tempos medidos no
   APK final ao preparar do zero (1.144 páginas): extração ~20 s, validação ~12 s, "Montando documento" ~3 min 50 s (gargalo), finalização
-  ~30 s, primeira página ~15 s. PENDENTE: a preparação recomeçou do zero nessa abertura (cache não reaproveitado; causa não investigada) e
-  a montagem do documento continua lenta. Texto abaixo é o registro anterior, mantido como histórico: O overlay de `EpubPageViewer.native.tsx` só some com a primeira mensagem `page` do documento; ela não chegou.
+  ~30 s, primeira página ~15 s. A preparação do zero vinha de o dono ter reimportado o PDF (livro novo, sem cache), não de defeito:
+  depois de preparar (~4,5 min, montagem ~3 min 40 s), reabrir o mesmo livro usou o cache: "Abrindo livro" ~11 s, "Carregando página"
+  ~11 s, texto aos ~25 s, sem nova preparação. PENDENTE: a montagem do documento ("Montando documento...", JS no Hermes) é o gargalo da
+  primeira preparação; abrir pelo cache leva ~25 s num PDF de 1.144 páginas. Texto abaixo é o registro anterior, mantido como histórico: O overlay de `EpubPageViewer.native.tsx` só some com a primeira mensagem `page` do documento; ela não chegou.
   Causa INCONCLUSIVA. Descartado no Chrome (`EpubReaderDocument` real, 2 milhões de caracteres, 1 ou 30 capítulos, CPU 6× mais
   lenta, com as injeções que o app faz no carregamento): primeira `page` com `layoutReady` em 7–14 s, cerca de 2.900 páginas. Com o
   script vivo, o `beginInitialRestore` injetado no `onLoadEnd` reenvia o estado (zera `lastReportedKey`), então uma mensagem inicial
