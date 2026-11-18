@@ -24,7 +24,11 @@ interface VisualLine {
 }
 
 interface FlowParagraph {
-  text: string;
+  /**
+   * Pieces of the paragraph, joined only when it is flushed (18/11/2026). Joining the whole text at every line made a long
+   * paragraph (footnotes run together) quadratic: about 4.5 min of "Montando documento" for a 1,144-page PDF on the Redmi.
+   */
+  parts: string[];
   pageNumber: number;
   x: number;
   y: number;
@@ -62,7 +66,7 @@ function* buildReflowSteps(pages: PdfReflowPageData[], pageCount: number, deriva
 
   const flushParagraph = () => {
     if (!paragraph) return;
-    const text = normalizeText(paragraph.text);
+    const text = normalizeText(paragraph.parts.join(""));
     if (text) {
       characterCount += text.length;
       chapters[chapters.length - 1].blocks.push({
@@ -161,12 +165,12 @@ function* buildReflowSteps(pages: PdfReflowPageData[], pageCount: number, deriva
         continue;
       }
 
-      const next: FlowParagraph = { text, pageNumber: page.pageNumber, x: line.x, y: line.y, fontSize: line.fontSize, pageLeft: line.pageLeft };
+      const next: FlowParagraph = { parts: [text], pageNumber: page.pageNumber, x: line.x, y: line.y, fontSize: line.fontSize, pageLeft: line.pageLeft };
       if (!paragraph || shouldStartParagraph(paragraph, next)) {
         flushParagraph();
         paragraph = next;
       } else {
-        paragraph.text = joinWrappedLines(paragraph.text, text);
+        appendWrappedLine(paragraph.parts, text);
         paragraph.pageNumber = page.pageNumber;
         paragraph.y = line.y;
         paragraph.pageLeft = line.pageLeft;
@@ -307,19 +311,34 @@ function isTrackedGlyphLine(items: Array<PdfReflowTextItem & { fontSize: number 
 function shouldStartParagraph(previous: FlowParagraph, next: FlowParagraph): boolean {
   if (previous.pageNumber !== next.pageNumber) {
     const startsIndented = next.x - next.pageLeft > Math.max(18, next.fontSize * 1.1);
-    return startsIndented && /[.!?]["”’')\]]*$/u.test(previous.text.trim());
+    return startsIndented && /[.!?]["”’')\]]*$/u.test(paragraphEnd(previous.parts).trim());
   }
   const verticalGap = previous.y - next.y;
   const lineHeight = Math.max(previous.fontSize, next.fontSize);
   const startsIndented = next.x - next.pageLeft > Math.max(18, lineHeight * 1.1);
-  return verticalGap > lineHeight * 2.2 || (startsIndented && /[.!?]["”’')\]]*$/u.test(previous.text.trim()));
+  return verticalGap > lineHeight * 2.2 || (startsIndented && /[.!?]["”’')\]]*$/u.test(paragraphEnd(previous.parts).trim()));
 }
 
-function joinWrappedLines(previous: string, next: string): string {
-  if (/[\p{L}][\-\u00ad]$/u.test(previous) && /^\p{Ll}/u.test(next)) {
-    return `${previous.slice(0, -1)}${next}`;
+/** The last characters of the paragraph, across pieces: every rule here looks only at how the text ends. */
+function paragraphEnd(parts: string[], length = 64): string {
+  let end = "";
+  for (let index = parts.length - 1; index >= 0 && end.length < length; index--) end = parts[index] + end;
+  return end.slice(-length);
+}
+
+/**
+ * Same result as joining the whole text with the next line (hyphenated word rejoined, soft hyphen and trailing space dropped,
+ * otherwise one space), but touching only the end of the last piece: linear in the size of the book.
+ */
+function appendWrappedLine(parts: string[], next: string): void {
+  const last = parts.length - 1;
+  if (/[\p{L}][\-\u00ad]$/u.test(paragraphEnd(parts, 2)) && /^\p{Ll}/u.test(next)) {
+    parts[last] = parts[last].slice(0, -1);
+    parts.push(next);
+    return;
   }
-  return `${previous.replace(/[\u00ad]$/u, "").trimEnd()} ${next.trimStart()}`;
+  parts[last] = parts[last].replace(/[\u00ad]$/u, "").trimEnd();
+  parts.push(` ${next.trimStart()}`);
 }
 
 function isPunctuationStart(text: string): boolean {
