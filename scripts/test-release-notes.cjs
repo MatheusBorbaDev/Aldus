@@ -47,11 +47,14 @@ const flush = () => act(async () => { for (let i = 0; i < 5; i++) await Promise.
   const help = betaLimitationsDocument.sections.find(s => s.heading === 'Como nos ajudar');
   assert.match(help.bullets.at(-1), /^Canal para relatos: \S+@\S+\.\S+$/);
   assert.ok(betaLimitationsDocument.sections.some(s => s.heading === 'O que o Aldus não faz, de propósito'));
-  // The catalog is in the app (18/11): listed under "Seus livros" with its local-only limit, no longer "Em construção".
+  // The catalog is in the app (18/11): listed under "Seus livros", on every device; "Em construção" is gone (everything listed was delivered).
   const section = heading => betaLimitationsDocument.sections.find(s => s.heading === heading).bullets.join('\n');
-  assert.match(section('Seus livros'), /Buscar qualquer livro[\s\S]*ficam só no aparelho/);
-  assert.doesNotMatch(section('Em construção'), /Catálogo/);
-  assert.ok(RELEASE_NOTES.items.some(item => item.startsWith('Buscar qualquer livro')));
+  assert.match(section('Seus livros'), /Buscar qualquer livro[\s\S]*em todos os seus aparelhos/);
+  assert.doesNotMatch(JSON.stringify(betaLimitationsDocument), /ficam só no aparelho/);
+  assert.ok(!betaLimitationsDocument.sections.some(s => s.heading === 'Em construção'), 'nothing listed as planned that is already delivered');
+  assert.ok(RELEASE_NOTES.items.some(item => item.startsWith('Buscar qualquer livro') && /todos os seus aparelhos/.test(item)));
+  assert.ok(RELEASE_NOTES.items.some(item => item.startsWith('Nota e resenha pessoais')));
+  assert.ok(RELEASE_NOTES.items.every(item => !/só neste aparelho/.test(item)), 'no outdated local-only claim');
   assert.ok(RELEASE_NOTES.items.some(item => item.startsWith('Grifos na Leitura Livre')), 'owner-approved item (18/11)');
   // Loading screen quote (public domain, credited).
   await act(async () => { tree = create(React.createElement(AppLoadingScreen)); });

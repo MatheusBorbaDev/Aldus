@@ -1,4 +1,4 @@
-export const LEGAL_DOCUMENT_VERSION = "0.10";
+export const LEGAL_DOCUMENT_VERSION = "0.11";
 export const LEGAL_EFFECTIVE_DATE = "18 de novembro de 2026";
 export const LEGAL_REVIEW_STATUS = "Implementação jurídica inicial — revisão profissional pendente";
 
