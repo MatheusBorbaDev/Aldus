@@ -92,3 +92,13 @@ Prévia aprovada: `artifacts/capa-padrao/capas.html` e `previa-capas.png` (fora 
   "ALDUS" em versalete pequeno no rodapé.
 - **Fonte**: a serifa do sistema (Noto Serif no Android, Georgia na Web), sem baixar fonte.
 - **Acessibilidade**: rótulo "Título, Autor"; contraste do texto sobre o fundo nas 7 combinações a medir no teste.
+
+## Marca Aldus aplicada (18/11/2026)
+Decisão do dono ("pode ser"): sistema recomendado da cartilha (Retrato e nome + Medalha + Ícone), liderado por azul-noite `#1B1C30`
+e creme `#EFE6D6`, terracota `#A64E32` como secundária (a terracota sobre escuro é a cara do Livrim). Fontes em `assets/brand/`
+(SVG: ícone, ícone redondo, frente do adaptativo, medalha, assinatura, abertura; caminho do perfil em `aldus-perfil-path.txt`) e
+`node scripts/generate-brand-assets.cjs` gera os PNG com o Chrome: `mipmap-*/ic_launcher(.png|_round.png|_foreground.png)`,
+`mipmap-anydpi-v26` adaptativo com monocromático, `drawable-*/splashscreen_logo.png` (abertura em `drawable/splashscreen.xml`, fundo
+azul-noite, desenho centralizado), `assets/brand/icon-512.png` e `favicon.png` (`app.json`). Os ícones `.webp` do robô padrão saíram.
+Limites: o perfil foi retraçado em resolução dobrada com suavização automática, não redesenhado à mão; "Aldus" e "Reader" na
+abertura usam EB Garamond rasterizada (as letras não foram convertidas em curvas no SVG da assinatura). Busca no INPI pendente.

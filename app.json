@@ -35,7 +35,8 @@
     "web": {
       "name": "Aldus Reader",
       "shortName": "Aldus",
-      "lang": "pt-BR"
+      "lang": "pt-BR",
+      "favicon": "./assets/brand/favicon.png"
     },
     "plugins": [
       "expo-router",
@@ -55,6 +56,7 @@
         "projectId": "fd89ca78-4621-4457-bace-07638decbb2e"
       }
     },
-    "owner": "matheusborba19s-team"
+    "owner": "matheusborba19s-team",
+    "icon": "./assets/brand/icon-512.png"
   }
 }
