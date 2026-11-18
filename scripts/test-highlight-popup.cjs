@@ -7,7 +7,8 @@ global.IS_REACT_ACT_ENVIRONMENT = true;
 const names = { yellow: 'Amarelo', green: 'Verde', blue: 'Azul', pink: 'Rosa', purple: 'Roxo' };
 const load = require('./community-test-loader.cjs')({
   react: React, 'react/jsx-runtime': require('../.expo/auth-test-tools/node_modules/react/jsx-runtime'),
-  'react-native': { View: 'View', Text: 'Text', Pressable: 'Pressable', Platform: { OS: 'android' }, StyleSheet: { create: x => x } },
+  'react-native': { View: 'View', Text: 'Text', Pressable: 'Pressable', Platform: { OS: 'android' }, StyleSheet: { create: x => x, hairlineWidth: 1 } },
+  '@expo/vector-icons': { Ionicons: 'Icon' },
   '@/src/presentation/components/StudyPanelControls': { studyColorNames: names, studyColorSwatches: { yellow: '#F2D66F', green: '#A6D8AF', blue: '#A5CEEF', pink: '#F0B7CE', purple: '#C7B6E6' } },
   '@/src/utils/epubOpenMetrics': { epubDiagnosticConsole: { log() {} } },
 });
@@ -35,13 +36,19 @@ const anchor = { version: 1, kind: 'epub-text', chapterId: 'c1', start: 10, end:
   const byLabel = label => buttons().find(b => b.props.accessibilityLabel === label);
   const text = () => tree.root.findAllByType('Text').map(t => t.children.filter(c => typeof c === 'string').join('')).join('\n');
   assert.match(text(), /“frias carnes”/);
-  assert.deepEqual(buttons().map(b => b.props.accessibilityLabel), ['Grifar em amarelo', 'Grifar em verde', 'Grifar em azul', 'Grifar em rosa', 'Grifar em roxo', 'Palavra antes', 'Palavra depois', 'Tirar a última', 'Frase inteira', 'Adicionar nota', 'Cancelar']);
+  const colorLabels = ['Grifar em amarelo', 'Grifar em verde', 'Grifar em azul', 'Grifar em rosa', 'Grifar em roxo'];
+  assert.deepEqual(buttons().map(b => b.props.accessibilityLabel), ['Cancelar', ...colorLabels, 'Adicionar nota', 'Ajustar trecho'], 'compact: close, colors, note and adjust; adjustments hidden until asked');
+  await act(async () => byLabel('Ajustar trecho').props.onPress());
+  assert.deepEqual(buttons().map(b => b.props.accessibilityLabel), ['Cancelar', ...colorLabels, 'Adicionar nota', 'Fechar ajuste do trecho', 'Tirar a primeira', 'Palavra antes', 'Tirar a última', 'Palavra depois', 'Frase inteira']);
+  assert.equal(byLabel('Fechar ajuste do trecho').props.accessibilityState.expanded, true);
   for (const b of buttons()) { const s = flat(b.props.style); assert.ok((s.minHeight ?? s.height) >= 44, `${b.props.accessibilityLabel}: 44 px target`); assert.equal(b.props.accessibilityRole, 'button'); }
   await act(async () => byLabel('Grifar em verde').props.onPress()); await act(async () => byLabel('Frase inteira').props.onPress());
+  for (const label of ['Tirar a primeira', 'Palavra antes', 'Tirar a última', 'Palavra depois']) await act(async () => byLabel(label).props.onPress());
   await act(async () => byLabel('Adicionar nota').props.onPress()); await act(async () => byLabel('Cancelar').props.onPress());
-  assert.deepEqual(calls, [['color', 'green'], ['adjust', 'sentence'], ['note'], ['cancel']]);
+  assert.deepEqual(calls, [['color', 'green'], ['adjust', 'sentence'], ['adjust', 'shrinkStart'], ['adjust', 'growStart'], ['adjust', 'shrinkEnd'], ['adjust', 'growEnd'], ['note'], ['cancel']]);
+  await act(async () => byLabel('Fechar ajuste do trecho').props.onPress()); assert.equal(byLabel('Frase inteira'), undefined, 'adjustments fold away');
   await act(async () => tree.update(React.createElement(HighlightSelectionPopup, props({ onShare: () => calls.push(['share']) }))));
-  assert.deepEqual(buttons().slice(-3).map(b => b.props.accessibilityLabel), ['Adicionar nota', 'Compartilhar', 'Cancelar'], 'quote card entry (phase C)');
+  assert.deepEqual(buttons().slice(-3).map(b => b.props.accessibilityLabel), ['Adicionar nota', 'Compartilhar', 'Ajustar trecho'], 'quote card entry (phase C) between note and adjust');
   await act(async () => byLabel('Compartilhar').props.onPress()); assert.deepEqual(calls.at(-1), ['share']);
   await act(async () => tree.update(React.createElement(HighlightSelectionPopup, props({ busy: true }))));
   assert.ok(buttons().filter(b => b.props.accessibilityLabel !== 'Cancelar').every(b => b.props.disabled), 'busy disables saving and adjusting');
@@ -68,5 +75,5 @@ const anchor = { version: 1, kind: 'epub-text', chapterId: 'c1', start: 10, end:
   await act(async () => tree.update(React.createElement(ReadingTouchZones, { onPreviousPage() {}, onNextPage() {}, onToggleControls() {} })));
   assert.ok(tree.root.findAllByType('Pressable').every(z => z.props.onLongPress === undefined), 'no long press when the reader does not support highlights');
   await act(async () => tree.unmount());
-  console.log('PASS highlight pop-up: record creation (anchor round trip, note limit), 5 colors + 4 adjustments + note/cancel with 44 px targets, busy/selecting/error states keep the trecho, press-and-hold coordinates per zone, no long press without support. Controlled components; no Android touch proof.');
+  console.log('PASS highlight pop-up: record creation (anchor round trip, note limit), compact layout (close, 5 colors, Nota/Card/Ajustar) with start and end − / + and whole sentence behind Ajustar, 44 px targets, busy/selecting/error states keep the trecho, press-and-hold coordinates per zone, no long press without support. Controlled components; no Android touch proof.');
 })().catch(error => { console.error(error); process.exitCode = 1; });
