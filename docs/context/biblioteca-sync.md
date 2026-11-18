@@ -409,4 +409,21 @@ limite do possível, e que tenha uma certa qualidade"; capa padrão Aldus "bem b
   `4c06823` modelo `CatalogBook`, ISBN com dígito verificador, categorias do Aldus, junção de repetidos, Open Library (capa por número,
   1 pedido/s), gêneros do Wikidata por ISBN, cache por conta (7 dias, 100 buscas) e composição em `src/data/catalog/catalogDependencies.ts`,
   ainda sem tela. Teste `test-catalog` (critical). Cache e recomendações no aparelho, conforme o pedido "pode colocar o que falta".
-- Próximo: fase 2 (busca e ficha do livro, "Quero ler", livro sem arquivo), que só vai ao app com o texto de privacidade aprovado.
+- Fase 2 feita no código (18/11): `d8d929c` livro sem arquivo e "Quero ler"; `ba1d548` tela `/catalog`; `9aef986` integração na Biblioteca.
+  Teste `catalog-records` (critical).
+  - Livro sem arquivo: `LibraryBook.kind = "record"`, id com prefixo `record-` (as duas condições juntas em `isRecordBook`), `catalogId`,
+    `recordFormat` (physical/ebook/audiobook), mime `application/x.aldus-record`, sem caminho, hash, tamanho nem capítulos. Abrir leva à
+    folha Organizar. Capa = endereço do Open Library ou a capa padrão Aldus.
+  - "Quero ler" = `BookOrganization.wantToRead?: boolean` (só `true` é gravado). Viaja no Sync de livros com arquivo: o servidor guarda o
+    payload de organização sem esquema. Um app antigo ignora o campo e, se regravar a organização, o perde (aceito na beta).
+  - Trava `RECORD_BOOKS_SYNC_ENABLED = false`: `AccountBookRepository.save/softDelete`, `journalOrganization` (save, saveMany, merge) e
+    `LibraryLocalReplica.seed` não registram nada de `record-`; `LibrarySyncCoordinator.availability` mostra "Neste dispositivo".
+- PENDENTE, migração do servidor para sincronizar livro sem arquivo (não escrita; precisa de autorização própria para aplicar):
+  1. `library_private.library_apply`: aceitar `format = 'record'` sem `remotePath` (hoje só epub/pdf).
+  2. `saas_private.enforce_book_quota`: não contar `format = 'record'` (decisão do dono: livro sem arquivo não conta na franquia).
+  3. Cliente: `bookSyncPayload` com `format: 'record'`, `kind`, `catalogId`, `recordFormat`; `LibraryLocalReplica.apply` recriar o livro
+     sem arquivo; nunca tentar baixar arquivo dele.
+  4. Compatibilidade: um APK antigo que receba uma linha `format = 'record'` a trataria como EPUB sem arquivo ("Na nuvem"); decidir se
+     a trava só liga quando todos os testadores estiverem num APK novo. Depois, ligar `RECORD_BOOKS_SYNC_ENABLED` e o `seed` envia os já guardados.
+- Seguintes: A5 (vincular arquivo importado ao item do catálogo: ISBN, depois título e autor, perguntando na dúvida), vitrine e
+  recomendações no aparelho, nota e resenha pessoais, importação do Goodreads (CSV) com revisão, progresso manual de livro sem arquivo.

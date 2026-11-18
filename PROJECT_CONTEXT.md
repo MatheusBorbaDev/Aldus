@@ -423,6 +423,18 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
   privacidade v0.10 (buscas do catálogo); `2bfc1f0` frase de Castro Alves na tela de carregamento, aviso de novidades com aviso de beta e
   a página "O que esperar desta beta" (também em Ajustes; canal de relatos = contato de suporte já aprovado). `test:critical` 136/136;
   lista de entrega 40 recursos. NÃO em APK ainda. Próximo: catálogo fase 2 (busca e ficha do livro).
+- Catálogo fase 2 ("Sim, seguir"): `d8d929c` livro sem arquivo (`kind: "record"`, id `record-`, sem caminho/hash/tamanho) e "Quero ler"
+  como campo booleano da organização (não um quinto estado: apps antigos recusariam); livro sem arquivo e a organização dele NÃO entram
+  no outbox enquanto `RECORD_BOOKS_SYNC_ENABLED=false` (o servidor exige formato epub/pdf e conta toda linha de livro na franquia).
+  `ba1d548` tela `/catalog` (busca só ao pedir, ficha com Livro físico / E-book de outra loja / Audiolivro e Quero ler / Estou lendo / Já
+  li; avisa que fica só neste aparelho; crédito ao Open Library; sem conteúdo nem download). `9aef986` Biblioteca: "Buscar qualquer
+  livro" no menu Adicionar, filtro e prefixo "Quero ler", chave na folha Organizar, cartão com o formato, situação "Neste dispositivo".
+- VALIDADO (local): typecheck; `test:critical` 137/137 (nova `catalog-records`, repositórios reais em SQLite + tela; falha com a trava do
+  outbox desligada); `export:web`; lista de entrega 41 recursos (`--source` e `--dist`). Ficha conferida em captura a 320/390 px
+  (react-native-web): a escolha foi para cima dos detalhes, que empurravam os botões para fora da tela.
+- NÃO TESTADO: aparelho, busca real no Open Library pela tela, filtro "Quero ler" da Biblioteca (sem teste de tela). PENDENTE: migração do
+  servidor para livro sem arquivo (ver `docs/context/biblioteca-sync.md` §7.3); texto da beta ("Em construção" ainda diz que o catálogo
+  não está no app) e item nas novidades aguardam aprovação do dono; APK novo.
 
 ### 17/11/2026 — Revisão para as betas públicas: dependências, banco, hospedagem (Claude)
 - Pedido do dono: ajustar dependências e configurações (banco, hospedagem etc.) e revisar o necessário para iniciar o plano das betas públicas.
