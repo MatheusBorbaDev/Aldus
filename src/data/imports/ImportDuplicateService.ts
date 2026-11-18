@@ -2,7 +2,8 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as FileSystem from "expo-file-system/legacy";
 import { Platform } from "react-native";
 import { withAbort } from "@/src/core/utils/cancellation";
-import { hashBookFile, MAX_PRIVATE_BOOK_SIZE } from "@/src/data/library/BookFileIntegrity";
+import { hashBookFile, hashLocalBookFile, MAX_PRIVATE_BOOK_SIZE, NativeFileHasher } from "@/src/data/library/BookFileIntegrity";
+import { nativeFileHasher } from "@/src/data/library/nativeFileHasher";
 import { libraryAccountScope } from "@/src/data/library/LibraryAccountScope";
 import { LibraryBook } from "@/src/domain/entities/LibraryBook";
 import { BookRepository } from "@/src/domain/repositories/BookRepository";
@@ -39,7 +40,8 @@ export class ImportDuplicateService {
     private readonly books: Pick<BookRepository, "findById">,
     private readonly storage: KeyValueStorage = AsyncStorage,
     private readonly files: HashFileSystem = FileSystem as unknown as HashFileSystem,
-    private readonly platform: string = Platform.OS
+    private readonly platform: string = Platform.OS,
+    private readonly native: NativeFileHasher | null = nativeFileHasher
   ) {}
 
   async check(file: PickedBookFile, signal: AbortSignal): Promise<ImportDuplicateCheck> {
@@ -82,9 +84,6 @@ export class ImportDuplicateService {
       size = info.exists && !info.isDirectory ? info.size ?? null : null;
     }
     if (!size || size <= 0 || size > MAX_PRIVATE_BOOK_SIZE) return null;
-    return hashBookFile(size, async (position, length) => {
-      const encoded = await withAbort(this.files.readAsStringAsync(file.uri, { encoding: "base64", position, length }), signal);
-      return Uint8Array.from(atob(encoded), character => character.charCodeAt(0));
-    }, signal);
+    return hashLocalBookFile(file.uri, size, (position, length) => withAbort(this.files.readAsStringAsync(file.uri, { encoding: "base64", position, length }), signal), signal, this.native);
   }
 }

@@ -12,13 +12,14 @@ import { PdfFileImporter } from '@/src/data/local/PdfFileImporter';
 import { ImportEpubUseCase } from '@/src/domain/usecases/ImportEpubUseCase';
 import { throwIfAborted, withAbort } from '@/src/core/utils/cancellation';
 import { newLibraryId } from '@/src/domain/entities/libraryId';
-import { hashBookFile, MAX_PRIVATE_BOOK_SIZE, privateBookPath } from './BookFileIntegrity';
+import { hashBookFile, hashLocalBookFile, MAX_PRIVATE_BOOK_SIZE, NativeFileHasher, privateBookPath } from './BookFileIntegrity';
+import { nativeFileHasher } from './nativeFileHasher';
 import { BookFileDriver, BookFileReference } from './PrivateBookFileService';
 
 const BUCKET = 'aldus-private-library';
 /** Authenticated Storage only. JWT is frozen per operation and never persisted in a job. */
 export class SupabaseBookFileDriver implements BookFileDriver {
-  constructor(private files: WebBookFileStore) {}
+  constructor(private files: WebBookFileStore, private native: NativeFileHasher | null = nativeFileHasher) {}
   private async headers(owner: string) {
     if (!supabase) throw new Error('Sincronização não configurada.');
     const { data, error } = await supabase.auth.getSession();
@@ -39,11 +40,10 @@ export class SupabaseBookFileDriver implements BookFileDriver {
     return info.exists && !info.isDirectory && info.size > 0 ? { uri: book.filePath, size: info.size } : null;
   }
   hash(file: BookFileReference, signal: AbortSignal) {
-    return hashBookFile(file.size, async (position, length) => {
-      if (file.blob) return new Uint8Array(await withAbort(file.blob.slice(position, position + length).arrayBuffer(), signal));
-      const encoded = await withAbort(FileSystem.readAsStringAsync(file.uri, { encoding: 'base64', position, length }), signal);
-      return Uint8Array.from(atob(encoded), character => character.charCodeAt(0));
-    }, signal);
+    const blob = file.blob;
+    if (blob) return hashBookFile(file.size, async (position, length) => new Uint8Array(await withAbort(blob.slice(position, position + length).arrayBuffer(), signal)), signal);
+    // Android: native streaming SHA-256 off the JS thread; same digest as the JavaScript path it replaces.
+    return hashLocalBookFile(file.uri, file.size, (position, length) => withAbort(FileSystem.readAsStringAsync(file.uri, { encoding: 'base64', position, length }), signal), signal, this.native);
   }
   private async quotaRpc(headers: Record<string,string>, name: string, body: object, signal: AbortSignal): Promise<any> {
     const controller=new AbortController(),abort=()=>controller.abort();
