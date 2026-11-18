@@ -467,6 +467,12 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
   lista de entrega 49. ATENÇÃO: com `RECORD_BOOKS_SYNC_ENABLED=true` no HEAD, nenhum APK/Web pode sair antes de aplicar a migration; APK
   `79ad0a2` e o Web publicado recusam `format: 'record'` e param de sincronizar a conta que tiver livro sem arquivo até atualizar.
   Textos públicos (beta, novidades, privacidade v0.11) aguardam aprovação. NÃO TESTADO no aparelho.
+- Dono: "Sim, aplicar tudo". Migration `20261118120000_record_books` APLICADA no Supabase "Kindle reader" (`cmivracxuihtmsbmtuec`) pelo SQL
+  Editor no Chrome deste PC: antes, md5 do corpo remoto das 4 funções = repositório (3 com CRLF); colada com SHA-256 `500f46b3…d1335207`
+  conferido na página; "Success. No rows returned"; depois, md5 remoto = versão nova nas 4 funções e permissões conferidas no catálogo
+  (privadas sem execução para authenticated/anon; `library_apply` e `saas_account_snapshot` só authenticated). Não entra no ledger de
+  migrations. Sonda REST anônima NÃO feita (exigiria ler a chave do `.env.local`). `9ca55d5` textos aprovados aplicados (privacidade v0.11,
+  beta sem "Em construção", novidades id `2026-11-18.2`). O Web publicado e o APK `79ad0a2` precisam ser atualizados (rejeitam livro sem arquivo).
 
 ### 17/11/2026 — Revisão para as betas públicas: dependências, banco, hospedagem (Claude)
 - Pedido do dono: ajustar dependências e configurações (banco, hospedagem etc.) e revisar o necessário para iniciar o plano das betas públicas.
