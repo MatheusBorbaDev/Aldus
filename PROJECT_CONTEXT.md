@@ -450,7 +450,14 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
   `.expo/apk-f30f6a8-build.log`), checagem obrigatória PASS (43 recursos, só acervo em domínio público, manifesto). `artifacts/apk/Aldus-f30f6a8-
   device-rehearsal.apk`, 157.124.699 bytes, SHA-256 `c5c0001f…861f5291`; `com.aldus.reader` 1.0.0-beta.2 (versionCode 3, igual ao
   `79ad0a2`), não depurável, 4 ABIs, certificado de debug `fac61745…033b9c` (ensaio: chave pública no repositório, não é o Beta privado).
-  `expo/modules/aldusfilehash/AldusFileHashModule` presente no dex. NÃO instalado; nada exercitado no aparelho.
+  `expo/modules/aldusfilehash/AldusFileHashModule` presente no dex.
+- Dono instalou o `f30f6a8` e relatou "não mudou nada" (sem novidades, frase, catálogo); o bundle do APK tem todos os textos novos
+  (conferido por busca de texto). Todos os APKs de ensaio desde 16/11 tinham versionCode 3 e não mostravam o commit. `4db7fe9`: versionCode 4
+  e commit em Ajustes/Versão (`EXPO_PUBLIC_BUILD_REVISION` injetado por `build-apk-local`). APK `artifacts/apk/Aldus-4db7fe9-device-rehearsal.apk`,
+  157.125.199 bytes, SHA-256 `2e8484ee…6890a14e`, versionCode 4, mesmo certificado de debug, Gradle 3m1s, checagem PASS (43), commit no bundle.
+  NÃO instalado por mim. O dono também esperava vitrine, recomendações e categorias: são a fase 4 do catálogo, NÃO feitas; eu não avisei
+  antes do APK. Pendências do catálogo: vitrine/recomendações, vínculo arquivo↔catálogo (A5), nota e resenha, progresso manual, Goodreads,
+  migração do livro sem arquivo (servidor, autorização própria).
 
 ### 17/11/2026 — Revisão para as betas públicas: dependências, banco, hospedagem (Claude)
 - Pedido do dono: ajustar dependências e configurações (banco, hospedagem etc.) e revisar o necessário para iniciar o plano das betas públicas.
