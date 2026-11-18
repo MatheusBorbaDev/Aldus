@@ -68,3 +68,10 @@ meio da leitura das pastas renova uma vez e recomeça. Reconexão manual de font
 (`account-mismatch`). Teste `test-drive-renewal` (critical). NÃO TESTADO: aparelho e conta Google real; o módulo
 Kotlin mudou e exige APK novo. Limite possível: com o app Google em modo de teste, a permissão pode vencer de vez após
 alguns dias (a confirmar no aparelho).
+
+### 8.y Escolher a pasta e biblioteca mais quieta (18/11/2026, `f5027c7`, `3409563`)
+Depois de conectar, "Escolha uma pasta" lista só pastas (e atalhos para pastas) de Meu Drive ou Compartilhados comigo, um nível por
+vez, com caminho, "Carregar mais" e "Usar a pasta"; a raiz de cada área não pode ser escolhida (nunca ler o Drive inteiro). IDs e chaves
+de recurso são validados antes de entrar na consulta. Colar o link continua em "Prefiro colar o link de uma pasta". Na biblioteca, o aviso
+de reconectar e o de sem conexão viraram uma faixa fina; a ordenação é um botão com menu; "Conectado" aparece só com acesso válido agora.
+Testes: `test-drive-folder-picker` (critical), `test-source-ui`, `test:source-library:browser`. NÃO TESTADO: Drive real e aparelho.

@@ -397,6 +397,24 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
 
 ## 10. Log (mais recente primeiro; máx. 5 entradas, resto → docs/context/historico/)
 
+### 18/11/2026 — Drive sem reconectar, escolher pasta, grifo compacto e card com capa (Claude)
+- Pedido do dono: "melhora de design na telinha que abre quando vai fazer um grifo ou compartilhar"; Drive "feio, difícil de acessar e
+  usar" e "fica desconectando e precisa reconectar a toda hora". Proposta visual aprovada ("Aprovo, começar"), depois "Pode finalizar todos
+  os passos sem precisar me perguntar".
+- `67457a5` Drive renova o acesso sozinho para a mesma conta Google (`driveAccountId` = `about.user.permissionId`; Android
+  `interactive=false`; Web reconecta sem seletor); detalhes em `docs/context/sources-drive.md` §8.x. `f5027c7` escolher a pasta navegando
+  (Meu Drive, Compartilhados comigo, um nível por vez, raiz não escolhível; colar link continua). `3409563` biblioteca do Drive com aviso
+  numa faixa fina, ordenação num botão com menu (os botões cortavam no celular) e "Conectado" só com acesso válido. `4b69142` pop-up do
+  grifo compacto (trecho numa linha com fechar, 5 cores, Nota/Card/Ajustar; início e fim com − e +). `ca8f5b0` folha do card de baixo para
+  cima, modelos em bolinhas, formato num seletor, capa do livro (ligada, decisão de 18/11) e capítulo no card, botão fixo no rodapé.
+- VALIDADO (local): typecheck; `test:critical` 134/134 (novas `drive-renewal`, `drive-folder-picker`); `test:drive`; `test-source-ui`;
+  `test:source-library:browser` (320/390/768/1440, escuro, texto 1,3×); `test:reader:browser`; `export:web`; lista de entrega com 38
+  recursos. Pop-up, folha e cards renderizados de verdade (react-native-web e Chrome) e conferidos antes de cada commit; o teste de renovação e
+  o do seletor falham com a trava desligada.
+- NÃO TESTADO: aparelho e conta Google real; o módulo Kotlin do Drive mudou e só um APK novo confirma; com o app Google em modo de teste a
+  permissão pode vencer de vez após alguns dias. Bibliotecas do Drive já existentes pedem uma reconexão a mais, a primeira depois da
+  atualização, para gravar a conta.
+
 ### 17/11/2026 — Revisão para as betas públicas: dependências, banco, hospedagem (Claude)
 - Pedido do dono: ajustar dependências e configurações (banco, hospedagem etc.) e revisar o necessário para iniciar o plano das betas públicas.
 - `ae0ec82` patches do SDK 57 (`expo`, `expo-linking`, `expo-router`, `expo-sqlite`); audit 0 críticos / 3 altos (só SDK 58) / 6 moderados de build;
@@ -460,20 +478,8 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
 - NÃO TESTADO: rolagem dentro da WebView no Redmi e memória em PDF longo. PENDENTE: fatias 2 e 3 (EPUB/Leitura Livre), que mudam o núcleo de
   posição do Reader; paradas para decisão do dono sobre a ordem (antes ou depois de homologar A–E1 no aparelho).
 
-### 16/11/2026 — Leitura e compartilhamento, Fase D: virar página (Claude)
-- Pedido do dono: animação de troca de página "com a página passando, igual o Kindle". `de31a33`: Ajustes de leitura → Página → "Virar
-  página" (Sem animação · Deslizar, o de sempre e padrão · Folhear), EPUB e Leitura Livre. "Folhear" gira a página visível em 3D pela lombada
-  (dobra, troca de lado, abre); decisão técnica: sem cópia da página, porque os capítulos dividem as mesmas colunas e copiar "só a página"
-  exigiria copiar o livro a cada virada. A página só é confirmada no fim; toques rápidos agora acumulam (3 toques = 3 páginas) em todos os
-  modos; reduzir movimento do sistema (Android e `prefers-reduced-motion`) força "Sem animação" sem mudar a escolha.
-- Achado do caminho: o Windows deste PC está com animações desligadas e o Chrome reporta `reduce`; o teste de navegador agora emula as duas
-  preferências. Também corrigidas duas regressões de TESTE das fases anteriores: a fixture de `test:reader:settings:web` devolvia `{}` para os
-  módulos novos (painel quebrava ali desde a Fase A) e a seleção da Fase B falhava no `test:reader:reflow:web` (página sem palavra: SKIP explícito).
-- VALIDADO (local): typecheck; `test:critical` 129/129 (nova `page-turn`); `test:reader:{browser,epub,reflow,settings,study,markings,pdf,concentration}`
-  PASS; `export:web`; lista de entrega com 33 recursos. Quadros reais do "Folhear" capturados no Chrome.
-- NÃO TESTADO: fluidez no Redmi (o "Folhear" usa 3D da WebView), arrastar a folha com o dedo (fora do escopo), PDF Original (troca como antes).
-
 ### 06/11/2026 — Entradas anteriores
+- Leitura e compartilhamento, Fase D (virar página, 16/11): ver `docs/context/historico/2026-11-16-leitura-fase-d.md`.
 - Fechamento UX/UI e Onboarding 1: ver `docs/context/historico/2026-11-06-ux-fechamento-e-onboarding-1.md`.
 - Onboarding 2 (auditoria e reescrita do contexto): ver `docs/context/historico/2026-11-06-onboarding-2.md`.
 - Redesign Fase 1 (fundação `src/ui`): ver `docs/context/historico/2026-11-06-redesign-fase-1.md`.
