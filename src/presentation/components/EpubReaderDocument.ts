@@ -35,7 +35,7 @@ export function chapterLanguage(html: string): string | null {
 export function createEpubReaderDocument(chapters: StoredChapter[], options: ReaderDocumentOptions): string {
   const languages = chapters.map(chapter => chapterLanguage(chapter.html));
   const documentLanguage = languages.find(Boolean) ?? null;
-  const sections = chapters.map((chapter, index) => {
+  const sections = stripUnsafeCharacters(chapters.map((chapter, index) => {
     const rawBody = chapter.html.match(/<body\b[^>]*>([\s\S]*?)<\/body>/i)?.[1] ?? chapter.html.replace(/<\/?(?:html|head|body|\?xml)[^>]*>/gi, "");
     // CSS do capítulo é texto de <style>: um "<" ali poderia fechar o bloco e abrir marcação; vira escape de CSS.
     const chapterStyles = [...chapter.html.matchAll(/<style\b[^>]*>([\s\S]*?)<\/style>/gi)].map((match) => `<style>${match[1].replace(/</g, "\\3c ")}</style>`).join("");
@@ -49,7 +49,7 @@ export function createEpubReaderDocument(chapters: StoredChapter[], options: Rea
       });
     const lang = languages[index];
     return `<section id="epub-chapter-${index}" class="epub-chapter"${lang ? ` lang="${escapeAttribute(lang)}"` : ""} data-chapter-id="${escapeAttribute(chapter.id)}" data-chapter-index="${index}" data-chapter-title="${escapeAttribute(chapter.title)}">${chapterStyles}${safeBody}</section>`;
-  }).join("\n");
+  }).join("\n"));
 
   const pagePadding = Math.max(16, Math.min(48, Math.round(options.marginSize)));
   const safeFont = readerCssFontFamily(options.fontFamily);
@@ -1114,4 +1114,31 @@ export function readerCssFontFamily(font: string): string {
 /** "Alta legibilidade (Verdana)" abre letras e palavras; as demais fontes não mudam. Cópia embutida igual no documento. */
 export function readerFontSpacingCss(font: string): string {
   return font === "Verdana" ? "letter-spacing: 0.05em !important; word-spacing: 0.16em !important;" : "";
+}
+
+/**
+ * Caracteres que o documento do leitor não pode levar ao WebView (18/11/2026). Texto extraído de PDF pode trazer o caractere nulo
+ * e outros controles invisíveis; no Android o documento passado à WebView era cortado ali ("Marx biografia": 14 mil caracteres de
+ * milhões, sem o script, "Carregando página..." para sempre e sem grifo). Sai: controles C0 exceto tabulação e quebras de linha,
+ * DEL e os não caracteres U+FFFE/U+FFFF; surrogate sozinho vira U+FFFD. Texto sem esses caracteres volta igual, sem cópia.
+ */
+export function stripUnsafeCharacters(text: string): string {
+  if (!/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F\uD800-\uDFFF\uFFFE\uFFFF]/.test(text)) return text;
+  const parts: string[] = [];
+  let start = 0;
+  for (let index = 0; index < text.length; index++) {
+    const code = text.charCodeAt(index);
+    if (code >= 0xd800 && code <= 0xdbff) {
+      const next = text.charCodeAt(index + 1);
+      if (next >= 0xdc00 && next <= 0xdfff) { index++; continue; }
+    }
+    const control = (code < 0x20 && code !== 0x09 && code !== 0x0a && code !== 0x0d) || code === 0x7f || code === 0xfffe || code === 0xffff;
+    const lone = code >= 0xd800 && code <= 0xdfff;
+    if (!control && !lone) continue;
+    parts.push(text.slice(start, index));
+    if (lone) parts.push("\uFFFD");
+    start = index + 1;
+  }
+  parts.push(text.slice(start));
+  return parts.join("");
 }

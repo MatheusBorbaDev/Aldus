@@ -112,6 +112,20 @@ assert.ok(createEpubReaderDocument(chapter('<p>a</p>'), { ...options, scriptNonc
 { const injected = createEpubReaderDocument(chapter('<p>a</p>'), { ...options, scriptNonce: `x' 'unsafe-inline` });
   assert.match(injected, /script-src 'nonce-[a-f0-9]{32}';/, 'nonce inválido é ignorado e trocado por um sorteado');
   assert.ok(!/script-src[^;]*unsafe-inline/.test(injected), 'nonce inválido não injeta diretiva na CSP'); }
+// Leitura Livre do "Marx biografia" (18/11/2026, Redmi): texto de PDF com o caractere nulo cortava o documento na WebView do Android
+// (14 mil caracteres de milhões, sem o script). Controles invisíveis saem antes de montar o documento; texto válido fica intacto.
+{ const { stripUnsafeCharacters } = load('src/presentation/components/EpubReaderDocument.ts');
+  const dirty = [{ id: 'r-0', title: 'Início', html: '<body><article><h1>S\u0000UMÁRIO</h1><p>a\u0001b\u000Bc\u007Fd￾e￿f</p></article></body>', characterCount: 1 },
+    { id: 'r-1', title: 'Cap\u0000ítulo 2', html: '<body><article><p>Segundo capítulo com 😀 e \uD800 sozinho.</p></article></body>', characterCount: 1 }];
+  const out = createEpubReaderDocument(dirty, options);
+  assert.ok(!/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F￾￿]/.test(out), 'no control or noncharacter reaches the WebView');
+  assert.ok(out.includes('SUMÁRIO') && out.includes('abcdef') && out.includes('data-chapter-title="Capítulo 2"'), 'text joined, nothing else lost');
+  assert.ok(out.includes('Segundo capítulo com 😀 e � sozinho.'), 'valid pair kept, lone surrogate replaced');
+  assert.equal(out.match(/class="epub-chapter"/g).length, 2, 'every chapter present');
+  assert.ok(out.includes('<script nonce=') && out.trimEnd().endsWith('</html>'), 'the reader script is still in the document');
+  const clean = 'Texto comum, com acentos: ção — “aspas”\n\tfim';
+  assert.strictEqual(stripUnsafeCharacters(clean), clean, 'clean text is returned as is');
+  assert.equal(stripUnsafeCharacters('\u0000'), ''); assert.equal(stripUnsafeCharacters('a\uDC00b'), 'a�b'); }
 const script = doc.slice(doc.indexOf('<script nonce='), doc.lastIndexOf('</script>'));
 assert.match(script, /href\.charAt\(0\) !== "#"\) \{ event\.preventDefault\(\); return; \}/, 'link externo não navega o Reader');
 assert.match(script, /addEventListener\("error"[\s\S]{0,160}epubError = "true"/, 'falha de imagem marcada por ouvinte');
