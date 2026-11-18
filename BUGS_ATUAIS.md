@@ -26,8 +26,11 @@
   Hermes; 45 s no SHA-256). Num celular intermediário, minutos por arquivo, e a mesma conta pode rodar até 3 vezes. Entre blocos a
   thread de JS só cede por `setTimeout(0)`: cada bloco a trava por cerca de 1 s ou mais, atrasando toque, pop-up de grifo (que desiste
   em 5 s com "O leitor não respondeu") e mensagens do leitor. Hipótese que une os três relatos (lentidão, "Carregando página" e grifo
-  que não responde) enquanto um PDF grande está sendo assinado; NÃO confirmada no aparelho. Correção proposta: SHA-256 nativo no
-  Android (leitura em fluxo no Kotlin), sem mudar o formato do hash. PENDENTE (aguarda o dono).
+  que não responde) enquanto um PDF grande está sendo assinado; NÃO confirmada no aparelho. Dono: "Sim, implementar".
+  **IMPLEMENTADO NO CÓDIGO** (`50b8f6a`): módulo local `modules/aldus-file-hash` (Kotlin, SHA-256 em fluxo em `Dispatchers.IO`,
+  cancelável), usado por `hashLocalBookFile` no import, no Sync e na assinatura da Leitura Livre; Web/testes seguem em JS. VALIDADO no
+  PC: `test-file-hash` (critical), suítes de import/arquivos/driver, Kotlin compilado (`:aldus-file-hash:compileDebugKotlin`).
+  NÃO TESTADO: o hash do Kotlin no aparelho e o ganho real de tempo; precisa de APK novo e de um PDF grande no celular.
 - **GRIFO 02 — "não consigo grifar trechos dos livros"** (relato junto do "Marx biografia", Leitura Livre). Build dos usuários
   externos confirmada pelo dono: `79ad0a2` (18/11, já com `83f2dc6`). Causa CONFIRMADA no código: **grifo na Leitura Livre do PDF não
   existe**. `ReaderScreen.tsx` liga o segurar-para-grifar só em EPUB (`selectTextAt = isEpub ? … : undefined`), os grifos desenhados

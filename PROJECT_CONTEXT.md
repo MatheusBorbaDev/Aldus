@@ -441,6 +441,11 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
   A3). "Carregando página..." infinito na Leitura Livre de PDF longo: INCONCLUSIVO, não reproduz no Chromium, sem acesso ao aparelho
   (BUGS_ATUAIS REFLOW 02). VALIDADO no PC: typecheck, `test:critical` 137/137, suítes de leitor no navegador (`browser`, `highlight`,
   `study`, `markings`, nova `reflow-highlight`), `export:web`, lista de entrega 42. NÃO TESTADO no aparelho; precisa de APK novo.
+- Esclarecimento do dono: o grifo falhou num **EPUB** adicionado pelo celular (não na Leitura Livre). Sem defeito achado no caminho do
+  grifo EPUB entre `4e7ddbe` e `79ad0a2`. Achado ao investigar a lentidão (BUGS_ATUAIS CARGA 01): SHA-256 dos arquivos em JavaScript no
+  Android, até 3 vezes por livro (50 MiB: 50,9 s sem JIT neste PC). `50b8f6a` assinatura nativa em Kotlin (`modules/aldus-file-hash`),
+  mesmo formato de hash. Pode explicar lentidão, "Carregando página" e o pop-up de grifo que desiste em 5 s; NÃO confirmado no aparelho.
+  `test:critical` 138/138, lista de entrega 43.
 
 ### 17/11/2026 — Revisão para as betas públicas: dependências, banco, hospedagem (Claude)
 - Pedido do dono: ajustar dependências e configurações (banco, hospedagem etc.) e revisar o necessário para iniciar o plano das betas públicas.
