@@ -10,6 +10,7 @@ export const RELEASE_NOTES: ReleaseNotes = {
   items: [
     "Cara nova: ícone e abertura do Aldus, e uma capa desenhada para cada livro que não tem capa.",
     "Buscar qualquer livro: ache pelo título, autor ou ISBN e guarde na estante como Quero ler, mesmo sem o arquivo. Por enquanto, esses livros ficam só neste aparelho.",
+    "Grifos na Leitura Livre: segure o dedo sobre uma palavra de um PDF na Leitura Livre para grifar, anotar ou criar um card, como no EPUB.",
     "Google Drive: no Android, o acesso se renova sozinho, sem pedir para reconectar a toda hora. E agora você escolhe a pasta navegando, sem colar link.",
     "Grifar ficou mais simples: cores, Nota, Card e Ajustar numa barra compacta, com início e fim do trecho ajustáveis.",
     "O card de trecho traz a capa do livro e o capítulo, e a tela de compartilhar ficou mais clara.",

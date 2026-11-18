@@ -52,6 +52,7 @@ const flush = () => act(async () => { for (let i = 0; i < 5; i++) await Promise.
   assert.match(section('Seus livros'), /Buscar qualquer livro[\s\S]*ficam só no aparelho/);
   assert.doesNotMatch(section('Em construção'), /Catálogo/);
   assert.ok(RELEASE_NOTES.items.some(item => item.startsWith('Buscar qualquer livro')));
+  assert.ok(RELEASE_NOTES.items.some(item => item.startsWith('Grifos na Leitura Livre')), 'owner-approved item (18/11)');
   // Loading screen quote (public domain, credited).
   await act(async () => { tree = create(React.createElement(AppLoadingScreen)); });
   const loading = text(tree.root);
