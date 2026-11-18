@@ -492,7 +492,12 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
   na preparação. `ebbd4c5`..`1de6c61`: fatias de 48 ms com retomada por timer (`cooperativeWork.ts`), teste de agendamento sem tempo ocioso.
   APK `1de6c61` (versionCode 7): `artifacts/apk/Aldus-1de6c61-device-rehearsal.apk`, 157.174.755 bytes, SHA-256 `8dbe121b…078ba4783`, checagem PASS.
   Instalado no Redmi `7lzdto7l55wcd68l` (pedido "instala"): versionCode 7, hash instalado `8dbe121b…078ba4783`, firstInstallTime preservado.
-  Ganho de tempo NÃO medido no aparelho (falta um PDF ainda não preparado).
+  Medido no Redmi (Marx reimportado, bateria em 2%): "Montando documento" seguiu ~4,5 min; o agendamento não era a causa.
+- Causa achada no PC: junção de cada linha ao parágrafo inteiro (trim, regex até o fim e cópia) deixava a montagem quadrática em
+  parágrafos longos. `5651bc8` (código em `PdfReflowDocumentBuilder`, pai do bump): parágrafo em pedaços, mesmo resultado em 300 livros
+  sintéticos, 1.144 páginas de um parágrafo em 0,84 s (2,7 s sem JIT). Teste `reflow-assembly-scaling` (critical, 142/142). APK `5651bc8`
+  (versionCode 8): `artifacts/apk/Aldus-5651bc8-device-rehearsal.apk`, 157.174.555 bytes, SHA-256 `20264a25…14eea4bc`, checagem PASS.
+  NÃO instalado (Redmi desconectado); ganho NÃO medido no aparelho.
 
 ### 17/11/2026 — Revisão para as betas públicas: dependências, banco, hospedagem (Claude)
 - Pedido do dono: ajustar dependências e configurações (banco, hospedagem etc.) e revisar o necessário para iniciar o plano das betas públicas.
