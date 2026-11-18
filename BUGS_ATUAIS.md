@@ -1,5 +1,23 @@
 # Aldus Reader — Bugs Atuais
 
+## APARELHO 18/11 — Relato do dono antes do próximo APK (build instalada no Redmi não identificada)
+
+- **IMPORT 01 — "Abrir com Aldus" de um EPUB: "Não foi possível identificar o formato do arquivo selecionado."** O mesmo arquivo pelo
+  Drive funcionou. Causa CONFIRMADA no código: o documento chega como `content://` sem tipo e sem extensão (`app/open-file.tsx` passa
+  `mimeType: null` e o nome do endereço), e `LocalBookImportService.detectFormat` lia os 5 primeiros bytes direto do `content://`
+  (`readAsStringAsync` com `position/length`), o que o Android não faz antes da cópia. **CORRIGIDO NO CÓDIGO** (`1e4fb86`): copia
+  primeiro e lê da cópia; o teste `test-book-import` recusa leitura parcial de `content://` como o Android e falha na versão anterior com
+  a mesma mensagem. NÃO TESTADO no aparelho.
+- **REFLOW 02 — Leitura Livre de PDF longo ("Marx biografia") pronta, texto na tela, mas "Carregando página..." e "Calculando
+  páginas..." não saem.** O overlay de `EpubPageViewer.native.tsx` só some com a primeira mensagem `page` do documento; ela não chegou.
+  Causa INCONCLUSIVA. Descartado no Chrome (`EpubReaderDocument` real, 2 milhões de caracteres, 1 ou 30 capítulos, CPU 6× mais
+  lenta, com as injeções que o app faz no carregamento): primeira `page` com `layoutReady` em 7–14 s, cerca de 2.900 páginas. Falta
+  evidência do aparelho (logcat do processo durante a abertura) e saber a build instalada. Preparar a Leitura Livre de PDF longo é lento
+  (ver BUG 06); a importação de PDF longo também foi relatada como lenta, sem medição.
+- **GRIFO 02 — "não consigo grifar trechos dos livros".** A correção de grifo em livros longos (`83f2dc6`, 17/11) não está no APK
+  `4e7ddbe` e está no `79ad0a2`; sem saber a build instalada, não dá para dizer se é regressão. No REFLOW 02 o documento nunca terminou
+  de carregar, o que também impediria grifar. INCONCLUSIVO.
+
 ## GRIFO 01 — Seleção do grifo ruim e pop-up que não abre (relato do dono, 16/11/2026)
 
 - Prioridade: ALTA. Status: **CORRIGIDO NO CÓDIGO** (`763feca`, `ee53a66`); Android NÃO TESTADO.
