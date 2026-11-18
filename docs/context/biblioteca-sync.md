@@ -403,3 +403,10 @@ limite do possível, e que tenha uma certa qualidade"; capa padrão Aldus "bem b
 - Decisões abertas: cache só no aparelho ou servidor compartilhado; recomendações no aparelho (recomendado).
 - Conferir limites das capas do Open Library e a licença dos dados antes da fase 1; e-mail de contato (domínio) para
   identificar o app no Open Library e no Wikidata.
+
+### 7.3 Andamento (18/11/2026)
+- Fase 1 feita no código: `5071c62` capa padrão aprovada no `BookCover` (rótulo = formato do arquivo, nunca categoria inventada);
+  `4c06823` modelo `CatalogBook`, ISBN com dígito verificador, categorias do Aldus, junção de repetidos, Open Library (capa por número,
+  1 pedido/s), gêneros do Wikidata por ISBN, cache por conta (7 dias, 100 buscas) e composição em `src/data/catalog/catalogDependencies.ts`,
+  ainda sem tela. Teste `test-catalog` (critical). Cache e recomendações no aparelho, conforme o pedido "pode colocar o que falta".
+- Próximo: fase 2 (busca e ficha do livro, "Quero ler", livro sem arquivo), que só vai ao app com o texto de privacidade aprovado.
