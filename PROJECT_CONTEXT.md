@@ -446,6 +446,11 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
   Android, até 3 vezes por livro (50 MiB: 50,9 s sem JIT neste PC). `50b8f6a` assinatura nativa em Kotlin (`modules/aldus-file-hash`),
   mesmo formato de hash. Pode explicar lentidão, "Carregando página" e o pop-up de grifo que desiste em 5 s; NÃO confirmado no aparelho.
   `test:critical` 138/138, lista de entrega 43.
+- APK de ensaio do HEAD `f30f6a8` (pedido "Sim, gerar APK"; árvore limpa): `build:apk:local` com `device-rehearsal`, Gradle 2m7s (log
+  `.expo/apk-f30f6a8-build.log`), checagem obrigatória PASS (43 recursos, só acervo em domínio público, manifesto). `artifacts/apk/Aldus-f30f6a8-
+  device-rehearsal.apk`, 157.124.699 bytes, SHA-256 `c5c0001f…861f5291`; `com.aldus.reader` 1.0.0-beta.2 (versionCode 3, igual ao
+  `79ad0a2`), não depurável, 4 ABIs, certificado de debug `fac61745…033b9c` (ensaio: chave pública no repositório, não é o Beta privado).
+  `expo/modules/aldusfilehash/AldusFileHashModule` presente no dex. NÃO instalado; nada exercitado no aparelho.
 
 ### 17/11/2026 — Revisão para as betas públicas: dependências, banco, hospedagem (Claude)
 - Pedido do dono: ajustar dependências e configurações (banco, hospedagem etc.) e revisar o necessário para iniciar o plano das betas públicas.
