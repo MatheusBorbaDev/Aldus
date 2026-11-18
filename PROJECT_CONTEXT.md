@@ -458,6 +458,15 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
   NÃO instalado por mim. O dono também esperava vitrine, recomendações e categorias: são a fase 4 do catálogo, NÃO feitas; eu não avisei
   antes do APK. Pendências do catálogo: vitrine/recomendações, vínculo arquivo↔catálogo (A5), nota e resenha, progresso manual, Goodreads,
   migração do livro sem arquivo (servidor, autorização própria).
+- Dono: "Fazer 1 a 6". Feito no código, um commit por item: `14cb3e7` vitrine (6 fileiras fixas por categoria, atalhos para as outras,
+  "Para você" calculado no aparelho a partir do cache e das categorias da estante); `c232c10` ligar arquivo ao catálogo (pergunta "Este
+  arquivo é…?" na Biblioteca, "Ligar ao catálogo" no Organizar; ligação viaja no Sync); `d2d91b8` nota e resenha pessoais (privadas, no
+  Organizar; exportação Goodreads usa); `b77305e` progresso manual de livro sem arquivo (página/total ou %; "Ocultar porcentagem e páginas"
+  passa a valer também nos cartões da Biblioteca); `999e363` importar estante do Goodreads (CSV, revisão, tudo no aparelho);
+  `f493d57` livro sem arquivo no Sync + migration `20261118120000_record_books.sql` (PGlite PASS; NÃO aplicada). `test:critical` 141/141,
+  lista de entrega 49. ATENÇÃO: com `RECORD_BOOKS_SYNC_ENABLED=true` no HEAD, nenhum APK/Web pode sair antes de aplicar a migration; APK
+  `79ad0a2` e o Web publicado recusam `format: 'record'` e param de sincronizar a conta que tiver livro sem arquivo até atualizar.
+  Textos públicos (beta, novidades, privacidade v0.11) aguardam aprovação. NÃO TESTADO no aparelho.
 
 ### 17/11/2026 — Revisão para as betas públicas: dependências, banco, hospedagem (Claude)
 - Pedido do dono: ajustar dependências e configurações (banco, hospedagem etc.) e revisar o necessário para iniciar o plano das betas públicas.

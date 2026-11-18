@@ -418,7 +418,14 @@ limite do possível, e que tenha uma certa qualidade"; capa padrão Aldus "bem b
     payload de organização sem esquema. Um app antigo ignora o campo e, se regravar a organização, o perde (aceito na beta).
   - Trava `RECORD_BOOKS_SYNC_ENABLED = false`: `AccountBookRepository.save/softDelete`, `journalOrganization` (save, saveMany, merge) e
     `LibraryLocalReplica.seed` não registram nada de `record-`; `LibrarySyncCoordinator.availability` mostra "Neste dispositivo".
-- PENDENTE, migração do servidor para sincronizar livro sem arquivo (não escrita; precisa de autorização própria para aplicar):
+- Fase 4 e seguintes feitas no código em 18/11 (ver log do PROJECT_CONTEXT): vitrine e "Para você" (`catalogShelves.ts`; fileiras iguais para
+  todos, recomendação só no aparelho), ligação arquivo↔catálogo (`catalogLink.ts`, `catalogLinking.ts`), nota/resenha e progresso manual na
+  organização (`rating`, `review`, `manualProgress`), importação Goodreads (`goodreadsImport.ts`).
+- Migração escrita em 18/11: `supabase/migrations/20261118120000_record_books.sql` (library_apply aceita `format: 'record'` só com id `record-`
+  e sem remotePath; gatilho de franquia, `quota_usage` e `saas_account_snapshot` não contam record). Cliente: payload com `format: 'record'`,
+  `kind`, `recordFormat`, campos de catálogo e `coverUrl` público; réplica reconstrói o livro sem arquivo e PULA formato desconhecido (antes
+  derrubava a rodada inteira). Aplicar no servidor ANTES de qualquer APK/Web do HEAD. Plano original, mantido para histórico:
+- (histórico) PENDENTE, migração do servidor para sincronizar livro sem arquivo (não escrita; precisa de autorização própria para aplicar):
   1. `library_private.library_apply`: aceitar `format = 'record'` sem `remotePath` (hoje só epub/pdf).
   2. `saas_private.enforce_book_quota`: não contar `format = 'record'` (decisão do dono: livro sem arquivo não conta na franquia).
   3. Cliente: `bookSyncPayload` com `format: 'record'`, `kind`, `catalogId`, `recordFormat`; `LibraryLocalReplica.apply` recriar o livro
