@@ -16,6 +16,7 @@ export function createRecordBook(input: { catalog: CatalogBook; format: RecordBo
   if (!/^[\w-]{8,64}$/.test(input.id)) throw new Error("Identificador inválido.");
   return {
     id: RECORD_BOOK_PREFIX + input.id, kind: "record", catalogId: input.catalog.id, recordFormat: input.format,
+    catalogCategories: [...input.catalog.categories], catalogPages: input.catalog.pages,
     title: input.catalog.title, author: input.catalog.authors.join(", ") || "Autor não informado",
     fileName: "", filePath: "", fileHash: null, mimeType: RECORD_BOOK_MIME, fileSize: 0,
     coverImagePath: input.catalog.coverUrl, totalChapters: 0, totalWords: 0,

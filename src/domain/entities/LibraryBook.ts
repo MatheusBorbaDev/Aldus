@@ -7,6 +7,10 @@ export interface LibraryBook {
   /** Item do catálogo de metadados de onde o livro veio (ex.: `ol:OL45883W`). */
   catalogId?: string | null;
   recordFormat?: "physical" | "ebook" | "audiobook";
+  /** Categorias do Aldus do item do catálogo (chaves de ALDUS_CATEGORIES), para as recomendações calculadas no aparelho. */
+  catalogCategories?: string[];
+  /** Páginas do item do catálogo (média das edições), quando a fonte informa; base do progresso manual. */
+  catalogPages?: number | null;
   /** Missing/null means preserved legacy local data, never silently claimed. */
   ownerUserId?: string | null;
   bundledAssetId?: string;

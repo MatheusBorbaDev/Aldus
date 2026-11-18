@@ -40,6 +40,15 @@ export class CatalogService {
     return books;
   }
 
+  /** Livros já baixados por esta conta neste aparelho (fileiras e buscas ainda válidas). Sem rede: base do "Para você". */
+  async cachedBooks(): Promise<CatalogBook[]> {
+    const account = this.scope.capture();
+    const entries = await this.readCache(account.userId);
+    account.check();
+    return mergeCatalogBooks(entries.filter(entry => this.now() - entry.savedAt < TTL_MS)
+      .flatMap(entry => entry.books.map(parseCatalogBook).filter((book): book is CatalogBook => !!book)));
+  }
+
   private async readCache(userId: string | null): Promise<CacheEntry[]> {
     try {
       const raw = await this.storage.getItem(catalogCacheKey(userId));

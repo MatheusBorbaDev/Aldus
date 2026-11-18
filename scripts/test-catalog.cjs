@@ -75,6 +75,22 @@ const noWait = () => new RequestSpacer(0);
   now += 8 * 24 * 60 * 60 * 1000; scope.set('user-a'); await service.search('Iracema'); assert.equal(calls, 3, 'expired after 7 days');
   store.set(catalogCacheKey('user-a'), '{not json'); await service.search('Senhora'); assert.equal(calls, 4, 'unreadable cache counts as empty');
   assert.ok(JSON.parse(store.get(catalogCacheKey('user-a'))).length >= 1, 'cache rewritten');
+  // Cached books (base of "Para você"): this account only, expired entries out, no request.
+  const before = calls; assert.deepEqual((await service.cachedBooks()).map(b => b.title), ['Senhora']); assert.equal(calls, before, 'no request');
+  scope.set('user-b'); assert.deepEqual((await service.cachedBooks()).map(b => b.title), [], 'B never sees A\'s cache (B\'s entry expired)'); scope.set('user-a');
+  // Shelves: fixed category queries, library affinity computed on the device, recommendations never invented.
+  const { CATEGORY_QUERIES, INITIAL_SHELVES, MORE_SHELVES, libraryAffinity, recommendFor } = load('src/domain/catalog/catalogShelves.ts');
+  assert.equal(Object.keys(CATEGORY_QUERIES).length, Object.keys(ALDUS_CATEGORIES).length, 'every Aldus category has a query');
+  assert.equal(INITIAL_SHELVES.length + MORE_SHELVES.length, Object.keys(ALDUS_CATEGORIES).length);
+  const lib = [{ id: 'r1', catalogId: 'ol:A', catalogCategories: ['fantasia'], isDeleted: false }, { id: 'r2', catalogId: 'ol:B', catalogCategories: ['terror'], isDeleted: false },
+    { id: 'r3', catalogCategories: ['poesia'], isDeleted: true }, { id: 'f1', isDeleted: false }];
+  const org = { r1: { readingStatus: 'completed', favorite: true }, r2: { readingStatus: 'interrupted' } };
+  const affinity = libraryAffinity(lib, org);
+  assert.deepEqual([...affinity], [['fantasia', 3]], 'completed + favorite weigh more; interrupted and deleted do not count');
+  const cand = (id, categories) => parseCatalogBook({ id, source: 'openlibrary', title: id, authors: ['X'], subjects: categories });
+  const recs = recommendFor([cand('ol:A', ['Fantasy']), cand('ol:C', ['Horror']), cand('ol:D', ['Fantasy']), cand('ol:D', ['Fantasy'])], affinity, new Set(['ol:A']));
+  assert.deepEqual(recs.map(r => [r.book.id, r.because]), [['ol:D', 'fantasia']], 'owned, unrelated and repeated books are left out');
+  assert.deepEqual(recommendFor([cand('ol:D', ['Fantasy'])], new Map(), new Set()), [], 'no affinity, no recommendation');
   const failing = new CatalogService([{ name: 'down', search: async () => { throw new CatalogUnavailableError(); } }], storage, scope, () => now);
   await assert.rejects(failing.search('Lucíola'), e => e instanceof CatalogUnavailableError);
   let release; const slow = new CatalogService([{ name: 'slow', search: () => new Promise(r => { release = () => r([]); }) }], storage, scope, () => now);

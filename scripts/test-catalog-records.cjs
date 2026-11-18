@@ -62,8 +62,15 @@ const dom = { id: 'ol:OL45883W', source: 'openlibrary', title: 'Dom Casmurro', s
   await a.synchronize(); assert.ok([...remote.rows.values()].every(row => !row.book_id.startsWith('record-')));
 
   // 3. The catalog screen: search only on request, show results, add from the sheet, then "Na sua biblioteca".
-  const saved = [], organized = [], searches = []; let library = [], fail = null, resolveSearch = null;
-  const catalog = { search: (text, signal) => { searches.push(text); if (fail) return Promise.reject(fail); return new Promise(resolve => { resolveSearch = () => resolve([dom, { ...dom, id: 'ol:OL2W', title: 'Memórias póstumas', coverUrl: null, categories: [], subjects: [] }]); }); } };
+  const saved = [], organized = [], searches = [], shelfRequests = []; let fail = null, resolveSearch = null;
+  // Vitrine (fase 4): a fantasy shelf, and a library with one fantasy book already kept → "Para você" from cached books, owned excluded.
+  const fantasy = n => ({ ...dom, id: 'ol:OLF' + n + 'W', title: 'Fantasia ' + n, authors: ['Autora ' + n], categories: ['fantasia'], subjects: ['Fantasy'] });
+  const shelfBooks = [1, 2, 3, 4, 5].map(fantasy);
+  let library = [{ ...createRecordBook({ catalog: fantasy(1), format: 'physical', id: 'owned-fantasy', now: 1 }), ownerUserId: A }];
+  const organizationRecords = { [library[0].id]: { ...recordBookOrganization(library[0].id, 'completed', 1) } };
+  const catalog = {
+    cachedBooks: async () => shelfBooks,
+    search: (text, signal) => { if (text.startsWith('subject:')) { shelfRequests.push(text); return Promise.resolve(text === 'subject:fantasy' ? shelfBooks : []); } searches.push(text); if (fail) return Promise.reject(fail); return new Promise(resolve => { resolveSearch = () => resolve([dom, { ...dom, id: 'ol:OL2W', title: 'Memórias póstumas', coverUrl: null, categories: [], subjects: [] }]); }); } };
   const { CatalogUnavailableError } = a.load('src/data/catalog/catalogSources.ts');
   const h = React.createElement, Plain = type => props => h(type, props, props.children);
   const ui = {
@@ -77,7 +84,7 @@ const dom = { id: 'ol:OL45883W', source: 'openlibrary', title: 'Dom Casmurro', s
     react: React, 'react/jsx-runtime': require('../.expo/auth-test-tools/node_modules/react/jsx-runtime'),
     'react-native': { View: 'View', Text: 'Text', Pressable: 'Pressable', ScrollView: 'ScrollView', Modal: ({ children }) => h('Modal', null, children), Linking: { openURL: async url => opened.push(url) }, StyleSheet: { create: x => x, absoluteFill: {}, hairlineWidth: 1 } },
     '@/src/ui': ui, '@/src/presentation/contexts/AppThemeContext': { useAppTheme: () => ({ palette: { separator: '#ccc', panel: '#fff', border: '#ddd', surfaceSecondary: '#eee' } }) },
-    '@/src/presentation/services/dependencies': { appDependencies: { bookRepository: { listActive: async () => library, save: async book => { saved.push(book); library = [...library, book]; } } }, libraryOrganization: { save: async value => organized.push(value) } },
+    '@/src/presentation/services/dependencies': { appDependencies: { bookRepository: { listActive: async () => library, save: async book => { saved.push(book); library = [...library, book]; } } }, libraryOrganization: { save: async value => organized.push(value), list: async () => organizationRecords } },
     '@/src/data/catalog/catalogDependencies': { catalog }, '@/src/data/catalog/catalogSources': { CatalogUnavailableError },
     '@/src/presentation/components/BookCover': { BookCover: props => h('Cover', props) },
   });
@@ -87,7 +94,17 @@ const dom = { id: 'ol:OL45883W', source: 'openlibrary', title: 'Dom Casmurro', s
   let tree; await act(async () => { tree = create(h(CatalogScreen)); }); await flush();
   const field = () => tree.root.findByType('Search');
   const press = async label => { const node = tree.root.findAll(n => n.type === 'Pressable' && (n.props.accessibilityLabel === label || String(n.props.accessibilityLabel ?? '').startsWith(label + ','))); assert.ok(node.length, 'missing ' + label); await act(async () => node[0].props.onPress()); await flush(); };
-  assert.match(text(tree.root), /Busque qualquer livro/); assert.equal(searches.length, 0, 'nothing leaves the device before a search');
+  // Vitrine: only the fixed category rows are requested, the same for everyone; nothing from the library is sent.
+  const { INITIAL_SHELVES, CATEGORY_QUERIES } = a.load('src/domain/catalog/catalogShelves.ts');
+  assert.deepEqual([...shelfRequests].sort(), INITIAL_SHELVES.map(key => CATEGORY_QUERIES[key]).sort(), 'fixed category rows');
+  assert.equal(searches.length, 0, 'no typed search before the person searches');
+  assert.ok(shelfRequests.every(q => !/Fantasia 1|Autora 1|owned/.test(q)), 'no library data in requests');
+  assert.match(text(tree.root), /Para você/); assert.match(text(tree.root), /Calculado neste aparelho/);
+  const forYou = tree.root.findAll(n => n.type === 'Pressable' && /porque você lê Fantasia$/.test(String(n.props.accessibilityLabel ?? ''))).map(n => n.props.accessibilityLabel.split(',')[0]);
+  assert.deepEqual(forYou, ['Fantasia 2', 'Fantasia 3', 'Fantasia 4', 'Fantasia 5'], 'recommended from cached books by library categories, owned book excluded');
+  // A category shortcut loads that category on request and the person can go back.
+  await press('Terror'); assert.equal(shelfRequests.at(-1), 'subject:horror'); assert.match(text(tree.root), /Categoria: Terror/);
+  await press('Voltar à vitrine'); assert.match(text(tree.root), /Para você/);
   await act(async () => field().props.onChangeText('d')); assert.equal(tree.root.findAll(n => n.props.label === 'Buscar' && n.props.disabled).length > 0, true, 'one letter does not search');
   await act(async () => field().props.onChangeText('  dom casmurro ')); await act(async () => field().props.onSubmit()); await flush();
   assert.deepEqual(searches, ['dom casmurro'], 'trimmed text only');
