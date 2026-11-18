@@ -394,7 +394,7 @@ limite do possível, e que tenha uma certa qualidade"; capa padrão Aldus "bem b
 - **Candidatas, só depois de conferir termos:** BrasilAPI ISBN (agrega Google por baixo; pode herdar a restrição);
   Wikipedia para sinopse (CC BY-SA: atribuição visível e mesma licença); MVB Brasil e ISBNdb (licença paga).
 - **Futuro:** Google Books como adaptador opcional, só enquanto não houver cobrança ou com acordo do Google.
-- **Capa padrão Aldus:** gerada no aparelho, determinística por título, autor e categoria, nas cores do Aldus, para
+- **Capa padrão Aldus (aprovada em 18/11; especificação em `design-system.md`):** gerada no aparelho, determinística por título, autor e categoria, nas cores do Aldus, para
   livro sem capa; nunca baixada de fonte sem licença clara. Prévia em `artifacts/capa-padrao/` (fora do Git).
 - Limites de qualidade a dizer ao usuário: edições brasileiras recentes podem faltar ou vir incompletas; capas faltam
   com frequência; sinopse nem sempre existe. Texto para os testadores em `docs/beta/limitacoes-da-beta.md` (rascunho).

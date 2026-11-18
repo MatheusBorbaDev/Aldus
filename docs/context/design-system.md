@@ -69,3 +69,26 @@
   seleção, pop-up próprio, gestos suspensos durante a seleção); C card de trecho 9:16/1:1/4:5 desenhado em canvas na WebView, envio por
   `expo-sharing` (aprovado e feito em 16/11: `9e5b2ad`), 400 caracteres, nunca o arquivo; D "Sem animação/Deslizar/Folhear" com reduzir movimento (feito em 16/11: `de31a33`);
   E rolagem contínua (feita em 16/11: PDF Original `b2d35e0`; EPUB e Leitura Livre `0c31cf2`), posição gravada só ao parar.
+
+## Capa padrão Aldus (aprovada pelo dono em 18/11/2026)
+
+Para livro sem capa (catálogo de metadados, livro sem arquivo, importação sem imagem). Gerada no aparelho, nunca baixada.
+Prévia aprovada: `artifacts/capa-padrao/capas.html` e `previa-capas.png` (fora do Git; esta seção é a referência se sumirem).
+
+- **Proporção 2:3**, desenhada em 400 × 600 e escalada. Determinística: o mesmo título + autor (normalizados, pt-BR)
+  gera sempre a mesma capa (hash FNV-1a de 32 bits).
+- **Cor escolhida pelo hash do livro** (não pela categoria, para a estante variar), entre 7 combinações
+  fundo / brilho do fundo / texto / detalhe:
+  noite `#1B1C30` `#25273F` `#F1E8D8` `#C9A46A`; petróleo `#0E4A45` `#135A54` `#EEF2EC` `#D9B56E`;
+  terracota `#8A3B25` `#9E4A31` `#F8EEE2` `#F0CB97`; vinho `#55202C` `#672A37` `#F4E8E4` `#DDB070`;
+  musgo `#2E3826` `#3A4630` `#EEEDE0` `#CDB675`; azul-tinta `#1E3A84` `#284A9C` `#EEF1FA` `#E6C47C`;
+  papel `#EFE6D6` `#F6EFE3` `#1B1C30` `#A64E32`.
+- **Composição**: fundo com brilho radial suave no terço superior e grão de papel leve (ruído a 9%); moldura dupla no
+  detalhe (fio de 1,6 a 18 px da borda e fio de 0,8 a 25 px, 55%); categoria em versalete espaçado no topo (11 px,
+  espaçamento 3,4) com fio curto embaixo; título em serifa semibold centralizado, tamanho de 40 a 21 conforme o
+  comprimento (até 3 linhas nos tamanhos grandes, até 5 nos pequenos, largura útil 284), entrelinha 1,18; losango entre
+  dois fios separando o autor; autor em versalete espaçado (13 px, até 2 linhas); faixa inferior de 115 px separada por
+  fio, com um de três ornamentos pelo hash (arcos concêntricos, treliça de losangos ou raios), em detalhe a 20–34%;
+  "ALDUS" em versalete pequeno no rodapé.
+- **Fonte**: a serifa do sistema (Noto Serif no Android, Georgia na Web), sem baixar fonte.
+- **Acessibilidade**: rótulo "Título, Autor"; contraste do texto sobre o fundo nas 7 combinações a medir no teste.

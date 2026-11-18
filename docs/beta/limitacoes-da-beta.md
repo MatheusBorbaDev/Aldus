@@ -1,5 +1,5 @@
 <!--
-RASCUNHO PARA APROVAÇÃO DO DONO (18/11/2026). Texto público: não distribuir antes da aprovação.
+TEXTO APROVADO PELO DONO EM 18/11/2026. Público: antes de cada envio, conferir os itens abaixo.
 Antes de enviar a uma turma de testadores, conferir cada item na build que vai ser distribuída e preencher
 os campos entre colchetes. Itens marcados [CONFERIR NA BUILD] dependem do que estiver no APK ou no site.
 Fontes internas de cada item: PROJECT_CONTEXT.md §8, BUGS_ATUAIS.md (BUG 03, 06, 08, 09) e
