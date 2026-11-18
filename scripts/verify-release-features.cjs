@@ -58,6 +58,7 @@ const FEATURES = [
   // Termos
   { id: 'drive-renewal', pedido: '18/11: Drive sem reconectar a toda hora (renovação silenciosa, mesma conta Google)', markers: ['account-mismatch', 'Esta biblioteca foi conectada com outra conta Google'] },
   { id: 'drive-folder-picker', pedido: '18/11: escolher a pasta do Drive navegando, sem colar link', markers: ['Escolha uma pasta', 'Compartilhados comigo', 'Prefiro colar o link de uma pasta'] },
+  { id: 'catalog-link', pedido: '18/11: ligar livro importado ao catalogo (juntar com o livro guardado sem arquivo)', markers: ['Manter separados', 'Ligar ao cat', 'catalog-link-dismissed'] },
   { id: 'catalog-shelves', pedido: '18/11: vitrine do catalogo com categorias e Para voce calculado no aparelho', markers: ['Calculado neste aparelho', 'Mais categorias', 'Voltar ', 'subject:fantasy'] },
   { id: 'native-file-hash', pedido: '18/11: assinatura do arquivo nativa no Android (lentidao relatada por usuarios externos)', markers: ['AldusFileHash'] },
   { id: 'reflow-highlight', pedido: '18/11: grifar na Leitura Livre do PDF (relato de usuarios externos)', markers: ['Abra a Leitura Livre para ir'] },

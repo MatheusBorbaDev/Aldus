@@ -62,7 +62,7 @@ const dom = { id: 'ol:OL45883W', source: 'openlibrary', title: 'Dom Casmurro', s
   await a.synchronize(); assert.ok([...remote.rows.values()].every(row => !row.book_id.startsWith('record-')));
 
   // 3. The catalog screen: search only on request, show results, add from the sheet, then "Na sua biblioteca".
-  const saved = [], organized = [], searches = [], shelfRequests = []; let fail = null, resolveSearch = null;
+  const saved = [], organized = [], searches = [], shelfRequests = [], routes = []; let params = {}; let fail = null, resolveSearch = null;
   // Vitrine (fase 4): a fantasy shelf, and a library with one fantasy book already kept → "Para você" from cached books, owned excluded.
   const fantasy = n => ({ ...dom, id: 'ol:OLF' + n + 'W', title: 'Fantasia ' + n, authors: ['Autora ' + n], categories: ['fantasia'], subjects: ['Fantasy'] });
   const shelfBooks = [1, 2, 3, 4, 5].map(fantasy);
@@ -84,9 +84,10 @@ const dom = { id: 'ol:OL45883W', source: 'openlibrary', title: 'Dom Casmurro', s
     react: React, 'react/jsx-runtime': require('../.expo/auth-test-tools/node_modules/react/jsx-runtime'),
     'react-native': { View: 'View', Text: 'Text', Pressable: 'Pressable', ScrollView: 'ScrollView', Modal: ({ children }) => h('Modal', null, children), Linking: { openURL: async url => opened.push(url) }, StyleSheet: { create: x => x, absoluteFill: {}, hairlineWidth: 1 } },
     '@/src/ui': ui, '@/src/presentation/contexts/AppThemeContext': { useAppTheme: () => ({ palette: { separator: '#ccc', panel: '#fff', border: '#ddd', surfaceSecondary: '#eee' } }) },
-    '@/src/presentation/services/dependencies': { appDependencies: { bookRepository: { listActive: async () => library, save: async book => { saved.push(book); library = [...library, book]; } } }, libraryOrganization: { save: async value => organized.push(value), list: async () => organizationRecords } },
+    '@/src/presentation/services/dependencies': { appDependencies: { bookRepository: { listActive: async () => library, findById: async id => library.find(book => book.id === id) ?? null, save: async book => { saved.push(book); library = [...library.filter(item => item.id !== book.id), book]; } } }, libraryOrganization: { save: async value => organized.push(value), list: async () => organizationRecords } },
     '@/src/data/catalog/catalogDependencies': { catalog }, '@/src/data/catalog/catalogSources': { CatalogUnavailableError },
     '@/src/presentation/components/BookCover': { BookCover: props => h('Cover', props) },
+    'expo-router': { router: { back: () => routes.push('back'), push: () => {} }, useLocalSearchParams: () => params },
   });
   const { CatalogScreen } = load('src/presentation/screens/CatalogScreen.tsx');
   const text = node => typeof node === 'string' ? node : (node.children ?? []).map(text).join('');
@@ -128,6 +129,45 @@ const dom = { id: 'ol:OL45883W', source: 'openlibrary', title: 'Dom Casmurro', s
   fail = Error('PRIVATE stack'); await press('Tentar de novo');
   assert.match(text(tree.root), /Não foi possível buscar agora/); assert.doesNotMatch(text(tree.root), /PRIVATE/);
   await act(async () => tree.unmount());
+
+  // 4. A5: "Ligar ao catálogo" from a file book's menu. The search starts with its title; the sheet links instead of keeping a copy.
+  const fileBook = { ownerUserId: A, id: 'file-dom', title: 'Dom Casmurro', author: 'Arquivo local', fileName: 'dom.epub', filePath: 'file:///dom.epub', fileHash: null, mimeType: 'application/epub+zip', fileSize: 10, coverImagePath: null, totalChapters: 1, totalWords: 5, addedDate: 1, lastOpenedDate: null, isDeleted: false, progress: 0, importComplete: true };
+  library = [...library, fileBook]; params = { link: 'file-dom', q: 'Dom Casmurro' }; fail = null; searches.length = 0; saved.length = 0;
+  await act(async () => { tree = create(h(CatalogScreen)); }); await flush();
+  assert.deepEqual(searches, ['Dom Casmurro'], 'the title is searched at once'); await act(async () => resolveSearch()); await flush();
+  assert.match(text(tree.root), /Escolha o livro do catálogo que corresponde a “Dom Casmurro”/);
+  await press('Dom Casmurro');
+  assert.equal(tree.root.findAll(n => n.props.accessibilityLabel === 'Quero ler').length, 0, 'no keep-a-copy buttons while linking');
+  await press('Ligar “Dom Casmurro” a este livro');
+  assert.equal(saved.length, 1); assert.equal(saved[0].id, 'file-dom'); assert.equal(saved[0].catalogId, dom.id); assert.deepEqual(saved[0].catalogCategories, ['literatura-brasileira']); assert.equal(saved[0].catalogPages, 256);
+  assert.match(text(tree.root), /“Dom Casmurro” ligado a “Dom Casmurro”/); await press('Voltar'); assert.deepEqual(routes, ['back']);
+  await act(async () => tree.unmount()); params = {};
+
+  // 5. A5 domain and data: pair a fileB with a kept record, merge on request, carry the link through Sync.
+  const link = a.load('src/domain/catalog/catalogLink.ts');
+  const rec = { ...createRecordBook({ catalog: dom, format: 'physical', id: 'kept-dom-1', now: 1 }), ownerUserId: A };
+  const fileB = { ...fileBook, id: 'file-dom-2', author: 'Machado de Assis' };
+  assert.deepEqual(link.recordMatchesForFile(fileB, [fileB, rec]).map(b => b.id), [rec.id], 'same title and surname');
+  assert.deepEqual(link.recordMatchesForFile({ ...fileB, author: 'Outro Autor' }, [rec]), [], 'different author is not a match');
+  assert.deepEqual(link.recordMatchesForFile({ ...fileB, author: 'Arquivo local' }, [rec]).length, 1, 'unknown fileB author: title decides');
+  assert.deepEqual(link.recordMatchesForFile({ ...fileB, catalogId: 'ol:X' }, [rec]), [], 'already linked');
+  assert.deepEqual(link.pendingCatalogLinks([fileB, rec], new Set()).map(p => [p.file.id, p.record.id]), [[fileB.id, rec.id]]);
+  assert.deepEqual(link.pendingCatalogLinks([fileB, rec], new Set([link.linkKey(fileB.id, rec.id)])), [], 'kept apart is not asked again');
+  const merged = link.mergeLinkedOrganization(fileB.id, { ...recordBookOrganization(fileB.id, 'reading', 1), collections: ['Faculdade'], revision: 2 }, { ...recordBookOrganization(rec.id, 'want', 1), favorite: true, collections: ['Clássicos'] }, 9);
+  assert.deepEqual([merged.bookId, merged.readingStatus, merged.favorite, merged.wantToRead, merged.revision], [fileB.id, 'reading', true, undefined, 3], 'fileB choices win; Quero ler drops when reading');
+  assert.deepEqual(merged.collections, ['Faculdade', 'Clássicos']);
+  assert.deepEqual(link.parseCatalogLinkFields({ catalogId: 'javascript:x', catalogCategories: ['fantasia'] }), {}, 'invalid id ignored');
+  assert.deepEqual(link.parseCatalogLinkFields({ catalogId: 'ol:OL1W', catalogCategories: ['fantasia', 'nope'], catalogPages: -1 }), { catalogId: 'ol:OL1W', catalogCategories: ['fantasia'], catalogPages: null });
+  // Real repositories: merge moves the organization, removes the record and the file's catalog link reaches the other device.
+  const { linkFileToRecord } = a.load('src/data/catalog/catalogLinking.ts');
+  await a.books.save(rec); await a.org.save({ ...recordBookOrganization(rec.id, 'completed', 3), favorite: true });
+  await a.books.save(fileB); await a.synchronize();
+  await linkFileToRecord({ books: a.books, organization: a.org }, fileB.id, rec.id, 50);
+  assert.equal((await a.books.findById(fileB.id)).catalogId, dom.id); assert.equal(await a.books.findById(rec.id).then(b => b?.isDeleted ?? true), true, 'record removed');
+  const mergedOrg = (await a.org.list())[fileB.id]; assert.deepEqual([mergedOrg.readingStatus, mergedOrg.favorite], ['completed', true]);
+  await a.synchronize(); await b.synchronize();
+  const remoteBook = await b.books.findById(fileB.id); assert.equal(remoteBook.catalogId, dom.id); assert.deepEqual(remoteBook.catalogCategories, ['literatura-brasileira'], 'link travels with the fileB book');
+  assert.equal((await b.org.list())[fileB.id].readingStatus, 'completed', 'merged organization travels too');
   a.db.close(); b.db.close();
   console.log('catalog records: domain, local-only Sync guards, "Quero ler" and the catalog screen OK');
 })().catch(error => { console.error(error); process.exit(1); });

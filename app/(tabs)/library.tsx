@@ -28,6 +28,7 @@ import { markEpubLibraryReady, startEpubOpenTrace } from "@/src/utils/epubOpenMe
 import { useBookImport } from "@/src/presentation/hooks/useBookImport";
 import { BookImportModal } from "@/src/presentation/components/BookImportModal";
 import { BookCloudControls } from '@/src/presentation/components/LibrarySyncControls';
+import { CatalogLinkPrompt } from '@/src/presentation/components/catalog/CatalogLinkPrompt';
 import { libraryAccountScope } from '@/src/data/library/LibraryAccountScope';
 import { LibraryBulkModal } from '@/src/presentation/components/LibraryBulkModal';
 import { ActionMenu, ActionMenuItem, AppText, Button, Chip, ChipRow, EmptyState, IconButton, layout as uiLayout, ListGroup, ListRow, radius, ScreenHeader, SearchField, space } from '@/src/ui';
@@ -258,6 +259,7 @@ function LibraryContent() {
           <IconButton icon="close" label="Encerrar seleção" onPress={stopSelecting} />
         </View>
       ) : null}
+      {!selecting ? <CatalogLinkPrompt books={books} onDone={message => { setNotice(message); void refreshOrganization().catch(() => undefined); }} /> : null}
       {notice ? <AppText variant="bodySmall" tone="secondary" accessibilityLiveRegion="polite">{notice}</AppText> : null}
       {organizationError ? (
         <View style={styles.inlineError}>

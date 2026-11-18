@@ -13,6 +13,8 @@ import { createRecordBook, libraryMatchesForCatalog, RECORD_FORMAT_LABELS, RECOR
 import { newLibraryId } from "@/src/domain/entities/libraryId";
 import { LibraryBook } from "@/src/domain/entities/LibraryBook";
 import { BookCover } from "@/src/presentation/components/BookCover";
+import { router, useLocalSearchParams } from "expo-router";
+import { linkFileToCatalog } from "@/src/data/catalog/catalogLinking";
 
 /**
  * Catálogo de livros só com metadados (fase 2, 18/11/2026). Busca por título, autor ou ISBN no Open Library (só o texto buscado sai
@@ -28,6 +30,11 @@ export function CatalogScreen() {
   const [library, setLibrary] = useState<LibraryBook[]>([]);
   const [organization, setOrganization] = useState<OrganizationRecords>({});
   const request = useRef<AbortController | null>(null), last = useRef<{ text: string; heading: string | null } | null>(null);
+  // "Ligar ao catálogo" (A5): aberta pelo menu de um livro com arquivo, a busca já vem com o título e a ficha liga em vez de guardar.
+  const params = useLocalSearchParams<{ link?: string; q?: string }>();
+  const linkId = typeof params.link === "string" && params.link ? params.link : null;
+  const [linkTarget, setLinkTarget] = useState<LibraryBook | null>(null), [linkedTo, setLinkedTo] = useState<string | null>(null);
+  const started = useRef(false);
 
   const loadLibrary = useCallback(() => {
     appDependencies.bookRepository.listActive().then(setLibrary).catch(() => setLibrary([]));
@@ -48,6 +55,14 @@ export function CatalogScreen() {
   const browse = (category: AldusCategory) => { setQuery(""); run(CATEGORY_QUERIES[category], ALDUS_CATEGORIES[category]); };
   const backToShelves = () => { request.current?.abort(); request.current = null; setLoading(false); setResults(null); setError(null); setHeading(null); };
   const browsing = results !== null || loading || error !== null;
+  useEffect(() => {
+    if (!linkId || started.current) return;
+    started.current = true;
+    appDependencies.bookRepository.findById(linkId).then(book => setLinkTarget(book && !book.isDeleted ? book : null)).catch(() => setLinkTarget(null));
+    const text = typeof params.q === "string" ? params.q.trim().slice(0, 200) : "";
+    if (text.length >= 2) { setQuery(text); run(text, null); }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [linkId]);
 
   return (
     <Screen header={<ScreenHeader title="Buscar livros" subtitle="Qualquer livro, só as informações. Guarde na sua biblioteca mesmo sem o arquivo." back />}>
@@ -56,6 +71,10 @@ export function CatalogScreen() {
         <Button label="Buscar" variant="primary" onPress={search} disabled={query.trim().length < 2 || loading} loading={loading} />
       </View>
       <AppText variant="caption" tone="secondary">Informações do Open Library. Só o texto buscado ou a categoria escolhida sai do aparelho.</AppText>
+      {linkTarget ? <View style={[styles.notice, { backgroundColor: "transparent", borderWidth: 1, borderColor: "#8884" }]}>
+        <AppText variant="label">{linkedTo ? `“${linkTarget.title}” ligado a “${linkedTo}”.` : `Escolha o livro do catálogo que corresponde a “${linkTarget.title}”.`}</AppText>
+        {linkedTo ? <Button label="Voltar" variant="ghost" onPress={() => router.back()} /> : <AppText variant="bodySmall" tone="secondary">O arquivo não muda: o Aldus só passa a usar as informações e as categorias do catálogo.</AppText>}
+      </View> : null}
       {browsing ? <View style={styles.resultHead}>
         <AppText variant="label" accessibilityRole="header" style={{ flex: 1 }}>{heading ? `Categoria: ${heading}` : "Resultados da busca"}</AppText>
         <Button label="Voltar à vitrine" variant="ghost" onPress={backToShelves} />
@@ -66,7 +85,8 @@ export function CatalogScreen() {
       <View style={styles.list}>
         {(results ?? []).map(book => <CatalogRow key={book.id} book={book} inLibrary={libraryMatchesForCatalog(library, book.id).length > 0} onPress={() => setSelected(book)} />)}
       </View>
-      {selected ? <CatalogBookSheet book={selected} inLibrary={libraryMatchesForCatalog(library, selected.id)} onClose={() => setSelected(null)} onAdded={loadLibrary} /> : null}
+      {selected ? <CatalogBookSheet book={selected} inLibrary={libraryMatchesForCatalog(library, selected.id)} onClose={() => setSelected(null)} onAdded={loadLibrary}
+        linkTarget={linkedTo ? null : linkTarget} onLinked={title => { setLinkedTo(title); setSelected(null); loadLibrary(); }} /> : null}
     </Screen>
   );
 }
@@ -88,10 +108,17 @@ function CatalogRow({ book, inLibrary, onPress }: { book: CatalogBook; inLibrary
   );
 }
 
-function CatalogBookSheet({ book, inLibrary, onClose, onAdded }: { book: CatalogBook; inLibrary: LibraryBook[]; onClose: () => void; onAdded: () => void }) {
+function CatalogBookSheet({ book, inLibrary, onClose, onAdded, linkTarget, onLinked }: { book: CatalogBook; inLibrary: LibraryBook[]; onClose: () => void; onAdded: () => void; linkTarget: LibraryBook | null; onLinked: (title: string) => void }) {
   const { palette } = useAppTheme();
   const [format, setFormat] = useState<RecordBookFormat>("physical");
   const [busy, setBusy] = useState(false), [message, setMessage] = useState<string | null>(null), [added, setAdded] = useState(inLibrary.length > 0);
+  const link = async () => {
+    if (busy || !linkTarget) return;
+    setBusy(true); setMessage(null);
+    try { await linkFileToCatalog(appDependencies.bookRepository, linkTarget.id, book); onLinked(book.title); }
+    catch (failure) { setMessage(failure instanceof Error ? failure.message : "Não foi possível ligar agora."); }
+    finally { setBusy(false); }
+  };
   const add = async (start: RecordBookStart) => {
     if (busy) return;
     setBusy(true); setMessage(null);
@@ -125,7 +152,8 @@ function CatalogBookSheet({ book, inLibrary, onClose, onAdded }: { book: Catalog
               </View>
             </View>
             {/* The decision comes first, so it is visible without scrolling at 320 px; details follow. */}
-            {added ? <View style={[styles.notice, { backgroundColor: palette.surfaceSecondary }]}>
+            {linkTarget ? <Button label={`Ligar “${linkTarget.title}” a este livro`} variant="primary" block onPress={() => void link()} disabled={busy} loading={busy} />
+            : added ? <View style={[styles.notice, { backgroundColor: palette.surfaceSecondary }]}>
               <AppText variant="label">Na sua biblioteca</AppText>
               <AppText variant="bodySmall" tone="secondary">Mude o estado ou marque “Quero ler” pelo menu do livro na Biblioteca. Se tiver o arquivo, importe-o pela Biblioteca.</AppText>
             </View> : <>

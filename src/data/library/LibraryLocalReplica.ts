@@ -1,4 +1,5 @@
 import { isRecordBook, LibraryBook, RECORD_BOOKS_SYNC_ENABLED } from '@/src/domain/entities/LibraryBook';
+import { parseCatalogLinkFields } from '@/src/domain/catalog/catalogLink';
 import { ReadingProgressRepository } from '@/src/domain/repositories/ReadingProgressRepository';
 import { BookmarkRepository } from '@/src/domain/repositories/BookmarkRepository';
 import { HighlightRepository } from '@/src/domain/repositories/HighlightRepository';
@@ -52,7 +53,8 @@ export class LibraryLocalReplica {
         totalChapters: Number.isSafeInteger(p.totalChapters) && p.totalChapters >= 0 ? p.totalChapters : previous?.totalChapters ?? 0,
         totalWords: Number.isSafeInteger(p.totalWords) && p.totalWords >= 0 ? p.totalWords : previous?.totalWords ?? 0,
         addedDate: Number.isSafeInteger(p.addedDate) && p.addedDate >= 0 ? p.addedDate : previous?.addedDate ?? now,
-        lastOpenedDate: previous?.lastOpenedDate ?? null, isDeleted: entry.deleted, progress: previous?.progress ?? 0 };
+        lastOpenedDate: previous?.lastOpenedDate ?? null, isDeleted: entry.deleted, progress: previous?.progress ?? 0,
+        ...parseCatalogLinkFields(p) };
       await this.books.save(book); run.check(); return;
     }
     // Never restore a child after learning its parent tombstone.

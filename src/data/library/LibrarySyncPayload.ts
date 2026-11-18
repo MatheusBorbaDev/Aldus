@@ -2,6 +2,7 @@ import { LibraryBook } from '@/src/domain/entities/LibraryBook';
 import { BookOrganization } from '@/src/domain/types/libraryOrganization';
 import { PdfReaderSettings } from '@/src/domain/types/pdfReader';
 import { findBundledAsset } from './BundledBookIdentity';
+import { catalogSyncFields } from '@/src/domain/catalog/catalogLink';
 
 export function bookSyncPayload(book: LibraryBook) {
   const asset = book.bundledAssetId ? findBundledAsset(book.bundledAssetId) : undefined;
@@ -9,7 +10,9 @@ export function bookSyncPayload(book: LibraryBook) {
     format: book.mimeType === 'application/pdf' ? 'pdf' : 'epub', fileSize: book.fileSize,
     fileHash: book.fileHash, remotePath: book.remotePath ?? null,
     bundledAssetId: asset?.hash === book.fileHash ? asset.id : null,
-    totalChapters: book.totalChapters, totalWords: book.totalWords, addedDate: book.addedDate };
+    totalChapters: book.totalChapters, totalWords: book.totalWords, addedDate: book.addedDate,
+    // Ligação ao catálogo (18/11/2026): campos extras; o servidor guarda o payload e apps antigos os ignoram.
+    ...catalogSyncFields(book) };
 }
 export function organizationSyncPayload(record: BookOrganization) {
   const { revision: _revision, updatedAt: _date, coverImagePath: _localCover, ...data } = record;
