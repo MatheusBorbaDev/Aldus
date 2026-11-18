@@ -13,6 +13,8 @@ export interface BookOrganization {
   series: string;
   volume: number | null;
   readingStatus: ReadingStatus | null;
+  /** "Quero ler" (18/11/2026): campo à parte, não um quinto estado, para apps antigos não recusarem o registro. */
+  wantToRead?: boolean;
   updatedAt: number;
   revision: number;
 }
@@ -52,12 +54,14 @@ export function parseOrganizationRecord(value: unknown): BookOrganization {
   if (typeof item.favorite !== "boolean" || !Number.isSafeInteger(item.updatedAt) || (item.updatedAt as number) < 0 || !Number.isSafeInteger(item.revision) || (item.revision as number) < 1) throw new Error("Versão ou preferência inválida.");
   if (item.readingStatus !== null && !readingStatuses.includes(item.readingStatus as ReadingStatus)) throw new Error("Estado de leitura inválido.");
   if (item.volume !== null && (typeof item.volume !== "number" || !Number.isFinite(item.volume) || item.volume <= 0 || item.volume > 100000)) throw new Error("O volume deve ser um número positivo.");
+  if (item.wantToRead !== undefined && typeof item.wantToRead !== "boolean") throw new Error("Quero ler inválido.");
   const cover = item.coverImagePath;
   if (cover !== undefined && cover !== null && (typeof cover !== "string" || cover.length > 4_000_000 || !/^(https?:\/\/|file:\/\/|data:image\/(png|jpeg|webp);base64,)/i.test(cover))) throw new Error("Capa inválida; use uma imagem local ou URL HTTP/HTTPS.");
   return { bookId, ...(title === undefined ? {} : { title }), ...(author === undefined ? {} : { author }),
     ...(cover === undefined ? {} : { coverImagePath: cover as string | null }), favorite: item.favorite,
     collections: list("collections"), tags: list("tags"), series: str("series")!, volume: item.volume as number | null,
-    readingStatus: item.readingStatus as ReadingStatus | null, updatedAt: item.updatedAt as number, revision: item.revision as number };
+    readingStatus: item.readingStatus as ReadingStatus | null, ...(item.wantToRead === true ? { wantToRead: true } : {}),
+    updatedAt: item.updatedAt as number, revision: item.revision as number };
 }
 
 export function parseOrganizationBackup(text: string): OrganizationRecords {

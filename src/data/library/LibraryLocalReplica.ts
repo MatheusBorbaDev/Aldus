@@ -1,4 +1,4 @@
-import { LibraryBook } from '@/src/domain/entities/LibraryBook';
+import { isRecordBook, LibraryBook, RECORD_BOOKS_SYNC_ENABLED } from '@/src/domain/entities/LibraryBook';
 import { ReadingProgressRepository } from '@/src/domain/repositories/ReadingProgressRepository';
 import { BookmarkRepository } from '@/src/domain/repositories/BookmarkRepository';
 import { HighlightRepository } from '@/src/domain/repositories/HighlightRepository';
@@ -98,7 +98,8 @@ export class LibraryLocalReplica {
     const run=this.scope.capture();if(!run.userId)return;
     const books=await this.books.listAll();run.check();
     const organization=await this.organization.list();run.check();
-    for(const book of books.filter(book=>book.ownerUserId===run.userId&&book.importComplete!==false)) {
+    // Books without a file are not seeded until the server accepts them (RECORD_BOOKS_SYNC_ENABLED).
+    for(const book of books.filter(book=>book.ownerUserId===run.userId&&book.importComplete!==false&&(RECORD_BOOKS_SYNC_ENABLED||!isRecordBook(book)))) {
       run.check();
       await sync.seed('book',book.id,book.id,()=>this.books.findById(book.id).then(current=>bookSyncPayload(current??book)),book.isDeleted,!!book.syncUnjournaled);
       if(book.syncUnjournaled) { const current=(await this.books.listAll()).find(value=>value.id===book.id);run.check();if(current)await this.books.save({...current,syncUnjournaled:false});run.check(); }

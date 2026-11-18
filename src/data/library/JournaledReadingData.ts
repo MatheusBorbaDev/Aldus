@@ -1,4 +1,5 @@
 import { LibraryEntityKind } from '@/src/domain/types/librarySync';
+import { isRecordBookId, RECORD_BOOKS_SYNC_ENABLED } from '@/src/domain/entities/LibraryBook';
 import { LibraryOrganizationRepository, parseOrganizationRecord } from '@/src/domain/types/libraryOrganization';
 import { LibrarySyncService } from './LibrarySyncService';
 import { libraryMutationEvents, organizationSyncPayload, pdfPositionPayload, progressSyncPayload } from './LibrarySyncPayload';
@@ -28,6 +29,8 @@ export function journalReadingData<T extends object>(repository: T, kind: Librar
 export function journalOrganization(repository: LibraryOrganizationRepository, sync: LibrarySyncService, scope: LibraryAccountScope = libraryAccountScope): LibraryOrganizationRepository {
   return { list:()=>repository.list(), save:async record=>{
     const validated=parseOrganizationRecord(record);
+    // Organization of a book without a file stays local while the server cannot hold that book.
+    if(isRecordBookId(record.bookId)&&!RECORD_BOOKS_SYNC_ENABLED){await repository.save(validated);libraryMutationEvents.notify();return;}
     await sync.change('organization',record.bookId,record.bookId,organizationSyncPayload(validated),false,()=>repository.save(validated));
     libraryMutationEvents.notify();
   },saveMany:async(records,beforeCommit)=>{
@@ -39,7 +42,7 @@ export function journalOrganization(repository: LibraryOrganizationRepository, s
       if(current)beforeCommit?.(current);
     };
     await sync.batch('organization',async()=>{
-      check();return validated.map(record=>({id:record.bookId,bookId:record.bookId,payload:organizationSyncPayload(record)}));
+      check();return validated.filter(record=>RECORD_BOOKS_SYNC_ENABLED||!isRecordBookId(record.bookId)).map(record=>({id:record.bookId,bookId:record.bookId,payload:organizationSyncPayload(record)}));
     },()=>repository.saveMany(validated,check));
     run.check();libraryMutationEvents.notify();
   },merge:async(records,choice)=>{
@@ -47,7 +50,7 @@ export function journalOrganization(repository: LibraryOrganizationRepository, s
     const validated=Object.fromEntries(Object.entries(records).map(([id,record])=>[id,parseOrganizationRecord(record)]));
     const result=await sync.batch('organization',async()=>{
       const current=await repository.list();run.check();
-      return Object.entries(validated).filter(([id])=>choice!=='keep-local'||!current[id]).map(([id,record])=>({id,bookId:id,payload:organizationSyncPayload(record)}));
+      return Object.entries(validated).filter(([id])=>(choice!=='keep-local'||!current[id])&&(RECORD_BOOKS_SYNC_ENABLED||!isRecordBookId(id))).map(([id,record])=>({id,bookId:id,payload:organizationSyncPayload(record)}));
     },()=>repository.merge(validated,choice));run.check();
     libraryMutationEvents.notify();return result;
   }};

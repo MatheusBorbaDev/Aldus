@@ -1,4 +1,4 @@
-import { LibraryBook } from "@/src/domain/entities/LibraryBook";
+import { isRecordBook, LibraryBook, RECORD_BOOKS_SYNC_ENABLED } from "@/src/domain/entities/LibraryBook";
 import { BookRepository } from "@/src/domain/repositories/BookRepository";
 import { LibraryAccountScope, libraryAccountScope } from "./LibraryAccountScope";
 import { findBundledAsset } from './BundledBookIdentity';
@@ -28,7 +28,8 @@ export class AccountBookRepository implements BookRepository {
     if (previous && previous.ownerUserId !== run.userId) throw new Error("Este livro não pertence à conta atual.");
     if (book.ownerUserId !== undefined && book.ownerUserId !== run.userId) throw new Error("Conta do livro incompatível.");
     const owned = { ...book, ownerUserId: run.userId };
-    if (!this.sync || book.importComplete === false) { await this.storage.save(owned); run.check(); return; }
+    // A book without a file stays on this device until the server accepts that format (RECORD_BOOKS_SYNC_ENABLED).
+    if (!this.sync || book.importComplete === false || (isRecordBook(book) && !RECORD_BOOKS_SYNC_ENABLED)) { await this.storage.save(owned); run.check(); if (isRecordBook(book)) libraryMutationEvents.notify(); return; }
     if (!previous || previous.importComplete === false) {
       // Import success is local first. A durable book marker repairs an outbox failure.
       await this.storage.save({ ...owned, syncUnjournaled: true }); run.check();
@@ -42,7 +43,7 @@ export class AccountBookRepository implements BookRepository {
     const run = this.scope.capture();
     if (!await this.findById(id)) throw new Error("Livro não disponível nesta conta."); run.check();
     const book=await this.findById(id);run.check();
-    if (this.sync) await this.sync.change('book',id,id,bookSyncPayload(book!),true,()=>this.storage.softDelete(id));
+    if (this.sync && !(isRecordBook(book) && !RECORD_BOOKS_SYNC_ENABLED)) await this.sync.change('book',id,id,bookSyncPayload(book!),true,()=>this.storage.softDelete(id));
     else await this.storage.softDelete(id);
     run.check();libraryMutationEvents.notify();
   }
