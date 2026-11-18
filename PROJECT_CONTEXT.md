@@ -371,7 +371,9 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
 3. **Backend remoto não comprovado**: Library Sync/Battle/Admin/SaaS (BUG 02, 11), `username-login` (BUG 09), cadastro/recovery (BUG 08),
    Drive real (BUG 03). Nada disto é verificável pelo código. BUG 11: o ledger remoto lista `library_active_account_fences` (16/10;
    conferido em 12/11), então a migration está aplicada; falta a homologação com contas reais A/B/desativada.
-4. **Geração de flashcards por livro** é só local determinística (pergunta fixa): não vender como IA; IA exige decisão do usuário (§5).
+4. **Plano 18/11 (aprovado para planejar, sem código)**: livro sem arquivo e "Quero ler", importar CSV do Goodreads e card de trecho com
+   capa e capítulo; fatias, riscos e 4 decisões do dono em `docs/context/biblioteca-sync.md` §7 e `reader.md`.
+4b. **Geração de flashcards por livro** é só local determinística (pergunta fixa): não vender como IA; IA exige decisão do usuário (§5).
 5. **Sources por conta** (BUG 12): resolvido no código; falta conferir no Android a adoção de fontes antigas.
 6. **Dependências** com avisos sem upgrade compatível (BUG 13; não rebaixar Expo/RN, sem `audit fix --force`).
 7. Limites conhecidos: atomicidade do lote entre abas Web independentes não comprovada; Reflow grande lento e consome memória (BUG 06);

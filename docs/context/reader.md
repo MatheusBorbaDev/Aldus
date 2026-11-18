@@ -156,3 +156,11 @@ Ordem sugerida: B1 → B2 → A1 → A2 → C → A3 → D → A4.
 - **Dobra sem repintura** (`841ae54`, depois do retorno "travada" no Redmi): nada de `clip-path`/degradê por quadro. `curlBox` cria contêineres
   girados pela linha da dobra (recorte = borda do contêiner, conteúdo contra-girado); o verso é a página espelhada (`scale(-1,1)`); sombra e borda são
   faixas fixas. 30 quadros-chave para `element.animate` (compositor); `requestAnimationFrame` só como reserva. Medir com trace: Paint por virada.
+
+## Plano 18/11/2026: card de trecho com capa e capítulo (PLANO, sem código)
+Fatia C do plano "a leitura além do arquivo" (`biblioteca-sync.md` §7), tamanho P. `QuoteCardSpec` ganha capa (miniatura
+da capa já guardada do livro, lida do aparelho, nunca de rede) e posição pelo **capítulo** (`chapterTitle`); "página X de Y"
+não vale no EPUB, onde a página muda com a letra. Cada um com interruptor "Mostrar capa" / "Mostrar capítulo"; sem capa
+guardada, o card sai sem ela. Renderer nativo e Web em sincronia (string literal, Hermes). Testes: `test-quote-card`,
+`test-quote-card-modal`, recurso na lista de entrega. Depois de A, citação digitada para livro sem arquivo (mesmo limite
+de 400 caracteres). Padrão da capa (ligada ou desligada) é decisão do dono.

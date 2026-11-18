@@ -278,3 +278,61 @@ TOTP real, HTTP A/B/revogação/último OWNER, ações concorrentes e auditoria.
 migrations históricas por hipótese. Atualização Android requer nova compilação/instalação
 do app para incluir a rota/componentes; nenhum APK nem validação física nesta etapa.
 Sem cobrança, provedor escolhido, gateway, SaaS Etapa 2 ou novo recurso de Reader.
+
+## 7. Plano 18/11/2026: a leitura além do arquivo (PLANO, sem código)
+
+Origem: análise competitiva do Livrim (relatório "Aldus × Livrim", revisão 2, 17/11). O dono aprovou planejar três
+itens: livro sem arquivo com "Quero ler", importar CSV do Goodreads e card de trecho com capa e capítulo (este no
+`reader.md`). Objetivo: o Aldus guardar toda a vida de leitura da pessoa, inclusive livros físicos ou de lojas com DRM,
+sem criar persistência ou Sync paralelos e sem placar (regras de produto de 11/11).
+
+### Inventário (18/11, `main` `00a3fb9`)
+- `LibraryBook` é centrado em arquivo (`filePath`, `fileHash`, `mimeType`, `fileSize` obrigatórios); Reader, integridade,
+  envio privado, remoção do aparelho e Sync de arquivo assumem que há arquivo.
+- Organização (`BookOrganization`) já guarda título/autor/capa, favorito, coleções e `readingStatus`
+  (`unread|reading|completed|interrupted`). `parseOrganizationRecord` **rejeita** estado desconhecido: um app antigo
+  que receber um estado novo pelo Sync falha com "Estado de leitura inválido".
+- Servidor: `library_private.library_apply` exige `payload.format in ('epub','pdf')` para `kind='book'`, e
+  `saas_private.enforce_book_quota` conta toda linha `book` ativa no limite do plano. Organização exige linha `book`.
+- `goodreadsCsv.ts` só exporta (colunas Title, Author, ISBN, ISBN13, My Rating, Number of Pages, Date Read, Date Added,
+  Bookshelves, Exclusive Shelf, My Review, Private Notes), a partir do diário (`app/diary.tsx`).
+
+### Fatia A · Livro sem arquivo e "Quero ler" (G)
+- A1 (P) "Quero ler" para qualquer livro. Para não quebrar apps antigos, **não** é um quinto `readingStatus`: campo
+  opcional novo na organização (ex. `wantToRead: true`), com teste do comportamento do parser antigo. Filtro "Quero ler"
+  na Biblioteca; exportação Goodreads mapeia para `to-read`.
+- A2 (M) Entidade "livro sem arquivo": `LibraryBook` com marcador explícito de origem (registro manual), sem caminho,
+  hash nem tamanho; formato físico, e-book de outra loja ou audiolivro. Guardas em Reader (abre a ficha, não o leitor),
+  integridade, envio/baixa de arquivo, remoção do aparelho e lote. Progresso manual (página, %, capítulo) fica na
+  organização do livro, **nunca** no progresso de leitura do Reader (EPUB/PDF/Reflow seguem com posições próprias).
+  Não entra no diário: diário só tem sessões medidas.
+- A3 (M, remoto) Sync: migration incremental nova aceitando o formato sem arquivo (sem `remotePath`) e regra de cota
+  conforme decisão do dono; testada em PGlite com as migrations reais. Aplicar exige autorização própria. Sem a
+  migration, livro sem arquivo fica só no aparelho com aviso explícito.
+- A4 (M) Tela: "Adicionar livro sem arquivo" no "+" da Biblioteca (título, autor, páginas opcionais, formato, estado,
+  capa opcional da galeria); ficha com "Registrar progresso"; selo "Sem arquivo · Físico" no card.
+- Testes: domínio (validação, mapeamentos), repositório por conta (A/B, dado ilegível preservado), guardas do Reader e
+  do Sync, migration em PGlite, tela com react-test-renderer; recurso na lista de entrega.
+- Risco: apps antigos em outro aparelho recebendo livro sem arquivo pelo Sync. Testar o parser antigo do payload de
+  livro antes de liberar; na beta, pedir atualização a todos os testadores.
+
+### Fatia B · Importar CSV do Goodreads (M, depende de A)
+- Domínio: parser CSV (aspas, vírgulas e quebras de linha dentro de resenha), limite de 5 MB e de linhas, colunas
+  obrigatórias Title e Author; erros por linha, sem abortar o arquivo inteiro.
+- Mapeamento: `to-read` → Quero ler; `currently-reading` → Lendo; `read` → Concluído (data de leitura só se vier no
+  arquivo); outras estantes → coleções. Nunca inventar data, nota ou páginas: campo vazio fica vazio.
+- Casamento com a biblioteca: ISBN quando houver, senão título + autor normalizados; o que casa atualiza a organização
+  do livro existente; o resto vira livro sem arquivo.
+- Etapa de revisão antes de gravar (novos, já na biblioteca, ignorados com o motivo), com escolha em caso de conflito
+  (manter o meu / usar o importado, como já faz a importação JSON); gravação em lote única.
+- Nota e resenha: conforme decisão do dono (ignorar com aviso, ou guardar privadas).
+- Testes: CSV real do formato Goodreads com casos ruins, revisão, conflito, A/B, cancelamento; recurso na lista.
+
+### Ordem sugerida
+C (card, P) → A1 → A2 → A4 → A3 (com autorização) → B. Cada item é um commit verde sozinho.
+
+### Decisões do dono (pendentes em 18/11)
+1. Livro sem arquivo conta no limite de livros do plano?
+2. Migration do formato sem arquivo: escrever no projeto agora e aplicar depois, ou ficar só no aparelho por enquanto?
+3. Nota e resenha do CSV: ignorar com aviso, ou guardar privadas?
+4. Capa no card de trecho: ligada por padrão (ocultável) ou desligada por padrão?
