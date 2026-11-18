@@ -47,6 +47,11 @@ const flush = () => act(async () => { for (let i = 0; i < 5; i++) await Promise.
   const help = betaLimitationsDocument.sections.find(s => s.heading === 'Como nos ajudar');
   assert.match(help.bullets.at(-1), /^Canal para relatos: \S+@\S+\.\S+$/);
   assert.ok(betaLimitationsDocument.sections.some(s => s.heading === 'O que o Aldus não faz, de propósito'));
+  // The catalog is in the app (18/11): listed under "Seus livros" with its local-only limit, no longer "Em construção".
+  const section = heading => betaLimitationsDocument.sections.find(s => s.heading === heading).bullets.join('\n');
+  assert.match(section('Seus livros'), /Buscar qualquer livro[\s\S]*ficam só no aparelho/);
+  assert.doesNotMatch(section('Em construção'), /Catálogo/);
+  assert.ok(RELEASE_NOTES.items.some(item => item.startsWith('Buscar qualquer livro')));
   // Loading screen quote (public domain, credited).
   await act(async () => { tree = create(React.createElement(AppLoadingScreen)); });
   const loading = text(tree.root);

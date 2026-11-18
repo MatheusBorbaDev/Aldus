@@ -1,5 +1,5 @@
 <!--
-TEXTO APROVADO PELO DONO EM 18/11/2026. Público: antes de cada envio, conferir os itens abaixo.
+TEXTO APROVADO PELO DONO EM 18/11/2026 (catálogo movido para "Seus livros" com aprovação na mesma data). Público: antes de cada envio, conferir os itens abaixo.
 No app desde 18/11/2026 em app/beta.tsx (src/legal/betaLimitations.ts): itens conferidos para a build de 18/11 e canal de relatos =
 contato de suporte já aprovado (legalContactDescription). Ao mudar este texto, mudar os dois.
 Antes de enviar a uma turma de testadores, conferir cada item na build que vai ser distribuída e preencher
@@ -22,6 +22,10 @@ que esperar e nos contar o que encontrar.
 ## Seus livros
 
 - O Aldus abre **EPUB e PDF que você já tem**: do seu aparelho, do seu Google Drive ou de catálogos de domínio público.
+- **Catálogo (novo):** em Biblioteca → Adicionar → Buscar qualquer livro, você encontra livros com as informações do
+  Open Library e guarda na sua estante mesmo sem o arquivo (livro físico, de outra loja ou audiolivro). Nessa base,
+  edições brasileiras recentes podem faltar ou vir incompletas, e muitas não têm capa; nesses casos o Aldus desenha uma
+  capa própria. **Por enquanto, livros sem arquivo ficam só no aparelho em que foram guardados.**
 - **Livros com proteção de loja (DRM)** podem não abrir. É o caso da maioria dos livros comprados para Kindle e de
   algumas lojas de e-book. Isso não é um defeito que vamos corrigir: o Aldus não remove proteções.
 - O Aldus **não vende, não empresta e não envia** arquivos de livros a outras pessoas. O que você compartilha são
@@ -63,10 +67,7 @@ que esperar e nos contar o que encontrar.
 
 Estes recursos estão planejados, ainda sem data. Até chegarem, não estão no app.
 
-- **Catálogo de livros:** buscar qualquer livro e adicioná-lo à sua biblioteca, mesmo sem o arquivo (livro físico ou de
-  outra loja). O catálogo vai mostrar só informações sobre o livro (título, autor, edição, capa), vindas de bases
-  abertas. Nessas bases, edições brasileiras recentes podem faltar ou vir incompletas, e muitas não têm capa; nesses
-  casos o Aldus desenha uma capa própria.
+- **Livros sem arquivo em todos os seus aparelhos.**
 - **Nota e resenha pessoais** na ficha de cada livro.
 - **Importar sua estante do Goodreads** por arquivo CSV. (Exportar no padrão Goodreads já existe, no Diário de leitura.)
 

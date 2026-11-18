@@ -17,6 +17,7 @@ export const betaLimitationsDocument: LegalDocument = {
     ] },
     { heading: "Seus livros", bullets: [
       "O Aldus abre EPUB e PDF que você já tem: do seu aparelho, do seu Google Drive ou de catálogos de domínio público.",
+      "Catálogo (novo): em Biblioteca → Adicionar → Buscar qualquer livro, você encontra livros com as informações do Open Library e guarda na sua estante mesmo sem o arquivo (livro físico, de outra loja ou audiolivro). Nessa base, edições brasileiras recentes podem faltar ou vir incompletas, e muitas não têm capa; nesses casos o Aldus desenha uma capa própria. Por enquanto, livros sem arquivo ficam só no aparelho em que foram guardados.",
       "Livros com proteção de loja (DRM) podem não abrir. É o caso da maioria dos livros comprados para Kindle e de algumas lojas de e-book. Isso não é um defeito que vamos corrigir: o Aldus não remove proteções.",
       "O Aldus não vende, não empresta e não envia arquivos de livros a outras pessoas. O que você compartilha são trechos em imagem, com limite de tamanho.",
       "PDF grande na Leitura Livre (o modo que transforma o PDF em texto corrido) pode levar alguns minutos para ficar pronto na primeira vez, principalmente em livros com centenas de páginas.",
@@ -41,7 +42,7 @@ export const betaLimitationsDocument: LegalDocument = {
       "Sem coleta de estatísticas de uso nesta fase. Por isso dependemos do seu relato para saber o que melhorar.",
     ] },
     { heading: "Em construção", paragraphs: ["Estes recursos estão planejados, ainda sem data. Até chegarem, não estão no app."], bullets: [
-      "Catálogo de livros: buscar qualquer livro e adicioná-lo à sua biblioteca, mesmo sem o arquivo (livro físico ou de outra loja). O catálogo vai mostrar só informações sobre o livro (título, autor, edição, capa), vindas de bases abertas. Nessas bases, edições brasileiras recentes podem faltar ou vir incompletas, e muitas não têm capa; nesses casos o Aldus desenha uma capa própria.",
+      "Livros sem arquivo em todos os seus aparelhos.",
       "Nota e resenha pessoais na ficha de cada livro.",
       "Importar sua estante do Goodreads por arquivo CSV. (Exportar no padrão Goodreads já existe, no Diário de leitura.)",
     ] },
