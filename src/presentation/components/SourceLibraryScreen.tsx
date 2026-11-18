@@ -10,11 +10,12 @@ import { SourceCatalogSort, querySourceCatalog, querySourceCatalogAsync, SOURCE_
 import { sourceCatalogs } from "@/src/data/sources/sourceCatalogDependencies";
 import { useSourceCatalog } from "@/src/presentation/hooks/useSourceCatalog";
 import { useAppTheme } from "@/src/presentation/contexts/AppThemeContext";
-import { ActionMenu, ActionMenuItem, AppText, Button, Chip, ChipRow, EmptyState, IconButton, IconName, layout as uiLayout, radius, SearchField, space, touchTarget } from "@/src/ui";
+import { ActionMenu, ActionMenuItem, AppText, Button, EmptyState, IconButton, IconName, layout as uiLayout, radius, SearchField, space, touchTarget } from "@/src/ui";
 import { BookCard } from "./BookCard";
 import { SourceManagerModal, SourceManagerAction } from "./SourceManagerModal";
 import { sourceLibraryTypeLabel, sourceProgressCounts, sourceProgressLabel, sourceUpdatedLabel, sourceVisibleInAccount, useSourceAccountGeneration, useSourceAccountId } from './sourcePresentation';
 import { SourceBookSheet } from "./SourceBookSheet";
+import { googleDrive } from "@/src/data/drive/driveDependencies";
 import { useSourceImports } from "@/src/presentation/hooks/useSourceImports";
 import { useDownloadStore } from "@/src/presentation/stores/downloadStore";
 import { sourceAcquisitionState, sourceItemJob } from "@/src/presentation/services/sourceAcquisition";
@@ -57,6 +58,8 @@ interface StatusNotice {
   title: string;
   detail?: string | null;
   busy?: boolean;
+  /** Uma faixa fina (reconectar, sem conexão): o estado é dito sem empurrar os livros para baixo da dobra. */
+  compact?: boolean;
   action?: { label: string; accessibilityLabel?: string; onPress(): void };
 }
 
@@ -65,6 +68,18 @@ function SourceStatusNotice({ notice }: { notice: StatusNotice }) {
   const { palette } = useAppTheme();
   const icon: IconName = notice.tone === "error" ? "alert-circle-outline" : notice.tone === "warning" ? "cloud-offline-outline" : "information-circle-outline";
   const ink = notice.tone === "error" ? palette.danger : notice.tone === "warning" ? palette.accent : palette.secondaryText;
+  if (notice.compact) return (
+    <View accessibilityRole={notice.tone === "info" ? undefined : "alert"} accessibilityLiveRegion="polite" style={[styles.compactNotice, { borderColor: palette.border, backgroundColor: palette.surface }]}>
+      <Ionicons name={icon} size={18} color={ink} />
+      <View style={styles.noticeText}>
+        <AppText variant="bodySmall" style={{ color: palette.text, fontWeight: "600" }}>{notice.title}</AppText>
+        {notice.detail ? <AppText variant="caption" tone="secondary">{notice.detail}</AppText> : null}
+      </View>
+      {notice.action ? <Pressable accessibilityRole="button" accessibilityLabel={notice.action.accessibilityLabel ?? notice.action.label} onPress={notice.action.onPress} style={styles.compactAction}>
+        <AppText variant="label" tone="accent">{notice.action.label}</AppText>
+      </Pressable> : null}
+    </View>
+  );
   return (
     <View accessibilityRole={notice.tone === "info" ? undefined : "alert"} accessibilityLiveRegion="polite" style={[styles.notice, { backgroundColor: notice.tone === "info" ? palette.surfaceSecondary : palette.accentSoft, borderColor: notice.tone === "info" ? palette.border : ink }]}>
       <View style={styles.noticeRow}>
@@ -91,7 +106,7 @@ function SourceLibraryContent({ source }: { source: UserSource }) {
   const { imported, error: importError, reload } = useSourceImports(source.id);
   const jobs = useDownloadStore(state => state.jobs);
   const labels = { remote_only: "Remoto · importar sob demanda", downloading: "Importando…", imported: "Na biblioteca", unavailable: "Indisponível" };
-  const [query, setQuery] = useState(""), [sort, setSort] = useState<SourceCatalogSort>("az"), [layout, setLayout] = useState<"grid" | "list">("grid"), [managing, setManaging] = useState<SourceManagerAction | null>(null), [selected, setSelected] = useState<SourceCatalogItem | null>(null), [menu, setMenu] = useState(false);
+  const [query, setQuery] = useState(""), [sort, setSort] = useState<SourceCatalogSort>("az"), [layout, setLayout] = useState<"grid" | "list">("grid"), [managing, setManaging] = useState<SourceManagerAction | null>(null), [selected, setSelected] = useState<SourceCatalogItem | null>(null), [menu, setMenu] = useState(false), [sortMenu, setSortMenu] = useState(false);
   const [width, setWidth] = useState(windowWidth);
   const gutter = uiLayout.gutter(width);
   // Cada célula tem `space.xs` de respiro dos dois lados; a lista desconta isso do gutter para alinhar com o cabeçalho.
@@ -155,8 +170,8 @@ function SourceLibraryContent({ source }: { source: UserSource }) {
     detail: sourceProgressCounts(view.operation),
     action: refreshOperation.current ? { label: "Cancelar atualização", accessibilityLabel: "Cancelar atualização da biblioteca", onPress: () => refreshOperation.current?.abort() } : undefined,
   } : view.status === "auth_required" ? {
-    tone: "warning", title: "Reconecte o Google Drive para atualizar esta biblioteca.",
-    detail: [view.catalog ? "O catálogo local continua disponível." : null, specificError].filter(Boolean).join(" ") || null,
+    tone: "warning", compact: true, title: "Reconecte o Google Drive para atualizar.",
+    detail: [view.catalog ? "Os livros já listados continuam aqui." : null, specificError].filter(Boolean).join(" ") || null,
     action: { label: "Reconectar", accessibilityLabel: "Reconectar o Google Drive", onPress: refresh },
   } : view.status === "error" && !view.catalog ? {
     tone: "error", title: "Não foi possível carregar esta biblioteca.",
@@ -168,7 +183,7 @@ function SourceLibraryContent({ source }: { source: UserSource }) {
     tone: "warning", title: "Não foi possível atualizar.",
     detail: "Exibindo a última atualização disponível. Confira a rede e as permissões; se o limite de consultas foi atingido, aguarde e tente de novo.",
   } : view.status === "offline" ? {
-    tone: "info", title: "Sem conexão.", detail: "Exibindo a última atualização disponível.",
+    tone: "info", compact: true, title: "Sem conexão.", detail: "Exibindo a última atualização disponível.",
   } : null;
 
   const catalogSummary = view.catalog
@@ -176,6 +191,9 @@ function SourceLibraryContent({ source }: { source: UserSource }) {
     : `${sourceLibraryTypeLabel(source.kind)} · Ainda não atualizada`;
   const folderSummary = [plural(contents.books.length, "livro", "livros"), contents.folders.length ? plural(contents.folders.length, "pasta", "pastas") : null].filter(Boolean).join(" · ") + " nesta pasta";
   const updatedLabel = sourceUpdatedLabel(view.catalog?.lastUpdated);
+  const sortLabel = sorts.find(([value]) => value === sort)?.[1] ?? "Título A–Z";
+  // "Conectado" só quando há acesso válido agora; uma biblioteca que renova sozinha não finge estar conectada antes da hora.
+  const connectedLabel = source.kind === "google-drive" && !reconnect && googleDrive.authorization.connected(source.id) ? "Conectado" : null;
   const menuItems: ActionMenuItem[] = [
     { key: "manage", label: "Gerenciar biblioteca", icon: "settings-outline", onPress: () => setManaging("manage") },
     { key: "edit", label: "Editar biblioteca", icon: "create-outline", onPress: () => setManaging("edit") },
@@ -200,7 +218,10 @@ function SourceLibraryContent({ source }: { source: UserSource }) {
       </View> : null}
       <AppText variant="title" accessibilityRole="header">{insideFolder && currentFolder ? currentFolder.name : source.name}</AppText>
       <AppText variant="bodySmall" tone="secondary">{insideFolder ? folderSummary : catalogSummary}</AppText>
-      {updatedLabel ? <AppText variant="caption" tone="secondary">{updatedLabel}</AppText> : null}
+      {connectedLabel || updatedLabel ? <View style={styles.connection}>
+        {connectedLabel ? <View style={[styles.connectionDot, { backgroundColor: palette.success ?? palette.accent }]} /> : null}
+        <AppText variant="caption" tone="secondary">{[connectedLabel, updatedLabel].filter(Boolean).join(" · ")}</AppText>
+      </View> : null}
     </View>
     {notice ? <SourceStatusNotice notice={notice} /> : null}
     {source.kind === "google-drive" && view.catalog && !view.catalog.rootFolderId ? <AppText variant="caption" tone="secondary">Atualize a fonte para incluir pastas e subpastas. O catálogo anterior continua disponível.</AppText> : null}
@@ -209,9 +230,13 @@ function SourceLibraryContent({ source }: { source: UserSource }) {
     {view.catalog ? <>
       <SearchField value={query} onChangeText={setQuery} placeholder="Pesquisar por título ou autor" label="Pesquisar nesta biblioteca" />
       <View style={styles.toolbar}>
-        <View style={styles.toolbarChips}>
-          <ChipRow label="Ordenar livros">{sorts.map(([value, label]) => <Chip key={value} label={label} selected={sort === value} onPress={() => setSort(value)} />)}</ChipRow>
-        </View>
+        {/* Um botão só para ordenar: os três botões lado a lado ficavam cortados no celular (18/11). */}
+        <Pressable accessibilityRole="button" accessibilityLabel={`Ordenar livros: ${sortLabel}`} onPress={() => setSortMenu(true)} style={[styles.sortButton, { borderColor: palette.border }]}>
+          <Ionicons name="swap-vertical-outline" size={17} color={palette.accent} />
+          <AppText variant="label" numberOfLines={1}>{sortLabel}</AppText>
+          <Ionicons name="chevron-down" size={15} color={palette.secondaryText} />
+        </Pressable>
+        <View style={styles.spacer} />
         <IconButton icon={layout === "grid" ? "list-outline" : "grid-outline"} label={layout === "grid" ? "Exibir em lista" : "Exibir em grade"} onPress={() => setLayout(layout === "grid" ? "list" : "grid")} />
       </View>
     </> : null}
@@ -244,6 +269,7 @@ function SourceLibraryContent({ source }: { source: UserSource }) {
       </View>;
     }} ListEmptyComponent={empty} />
     <ActionMenu visible={menu} title={source.name} items={menuItems} onClose={() => setMenu(false)} />
+    <ActionMenu visible={sortMenu} title="Ordenar livros" items={sorts.map(([value, label]) => ({ key: value, label, icon: sort === value ? "checkmark-circle" : "ellipse-outline", onPress: () => { setSort(value); setSortMenu(false); } }))} onClose={() => setSortMenu(false)} />
     <SourceManagerModal visible={managing !== null} sourceId={source.id} action={managing ?? 'manage'} onClose={() => setManaging(null)} />
     {selected ? <SourceBookSheet key={selected.remoteBookId} source={source} item={selected} importedBookId={imported[selected.remoteBookId]} onImported={reload} onClose={() => setSelected(null)} /> : null}
   </View>;
@@ -263,6 +289,11 @@ const styles = StyleSheet.create({
   noticeRow: { flexDirection: "row", alignItems: "flex-start", gap: space.sm },
   noticeText: { flex: 1, minWidth: 0, gap: space.xxs },
   noticeAction: { marginLeft: space.xxl + space.xxs },
+  compactNotice: { flexDirection: "row", alignItems: "center", flexWrap: "wrap", gap: space.sm, borderWidth: StyleSheet.hairlineWidth, borderRadius: radius.md, paddingHorizontal: space.md, paddingVertical: space.xs, minHeight: touchTarget },
+  compactAction: { minHeight: touchTarget, justifyContent: "center", paddingHorizontal: space.xs },
+  connection: { flexDirection: "row", alignItems: "center", gap: space.xs },
+  connectionDot: { width: 8, height: 8, borderRadius: 4 },
+  sortButton: { minHeight: touchTarget, flexDirection: "row", alignItems: "center", gap: space.xs, borderWidth: 1, borderRadius: radius.pill, paddingHorizontal: space.md, flexShrink: 1 },
   toolbar: { flexDirection: "row", alignItems: "center", gap: space.xs },
   toolbarChips: { flex: 1, minWidth: 0 },
   cell: { flex: 1, padding: space.xs },

@@ -115,8 +115,8 @@ async function cdp(url) {
     const geometry = async labels => client.evaluate(`(${JSON.stringify(labels)}).map(label => { const r = document.querySelector('[aria-label=' + JSON.stringify(label) + ']')?.getBoundingClientRect(); return r ? { center: Math.round(r.top + r.height / 2), height: Math.round(r.height) } : null; })`);
     const headerRow = await geometry(['Voltar para Minhas bibliotecas', 'Atualizar', 'Opções da biblioteca Minha biblioteca de teste']);
     assert.ok(headerRow.every(Boolean) && new Set(headerRow.map(r => r.center)).size === 1 && headerRow.every(r => r.height >= 44), 'back, refresh and options share one aligned row of 44px targets ' + JSON.stringify(headerRow));
-    const toolbarRow = await geometry(['Título A–Z', 'Exibir em lista']);
-    assert.ok(toolbarRow.every(Boolean) && Math.abs(toolbarRow[0].center - toolbarRow[1].center) <= 1, 'sort chips and layout toggle are aligned ' + JSON.stringify(toolbarRow));
+    const toolbarRow = await geometry(['Ordenar livros: Título A–Z', 'Exibir em lista']);
+    assert.ok(toolbarRow.every(Boolean) && Math.abs(toolbarRow[0].center - toolbarRow[1].center) <= 1, 'sort button and layout toggle are aligned ' + JSON.stringify(toolbarRow));
     assert.equal((await text()).split('Minha biblioteca de teste').length - 1, 1, 'library name is shown once (no repeated title/breadcrumb)');
     assert.match(await text(), /Atualizada hoje às \d\d:\d\d/, 'readable last-update label'); assert.ok(!(await text()).includes('Última atualização:'));
 
@@ -177,7 +177,7 @@ async function cdp(url) {
     books = Array.from({ length: 1000 }, (_, i) => ({ id: `remote-${i}`, title: `Livro ${String(i).padStart(4,'0')}`, url: '/fixture.epub', format: 'epub' }));
     hold=true; const start = performance.now(); await click('Atualizar'); await until('Buscando livros'); await screenshot('refreshing'); releaseResponses(); await until('1.000 livros'); const indexedMs = performance.now() - start; await wait(1000);
     const mounted = await client.evaluate(`document.querySelectorAll('[aria-label^="Abrir Livro "]').length`); assert.ok(mounted < 250, `virtualized list, mounted ${mounted}/1000`);
-    await input('Livro 0999'); await until('Livro 0999'); await click('Título Z–A'); await screenshot('thousand-search');
+    await input('Livro 0999'); await until('Livro 0999'); await click('Ordenar livros: Título A–Z'); await click('Título Z–A'); await wait(300); assert.ok((await geometry(['Ordenar livros: Título Z–A']))[0], 'sort menu applies the choice'); await screenshot('thousand-search');
     await client.evaluate(`localStorage.setItem('@kindle/appTheme','dark')`); await navigate('/sources/browser-source'); await until('1.000 livros'); await screenshot('dark-grid');
     await client.evaluate(`document.querySelector('[aria-label="Opções da biblioteca Minha biblioteca de teste"]').click()`); await click('Remover biblioteca'); await until('Remover esta biblioteca?'); await until('Livros já importados, notas e progresso serão preservados.');
     await screenshot('remove-confirmation');
