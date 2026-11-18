@@ -349,7 +349,41 @@ C (card, P) → A1 → A2 → A4 → A3 (com autorização) → B. Cada item é 
   ficha do livro, exportação e importação no CSV (My Rating, My Review). Entra depois de A1 e antes de B.
 - Ordem: C → A1 → catálogo (busca) → A2/A4 → D → A5 → A3 (com autorização) → B.
 
+### 7.1 Visão ampliada do dono (18/11/2026): catálogo de livros estilo streaming
+Pedido: "um catálogo semelhante ao da Netflix, com recomendações baseadas nos livros que você leu, livros separados por
+categorias pelo próprio Aldus"; "como não temos direitos sobre os livros, fornecemos somente os metadados para que a
+pessoa visualize os livros e tenha um local pra ler". Inclui livros fora do domínio público (só metadados). Quando a
+pessoa adiciona o arquivo (aparelho, Drive etc.), ele **se vincula ao item do catálogo**. Fonte escolhida: **Google Books
+com Open Library de reserva**.
+
+Limites confirmados nos termos (18/11):
+- Google Books API Terms (cláusula 1): não cobrar do usuário pelo uso do app sem acordo separado com o Google. Conflita
+  com qualquer plano pago futuro (SaaS existe no código, sem cobrança hoje). Cláusula 2: remover conteúdo quando pedido e
+  ter canal para detentores de direitos. Cache, atribuição e cotas estão nos termos gerais de APIs do Google: **não
+  conferidos ainda**; conferir antes de qualquer cache em servidor.
+- Open Library: 1 req/s sem identificação, 3 req/s com User-Agent e contato; não é base para serviço comercial de alto
+  tráfego; uso em massa só pelos dumps; recomenda cache. Licença dos dados: **não conferida**.
+- Regra de produto: sem ranking. Fileiras do tipo "Em alta" ou "Mais lidos" não existem sem dado real e ficam de fora.
+- Antipirataria: o catálogo nunca traz conteúdo nem link de download; "compartilhar o livro" é a ficha do catálogo
+  (capa e dados) ou trecho em card, nunca o arquivo.
+
+Fases propostas (cada fase em commits verdes; tamanhos P/M/G):
+1. **Fundação do catálogo (G)**: modelo de obra/edição com IDs (volume do Google, chave do Open Library, ISBN-10/13),
+   validação no domínio, gateways com cliente controlado, cache local por conta, tratamento de cota esgotada e de
+   indisponível, taxonomia própria de categorias em pt-BR mapeada das categorias das fontes. Texto de privacidade novo
+   (buscas saem do aparelho sem dados da conta) mostrado ao dono antes de aplicar.
+2. **Ficha do livro e "Adicionar" (G)**: busca por título, autor, ISBN; ficha com todos os metadados; adicionar como
+   Quero ler, Lendo, Concluído, físico, outra loja, audiolivro; livro sem arquivo (A1–A4); migration do formato sem
+   arquivo fora da cota (A3, autorização própria).
+3. **Vínculo arquivo ↔ catálogo (G)**: ao importar EPUB/PDF (aparelho, Drive, catálogos), casar por ISBN do arquivo,
+   depois título + autor; certeza alta vincula, dúvida pergunta "Este é o livro X?", nada casado fica sem vínculo e
+   pode ser vinculado depois; nunca vincular em silêncio com ambiguidade. Também para livros já na biblioteca (A5).
+4. **Vitrine (G)**: tela inicial do catálogo com capas grandes em fileiras por categoria do Aldus, "Continue lendo",
+   "Porque você leu X" e "Do mesmo autor". Recomendações calculadas **no aparelho** a partir da biblioteca (autor,
+   categoria, série), sem enviar o histórico de leitura a ninguém e sem IA.
+5. **Nota, resenha e card (M)**: fatias D (nota e resenha privadas), C (card com capa e capítulo) e B (CSV Goodreads).
+
 ### Pendente
-- Fonte dos metadados (serviço externo novo; as buscas saem do aparelho sem dados da conta; entra no texto de
-  privacidade, que o dono aprova antes): Google Books com Open Library de reserva (recomendado) ou só Open Library.
-  Conferir os termos de uso da fonte escolhida antes de implementar.
+- Decisões do dono abertas em 18/11: onde fica o cache do catálogo (só no aparelho ou servidor compartilhado), como
+  tratar o conflito Google × cobrança futura, e contato para identificar o app no Open Library (depende do domínio).
+- Conferir os termos gerais de APIs do Google (cache, atribuição, cotas) e a licença de dados do Open Library.
