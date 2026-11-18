@@ -488,6 +488,10 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
   157.174.863 bytes, SHA-256 `d16502a4…1e69596e`, checagem PASS (50 recursos); instalado no Redmi `7lzdto7l55wcd68l` por cima do APK de diagnóstico.
   Livro abriu sem overlay; "Se os gatos desaparecessem do mundo" (EPUB) abriu com páginas. Preparação do zero ~5 min (montagem ~3 min 50 s).
   O segundo celular segue com o `fbc0332`.
+- Dono: "mas os 4 minutos e meio não são demais?" / "pode corrigir". Causa provável: fatias de 8 ms + `requestIdleCallback` (até 50 ms)
+  na preparação. `ebbd4c5`..`1de6c61`: fatias de 48 ms com retomada por timer (`cooperativeWork.ts`), teste de agendamento sem tempo ocioso.
+  APK `1de6c61` (versionCode 7): `artifacts/apk/Aldus-1de6c61-device-rehearsal.apk`, 157.174.755 bytes, SHA-256 `8dbe121b…078ba4783`, checagem PASS.
+  NÃO instalado: o Redmi foi desconectado do PC antes da instalação. Ganho de tempo NÃO medido no aparelho.
 
 ### 17/11/2026 — Revisão para as betas públicas: dependências, banco, hospedagem (Claude)
 - Pedido do dono: ajustar dependências e configurações (banco, hospedagem etc.) e revisar o necessário para iniciar o plano das betas públicas.
