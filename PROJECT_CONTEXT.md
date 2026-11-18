@@ -417,6 +417,12 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
 - APK de ensaio `artifacts/apk/Aldus-79ad0a2-device-rehearsal.apk` (157.042.801 bytes, SHA-256 `0d9a008d…ec0d9c`): `com.aldus.reader`
   1.0.0-beta.2 (versionCode 3), não depurável, certificado de debug (ensaio, não distribuir), 4 ABIs; build 5m55s e `verify-release-features
   --apk` PASS (38 recursos, só acervo de domínio público). NÃO instalado (o celular está ligado a outro PC).
+- Depois do APK (pedidos "pode colocar o que falta", "pode ser" para a logo, texto de privacidade aprovado): `576cdf7` marca aplicada
+  (ícone, adaptativo com monocromático, abertura azul-noite, favicon; o ícone era o robô padrão do Android); `5071c62` capa padrão Aldus
+  no `BookCover`; `4c06823` catálogo fase 1 (modelo, ISBN, categorias, Open Library, Wikidata, cache por conta; sem tela); `415beb4`
+  privacidade v0.10 (buscas do catálogo); `2bfc1f0` frase de Castro Alves na tela de carregamento, aviso de novidades com aviso de beta e
+  a página "O que esperar desta beta" (também em Ajustes; canal de relatos = contato de suporte já aprovado). `test:critical` 136/136;
+  lista de entrega 40 recursos. NÃO em APK ainda. Próximo: catálogo fase 2 (busca e ficha do livro).
 
 ### 17/11/2026 — Revisão para as betas públicas: dependências, banco, hospedagem (Claude)
 - Pedido do dono: ajustar dependências e configurações (banco, hospedagem etc.) e revisar o necessário para iniciar o plano das betas públicas.
