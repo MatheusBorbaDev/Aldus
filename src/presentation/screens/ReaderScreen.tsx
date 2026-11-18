@@ -19,7 +19,7 @@ import { chapterLanguage } from "@/src/presentation/components/EpubReaderDocumen
 import { ReaderFeedbackBanner } from "@/src/presentation/components/reader/ReaderFeedbackBanner";
 import { HighlightSelectionPopup } from "@/src/presentation/components/reader/HighlightSelectionPopup";
 import { QuoteCardModal } from "@/src/presentation/components/reader/QuoteCardModal";
-import { createStudyHighlight } from "@/src/domain/usecases/StudyHighlights";
+import { createStudyHighlight, highlightsForReaderMode } from "@/src/domain/usecases/StudyHighlights";
 import { studyColorNames } from "@/src/presentation/components/StudyPanelControls";
 import type { HighlightColor } from "@/src/domain/repositories/HighlightRepository";
 import type { ReaderStudyAdjust } from "@/src/presentation/components/EpubPageViewerProps";
@@ -458,6 +458,10 @@ export function ReaderScreen({ bookId }: Props) {
   const isPdf = bookMimeType === "application/pdf";
   const pdfReadingMode: PdfReadingMode = pdfReaderSettings?.mode ?? "original";
   const isReflowPdf = isPdf && pdfReadingMode === "reflow";
+  // Grifos (18/11/2026): EPUB e Leitura Livre usam o mesmo documento; cada modo mostra só os seus. PDF Original não grifa.
+  const textReader = isEpub || isReflowPdf;
+  const highlightMode = isReflowPdf ? "pdf-reflow" as const : "epub" as const;
+  const modeHighlights = useMemo(() => textReader ? highlightsForReaderMode(studyHighlights, highlightMode) : undefined, [textReader, highlightMode, studyHighlights]);
   const readerChapterItems = useMemo(() => {
     const source = isEpub ? chapters : isReflowPdf ? pdfReflowChapters : [];
     const seenTitles = new Set<string>();
@@ -1013,7 +1017,7 @@ export function ReaderScreen({ bookId }: Props) {
     popupIntent.current = false; setSelectionPopup(null);
     setStudyRequest({ id: ++studySequence.current, type: "studySelection", enabled: false });
   };
-  const selectTextAt = isEpub ? (x: number, y: number) => {
+  const selectTextAt = textReader ? (x: number, y: number) => {
     if (studyVisible || readerPanel || selectionPopup) return;
     popupIntent.current = true; studySelectionIntent.current = false; setStudyFeedback(null);
     setSelectionPopup({ anchor: null, error: null, busy: true });
@@ -1028,7 +1032,7 @@ export function ReaderScreen({ bookId }: Props) {
     const anchor = selectionPopup?.anchor; if (!anchor || selectionPopup?.busy) return;
     setSelectionPopup({ anchor, error: null, busy: true });
     try {
-      await appDependencies.highlightRepository.save(createStudyHighlight({ bookId, anchor, chapterTitle, color }));
+      await appDependencies.highlightRepository.save(createStudyHighlight({ bookId, anchor, chapterTitle, color, mode: highlightMode }));
       closeSelectionPopup(); setSelectionNotice(`Grifo salvo em ${studyColorNames[color].toLowerCase()}.`);
       await reloadHighlights().catch(() => undefined);
     } catch (error) {
@@ -1075,7 +1079,7 @@ export function ReaderScreen({ bookId }: Props) {
         studySelecting={studySelecting}
         panelOpen={readerPanel !== null || studyVisible || selectionPopup !== null}
         onLongPressText={selectTextAt}
-        studyHighlights={isEpub ? studyHighlights : undefined}
+        studyHighlights={modeHighlights}
       /> : null}
     </View>
   );
@@ -1100,7 +1104,7 @@ export function ReaderScreen({ bookId }: Props) {
     onHeaderHeight: setHeaderHeight,
     onSearch: isEpub || isReflowPdf ? () => setReaderPanel("search") : undefined,
     onContents: readerChapterItems.length > 0 ? () => setReaderPanel("contents") : undefined,
-    onStudy: !isReflowPdf && (isEpub || isPdf) ? () => { studySelectionIntent.current = false; setStudySelectionCaptured(false); setStudyVisible(true); setStudyAnchor(null); setStudyFeedback(null); } : undefined,
+    onStudy: isEpub || isPdf ? () => { studySelectionIntent.current = false; setStudySelectionCaptured(false); setStudyVisible(true); setStudyAnchor(null); setStudyFeedback(null); } : undefined,
     onProgressChange: handleProgress,
     onPagePrevious: () => changePage(pageNumber - 1),
     onPageNext: () => changePage(pageNumber + 1),
@@ -1138,9 +1142,9 @@ export function ReaderScreen({ bookId }: Props) {
           onShare={() => { if (selectionPopup.anchor) setQuoteCard(selectionPopup.anchor.quote); }} onCancel={closeSelectionPopup} /> : null}
         {quoteCard !== null ? <QuoteCardModal quote={quoteCard} title={bookTitle} author={currentBook?.author ?? null} cover={currentBook?.coverImagePath ?? null} chapter={chapterTitle && chapterTitle !== "Abrindo livro..." ? chapterTitle : null} paletteName={appPaletteName ?? "classic"} palette={activePalette} onClose={() => setQuoteCard(null)} /> : null}
         {studyVisible && currentBook ? <StudyBookmarksPanel book={currentBook} capture={studyAnchor} chapterTitle={chapterTitle} loading={studyLoading} feedback={studyStorageError ?? studyFeedback ?? studyRenderFeedback}
-          highlights={isEpub ? studyHighlights : undefined} onHighlightsSaved={reloadHighlights}
+          highlights={modeHighlights} highlightMode={highlightMode} onHighlightsSaved={reloadHighlights}
           selectionCaptured={studySelectionCaptured} onCaptureConsumed={() => { setStudySelectionCaptured(false); setStudyAnchor(null); }}
-          onSelectText={isEpub ? () => { popupIntent.current = true; studySelectionIntent.current = false; setStudySelectionCaptured(false); setStudyVisible(false); setStudySelecting(true); setStudyFeedback(null); setStudyAnchor(null); setStudyRequest({ id: ++studySequence.current, type: "studySelection", enabled: true }); } : undefined}
+          onSelectText={textReader ? () => { popupIntent.current = true; studySelectionIntent.current = false; setStudySelectionCaptured(false); setStudyVisible(false); setStudySelecting(true); setStudyFeedback(null); setStudyAnchor(null); setStudyRequest({ id: ++studySequence.current, type: "studySelection", enabled: true }); } : undefined}
           onCapture={() => {
             studySelectionIntent.current = false; setStudySelectionCaptured(false); setStudyAnchor(null); setStudyFeedback(null);
             if (isPdf && !isReflowPdf) { setStudyAnchor({ version: 1, kind: "pdf-page", sourcePage: pdfPage }); return; }
@@ -1151,6 +1155,8 @@ export function ReaderScreen({ bookId }: Props) {
               if (!isPdf || isReflowPdf || anchor.sourcePage > pdfTotalPages) { setStudyFeedback("Esta página fonte não está disponível neste modo ou arquivo."); return; }
               handleProgress(pdfTotalPages > 1 ? (anchor.sourcePage - 1) / (pdfTotalPages - 1) : 0); setStudyVisible(false); return;
             }
+            // A text location (Leitura Livre) cannot be shown in the PDF Original.
+            if (!textReader) { setStudyFeedback("Este marcador é um trecho da Leitura Livre. Abra a Leitura Livre para ir até ele."); return; }
             setStudyLoading(true); setStudyRequest({ id: ++studySequence.current, type: "studyNavigate", anchor });
           }}
           onClose={() => setStudyVisible(false)} /> : null}
