@@ -473,6 +473,10 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
   (privadas sem execução para authenticated/anon; `library_apply` e `saas_account_snapshot` só authenticated). Não entra no ledger de
   migrations. Sonda REST anônima NÃO feita (exigiria ler a chave do `.env.local`). `9ca55d5` textos aprovados aplicados (privacidade v0.11,
   beta sem "Em construção", novidades id `2026-11-18.2`). O Web publicado e o APK `79ad0a2` precisam ser atualizados (rejeitam livro sem arquivo).
+- APK de ensaio do HEAD `fbc0332` (versionCode 5; árvore limpa; migration já aplicada): Gradle 1m19s (log `.expo/apk-fbc0332-build.log`), checagem
+  PASS (49 recursos). `artifacts/apk/Aldus-fbc0332-device-rehearsal.apk`, 157.173.667 bytes, SHA-256 `7da4820e…6c3f54bd`, `com.aldus.reader`
+  1.0.0-beta.2 (5), não depurável, certificado de debug `fac61745…033b9c`; commit `fbc0332` e textos novos no bundle. NÃO instalado. Web NÃO
+  publicado (o site atual rejeita livro sem arquivo; publicar exige autorização própria).
 
 ### 17/11/2026 — Revisão para as betas públicas: dependências, banco, hospedagem (Claude)
 - Pedido do dono: ajustar dependências e configurações (banco, hospedagem etc.) e revisar o necessário para iniciar o plano das betas públicas.
