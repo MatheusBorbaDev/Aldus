@@ -483,6 +483,11 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
   nuvem") com o aviso de novidades `2026-11-18.2`. Recursos novos NÃO exercitados no aparelho (catálogo, grifo, Goodreads, assinatura nativa).
 - Segundo celular (pedido "somente a instalação"): `7xe6aqqk6lkn4hw4`, 24117RN76L, Android 16, tinha Aldus versionCode 3 (instalado 17/10). `adb install -r`
   do `fbc0332`: Success, versionCode 5, hash instalado `7da4820e…6c3f54bd`, firstInstallTime 2026-10-17 11:52:54 preservado. App NÃO aberto nem testado.
+- `3db750d` frase de abertura espera "Continuar" (confirmado no Redmi). Marx biografia: causa confirmada no aparelho (caractere nulo cortava o
+  documento na WebView; ver BUGS_ATUAIS REFLOW 02) e `ebbd4c5` corrige. APK `727c69a` (versionCode 6): `artifacts/apk/Aldus-727c69a-device-rehearsal.apk`,
+  157.174.863 bytes, SHA-256 `d16502a4…1e69596e`, checagem PASS (50 recursos); instalado no Redmi `7lzdto7l55wcd68l` por cima do APK de diagnóstico.
+  Livro abriu sem overlay; "Se os gatos desaparecessem do mundo" (EPUB) abriu com páginas. Preparação do zero ~5 min (montagem ~3 min 50 s).
+  O segundo celular segue com o `fbc0332`.
 
 ### 17/11/2026 — Revisão para as betas públicas: dependências, banco, hospedagem (Claude)
 - Pedido do dono: ajustar dependências e configurações (banco, hospedagem etc.) e revisar o necessário para iniciar o plano das betas públicas.
