@@ -383,7 +383,23 @@ Fases propostas (cada fase em commits verdes; tamanhos P/M/G):
    categoria, série), sem enviar o histórico de leitura a ninguém e sem IA.
 5. **Nota, resenha e card (M)**: fatias D (nota e resenha privadas), C (card com capa e capítulo) e B (CSV Goodreads).
 
+### 7.2 Fontes de metadados (decisão do dono, 18/11/2026)
+"Sem Google desde já, pense como uma possível adição"; "use o máximo de fontes que não vão me gerar problemas, no
+limite do possível, e que tenha uma certa qualidade"; capa padrão Aldus "bem bonita" para quem não tiver capa.
+- **Camada de fontes trocáveis** desde a fase 1: cada fonte é um adaptador com o mesmo contrato (buscar, detalhar por
+  ID/ISBN, capa), validado no domínio; ligar ou desligar uma fonte não muda o resto do app.
+- **Base, sem restrição conhecida:** metadados do próprio arquivo (EPUB OPF; PDF quando houver); Open Library (busca e
+  capas, com cache, identificação e o limite de 1 a 3 buscas por segundo); Wikidata (CC0: autores, gêneros, séries,
+  obras, idioma); Gutendex/Projeto Gutenberg e BN Digital (já no app, domínio público).
+- **Candidatas, só depois de conferir termos:** BrasilAPI ISBN (agrega Google por baixo; pode herdar a restrição);
+  Wikipedia para sinopse (CC BY-SA: atribuição visível e mesma licença); MVB Brasil e ISBNdb (licença paga).
+- **Futuro:** Google Books como adaptador opcional, só enquanto não houver cobrança ou com acordo do Google.
+- **Capa padrão Aldus:** gerada no aparelho, determinística por título, autor e categoria, nas cores do Aldus, para
+  livro sem capa; nunca baixada de fonte sem licença clara. Prévia em `artifacts/capa-padrao/` (fora do Git).
+- Limites de qualidade a dizer ao usuário: edições brasileiras recentes podem faltar ou vir incompletas; capas faltam
+  com frequência; sinopse nem sempre existe. Texto para os testadores em `docs/beta/limitacoes-da-beta.md` (rascunho).
+
 ### Pendente
-- Decisões do dono abertas em 18/11: onde fica o cache do catálogo (só no aparelho ou servidor compartilhado), como
-  tratar o conflito Google × cobrança futura, e contato para identificar o app no Open Library (depende do domínio).
-- Conferir os termos gerais de APIs do Google (cache, atribuição, cotas) e a licença de dados do Open Library.
+- Decisões abertas: cache só no aparelho ou servidor compartilhado; recomendações no aparelho (recomendado).
+- Conferir limites das capas do Open Library e a licença dos dados antes da fase 1; e-mail de contato (domínio) para
+  identificar o app no Open Library e no Wikidata.
