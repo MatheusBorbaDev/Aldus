@@ -1,0 +1,84 @@
+// Metadata-only book catalog, phase 1 (owner, 18/11/2026). Domain (ISBN, categories, merge, validation), open sources with a
+// controlled network (Open Library search, Wikidata genres, spacing, cancel, errors) and the per-account cache.
+const assert = require('node:assert/strict');
+const { loader } = require('./library-test-utils.cjs');
+const load = loader();
+const { normalizeIsbn, parseCatalogBook, mergeCatalogBooks, categoriesFor, ALDUS_CATEGORIES } = load('src/domain/catalog/catalogBook.ts');
+const { OpenLibrarySource, WikidataGenres, RequestSpacer, CatalogUnavailableError } = load('src/data/catalog/catalogSources.ts');
+const { CatalogService, catalogCacheKey } = load('src/data/catalog/CatalogService.ts');
+const { LibraryAccountScope } = load('src/data/library/LibraryAccountScope.ts');
+const json = (data, status = 200) => ({ ok: status >= 200 && status < 300, status, json: async () => data });
+const noWait = () => new RequestSpacer(0);
+
+(async () => {
+  // 1. Domain.
+  assert.equal(normalizeIsbn('85-359-0277-5'), '9788535902778', 'ISBN-10 converted');
+  assert.equal(normalizeIsbn('978-85-359-0277-8'), '9788535902778');
+  for (const bad of ['8535902776', '9788535902779', 'abc', '', null, 12345]) assert.equal(normalizeIsbn(bad), null, 'invalid ISBN: ' + bad);
+  assert.equal(normalizeIsbn('080442957X'), '9780804429573', 'X check digit');
+  assert.deepEqual(categoriesFor(['Brazilian fiction', 'Classics', 'Love stories']), ['literatura-brasileira', 'classicos', 'romance']);
+  assert.deepEqual(categoriesFor(['Fiction, science fiction, general', 'Dystopias']), ['ficcao-cientifica']);
+  assert.deepEqual(categoriesFor(['Accessible book', 'Protected DAISY']), [], 'no category is forced');
+  assert.ok(Object.values(ALDUS_CATEGORIES).every(label => /^[A-ZÁÉÍÓÚÂÊÔÃÕÇ]/.test(label)), 'pt-BR labels');
+  const valid = parseCatalogBook({ id: 'ol:OL1W', source: 'openlibrary', title: '  Dom   Casmurro ', authors: ['Machado de Assis', 'Machado de Assis', ''], firstPublishYear: 1899, isbns: ['8535902775', 'nope'], pages: 256, subjects: ['Brazilian fiction'], coverUrl: 'https://covers.openlibrary.org/b/id/12345-M.jpg', sourceUrl: 'https://openlibrary.org/works/OL1W' });
+  assert.equal(valid.title, 'Dom Casmurro'); assert.deepEqual(valid.authors, ['Machado de Assis']); assert.deepEqual(valid.isbns, ['9788535902778']);
+  assert.deepEqual(valid.categories, ['literatura-brasileira']);
+  const hostile = parseCatalogBook({ id: 'ol:OL2W', source: 'openlibrary', title: 'X', firstPublishYear: 99999, pages: -3, coverUrl: 'https://evil.invalid/x.jpg', sourceUrl: 'javascript:alert(1)' });
+  assert.deepEqual([hostile.firstPublishYear, hostile.pages, hostile.coverUrl, hostile.sourceUrl], [null, null, null, null], 'bad values become empty, never invented');
+  for (const bad of [null, [], { id: 'x', title: 'T', source: 'openlibrary' }, { id: 'ol:OL3W', title: '', source: 'openlibrary' }, { id: 'ol:OL3W', title: 'T', source: 'google' }]) assert.equal(parseCatalogBook(bad), null);
+  const merged = mergeCatalogBooks([valid, { ...valid, id: 'ol:OL9W', title: 'Dom Casmurro', coverUrl: null, pages: null, subtitle: 'Romance', isbns: ['9780195103083'] }]);
+  assert.equal(merged.length, 1); assert.equal(merged[0].subtitle, 'Romance'); assert.equal(merged[0].pages, 256); assert.equal(merged[0].isbns.length, 2);
+
+  // 2. Open Library.
+  const urls = [];
+  const olDocs = { docs: [
+    { key: '/works/OL45883W', title: 'Dom Casmurro', author_name: ['Machado de Assis'], first_publish_year: 1899, language: ['por', 'eng'], isbn: ['8535902775', 'x'], number_of_pages_median: 256, subject: ['Brazilian fiction', 'Classics'], cover_i: 8231856 },
+    { key: '/works/OL99W', title: 'Sem capa', author_name: ['Autora'] },
+    { key: '/authors/OL1A', title: 'Not a work' },
+    { key: '/works/OL77W', title: '' },
+  ] };
+  const ol = new OpenLibrarySource(async (url, init) => { urls.push(url); assert.ok(!('Authorization' in (init.headers ?? {})), 'no credentials'); return json(olDocs); }, noWait());
+  const books = await ol.search('dom casmurro');
+  assert.deepEqual(books.map(b => b.id), ['ol:OL45883W', 'ol:OL99W'], 'only valid works');
+  assert.equal(books[0].coverUrl, 'https://covers.openlibrary.org/b/id/8231856-M.jpg'); assert.equal(books[1].coverUrl, null, 'no cover, no invented cover');
+  assert.equal(books[0].sourceUrl, 'https://openlibrary.org/works/OL45883W'); assert.deepEqual(books[0].categories, ['literatura-brasileira', 'classicos']);
+  assert.match(urls[0], /^https:\/\/openlibrary\.org\/search\.json\?q=dom\+casmurro&fields=/); assert.ok(!urls[0].includes('@'), 'no account data in the request');
+  await ol.search('85-359-0277-5'); assert.match(urls[1], /[?&]isbn=9788535902778&/, 'ISBN searches by ISBN');
+  await assert.rejects(new OpenLibrarySource(async () => json({}, 503), noWait()).search('x y'), e => e instanceof CatalogUnavailableError);
+  await assert.rejects(new OpenLibrarySource(async () => json({}, 429), noWait()).search('x y'), e => /muitas buscas/.test(e.message));
+  await assert.rejects(new OpenLibrarySource(async () => { throw Error('PRIVATE dns failure'); }, noWait()).search('x y'), e => e instanceof CatalogUnavailableError && !/PRIVATE/.test(e.message));
+  const controller = new AbortController(); controller.abort();
+  await assert.rejects(new OpenLibrarySource(async () => json(olDocs), noWait()).search('x y', controller.signal), e => e.name === 'AbortError');
+  // Spacing: 1 per second, measured with a controlled clock.
+  let clock = 0; const sleeps = [];
+  const spacer = new RequestSpacer(1000, () => clock, async ms => { sleeps.push(ms); clock += ms; });
+  await spacer.wait(); await spacer.wait(); await spacer.wait();
+  assert.deepEqual(sleeps, [1000, 1000], 'the second and third calls wait one second each');
+
+  // 3. Wikidata genres by ISBN.
+  let sparql = '';
+  const wd = new WikidataGenres(async url => { sparql = decodeURIComponent(url); return json({ results: { bindings: [{ genreLabel: { value: 'romance' } }, { genreLabel: { value: 'Q12345' } }, { genreLabel: { value: 'romance' } }, {}] } }); }, noWait());
+  assert.deepEqual(await wd.byIsbn('85-359-0277-5'), ['romance'], 'labels only, unresolved ids dropped');
+  assert.match(sparql, /9788535902778/); assert.deepEqual(await wd.byIsbn('not an isbn'), [], 'no request for an invalid ISBN');
+
+  // 4. Service: per-account cache, TTL, unreadable cache, account switch.
+  const store = new Map(); let now = 1_000_000, calls = 0;
+  const storage = { getItem: async k => store.get(k) ?? null, setItem: async (k, v) => { store.set(k, v); } };
+  const scope = new LibraryAccountScope(); scope.set('user-a');
+  const source = { name: 'fake', search: async q => { calls++; return [parseCatalogBook({ id: 'ol:OL1W', source: 'openlibrary', title: q, authors: ['A'] })]; } };
+  const service = new CatalogService([source], storage, scope, () => now);
+  assert.deepEqual(await service.search(' x '), [], 'too short: nothing sent'); assert.equal(calls, 0);
+  assert.equal((await service.search('Iracema'))[0].title, 'Iracema'); assert.equal(calls, 1);
+  await service.search('IRACEMA'); assert.equal(calls, 1, 'cache hit (same normalized query)');
+  assert.ok(store.has(catalogCacheKey('user-a')) && !store.has(catalogCacheKey('user-b')));
+  scope.set('user-b'); await service.search('Iracema'); assert.equal(calls, 2, 'account B does not read A\'s searches');
+  now += 8 * 24 * 60 * 60 * 1000; scope.set('user-a'); await service.search('Iracema'); assert.equal(calls, 3, 'expired after 7 days');
+  store.set(catalogCacheKey('user-a'), '{not json'); await service.search('Senhora'); assert.equal(calls, 4, 'unreadable cache counts as empty');
+  assert.ok(JSON.parse(store.get(catalogCacheKey('user-a'))).length >= 1, 'cache rewritten');
+  const failing = new CatalogService([{ name: 'down', search: async () => { throw new CatalogUnavailableError(); } }], storage, scope, () => now);
+  await assert.rejects(failing.search('Lucíola'), e => e instanceof CatalogUnavailableError);
+  let release; const slow = new CatalogService([{ name: 'slow', search: () => new Promise(r => { release = () => r([]); }) }], storage, scope, () => now);
+  const pending = slow.search('Helena'); await new Promise(r => setImmediate(r)); scope.set('user-c'); release();
+  await assert.rejects(pending, /A conta mudou/, 'result from the previous account is discarded');
+  console.log('PASS catalog phase 1: ISBN-10/13 with check digits, pt-BR Aldus categories never forced, invalid or hostile metadata emptied (never invented), merge of repeated works; Open Library search with cover by cover id, ISBN path, 1 request/s spacing, errors and limits explained without provider text, cancel; Wikidata genres by ISBN; per-account 7-day cache, unreadable cache ignored, account switch discards late results. Real network NOT TESTED.');
+})().catch(error => { console.error(error); process.exitCode = 1; });
