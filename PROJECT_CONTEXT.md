@@ -433,8 +433,8 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
   outbox desligada); `export:web`; lista de entrega 41 recursos (`--source` e `--dist`). Ficha conferida em captura a 320/390 px
   (react-native-web): a escolha foi para cima dos detalhes, que empurravam os botões para fora da tela.
 - NÃO TESTADO: aparelho, busca real no Open Library pela tela, filtro "Quero ler" da Biblioteca (sem teste de tela). PENDENTE: migração do
-  servidor para livro sem arquivo (ver `docs/context/biblioteca-sync.md` §7.3); texto da beta ("Em construção" ainda diz que o catálogo
-  não está no app) e item nas novidades aguardam aprovação do dono; APK novo.
+  servidor para livro sem arquivo (ver `docs/context/biblioteca-sync.md` §7.3); APK novo. Textos aprovados pelo dono ("Aprovo os
+  textos") e aplicados: catálogo em "Seus livros" na página da beta e item "Buscar qualquer livro" nas novidades.
 
 ### 17/11/2026 — Revisão para as betas públicas: dependências, banco, hospedagem (Claude)
 - Pedido do dono: ajustar dependências e configurações (banco, hospedagem etc.) e revisar o necessário para iniciar o plano das betas públicas.
