@@ -65,7 +65,7 @@ const FEATURES = [
   { id: 'rating-review', pedido: '18/11: nota e resenha pessoais na ficha do livro', markers: ['de 5', 'Toque de novo para tirar a nota'] },
   { id: 'catalog-link', pedido: '18/11: ligar livro importado ao catalogo (juntar com o livro guardado sem arquivo)', markers: ['Manter separados', 'Ligar ao cat', 'catalog-link-dismissed'] },
   { id: 'catalog-shelves', pedido: '18/11: vitrine do catalogo com categorias e Para voce calculado no aparelho', markers: ['Calculado neste aparelho', 'Mais categorias', 'Voltar ', 'subject:fantasy'] },
-  { id: 'native-file-hash', pedido: '18/11: assinatura do arquivo nativa no Android (lentidao relatada por usuarios externos)', markers: ['AldusFileHash'] },
+  { id: 'native-file-hash', pedido: '18/11: assinatura do arquivo nativa no Android (lentidao relatada por usuarios externos)', markers: [], androidMarkers: ['AldusFileHash'] },
   { id: 'reflow-preview', pedido: '18/11: ler o início do PDF enquanto a Leitura Livre é preparada', markers: ['Começar a ler o início', 'Fim do trecho disponível'] },
   { id: 'reflow-highlight', pedido: '18/11: grifar na Leitura Livre do PDF (relato de usuarios externos)', markers: ['Abra a Leitura Livre para ir'] },
   { id: 'catalog-search', pedido: '18/11: buscar qualquer livro no catalogo e guardar sem arquivo (Quero ler)', markers: ['Buscar qualquer livro', 'Buscar no cat', 'x.aldus-record', 'Quero ler'], routes: ['catalog'] },
