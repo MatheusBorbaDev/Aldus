@@ -17,7 +17,11 @@ assert.equal(config.outputDirectory, 'dist'); assert.equal(config.buildCommand, 
 assert.equal(config.framework, null); assert.ok(config.headers.some(rule => rule.source === '/build-info.json' && rule.headers.some(h => h.key === 'Cache-Control' && h.value === 'no-store')));
 assert.ok(config.rewrites.some(rule => rule.destination === '/index.html'));
 assert.ok(config.rewrites.some(rule => rule.source === '/' && rule.destination === '/index.html'));
-assert.ok(config.rewrites.some(rule => rule.destination === '/app.html'));
+// With cleanUrls, Vercel serves app.html at /app and redirects /app.html, so a rewrite to "/app.html" found nothing and every app route
+// answered 404 in production (seen on 19/11/2026). The fallback must point at the clean path.
+assert.equal(config.cleanUrls, true);
+assert.ok(config.rewrites.some(rule => rule.source === '/(.*)' && rule.destination === '/app'), 'SPA fallback uses the clean /app path');
+assert.ok(!config.rewrites.some(rule => rule.source !== '/' && /\.html$/.test(rule.destination)), 'no .html rewrite target under cleanUrls');
 assert.ok(!JSON.stringify(config).includes('unsafe-inline'));
 if (process.argv.includes('--exported')) {
   const metadata = JSON.parse(fs.readFileSync('dist/build-info.json', 'utf8'));

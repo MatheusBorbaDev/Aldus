@@ -28,7 +28,7 @@ function buildPublicHtml(html,{siteUrl,contact}={}){
   canonical?`<link rel="canonical" href="${escape(canonical)}"><meta property="og:url" content="${escape(canonical)}"><meta property="og:image" content="${escape(canonical)}aldus-share.png">`:'',
   '</head>',
  ].join('\n'));
- const privatePaths=['app.html','admin','auth','account','reader','library','settings','plan','community','battle','study','decks','sources','services'];
+ const privatePaths=['app','admin','auth','account','reader','library','settings','plan','community','battle','study','decks','sources','services'];
  const robots='User-agent: *\nAllow: /\n'+privatePaths.map(p=>'Disallow: /'+p).join('\n')+'\n'+(canonical?'Sitemap: '+canonical+'sitemap.xml\n':'');
  const sitemap=canonical?`<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><url><loc>${escape(canonical)}</loc></url></urlset>`:null;
  return {html,appHtml,robots,sitemap};
