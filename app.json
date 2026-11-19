@@ -6,7 +6,7 @@
     "orientation": "portrait",
     "android": {
       "package": "com.aldus.reader",
-      "versionCode": 9,
+      "versionCode": 10,
       "allowBackup": false,
       "blockedPermissions": [
         "android.permission.SYSTEM_ALERT_WINDOW"
