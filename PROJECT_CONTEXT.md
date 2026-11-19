@@ -588,7 +588,8 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
   com o mesmo APK (digest `258d1191…`, nome `Aldus-1.0.0-beta.2-10.apk`), notas citando o commit `2691c55`. Download anônimo conferido
   por hash; "Source code" desse repo = 651 bytes. Link para o futuro botão do site:
   `https://github.com/matheusbitlab/aldus-downloads/releases/download/v1.0.0-beta.2-build10/Aldus-1.0.0-beta.2-10.apk`. O pré-release
-  igual em `matheusbitlab/Aldus` continua publicado (apagar só com OK do dono). Site sem botão ("Ainda não").
+  igual em `matheusbitlab/Aldus` foi apagado (dono: "Pode apagar"; link antigo 404, o novo responde); a tag `v1.0.0-beta.2-build10`
+  segue no repo principal marcando o commit-fonte `2691c55`. Site sem botão ("Ainda não").
 
 ### 17/11/2026 — Revisão para as betas públicas: dependências, banco, hospedagem (Claude)
 - Pedido do dono: ajustar dependências e configurações (banco, hospedagem etc.) e revisar o necessário para iniciar o plano das betas públicas.
