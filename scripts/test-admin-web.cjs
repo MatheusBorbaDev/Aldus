@@ -105,7 +105,7 @@ async function cdp(url){const socket=new WebSocket(url);await new Promise((r,j)=
   await navigate('/settings');await until('Aviso controlado do painel');await until('Aldus Admin');await shot('reader-settings-desktop');
   await client.command('Emulation.setDeviceMetricsOverride',{width:390,height:844,deviceScaleFactor:1,mobile:true});await shot('reader-settings-mobile');
   await click('Legal e informações');await until('Sobre o Aldus Reader');await shot('reader-legal-mobile');assert.ok((await text()).includes('Licenças de terceiros'));
-  await navigate('/settings');await until('Aldus Admin');await click('Tema do aplicativo');await until('A aparência do livro é independente.');await click('Claro');await shot('reader-theme-light');await click('Escuro');await shot('reader-theme-dark');
+  await navigate('/settings');await until('Aldus Admin');await click('Tema do aplicativo');await until('Claro ou escuro');await click('Claro');await shot('reader-theme-light');await click('Escuro');await shot('reader-theme-dark');
   await navigate('/settings');await until('Aldus Admin');
   await client.command('Input.dispatchKeyEvent',{type:'keyDown',key:'Tab',code:'Tab',windowsVirtualKeyCode:9});await client.command('Input.dispatchKeyEvent',{type:'keyUp',key:'Tab',code:'Tab',windowsVirtualKeyCode:9});
   assert.ok(await client.evaluate(`['button','radio','link'].includes(document.activeElement?.getAttribute('role'))`));
