@@ -36,7 +36,7 @@ assert.ok(!has(Buffer.from('Pedidos para seguir voce', 'utf8'), 'Pedidos para se
 for (const required of ['default-cover', 'drive-quiet-header', 'build-revision', 'library-catalog-offer']) assert.ok(ids.includes(required), required);
 // O ícone da marca é conferido no APK (recurso, não texto): adaptativo, monocromático e fundo azul-noite. Testado contra o APK 79ad0a2
 // (ícone antigo: recusado) e o d44a911 (aceito) em 19/11; aqui só se garante que a checagem continua no script.
-assert.match(fs.readFileSync('scripts/verify-release-features.cjs', 'utf8'), /brand-icon[\s\S]*iconBackground: t=0x1d d=0xff1b1c30/);
+assert.match(fs.readFileSync('scripts/verify-release-features.cjs', 'utf8'), /iconBackground: t=0x1d d=0xff1b1c30[\s\S]*brand-icon/);
 
 // 4. O comando de compilar limpa os recursos antigos e não termina com sucesso sem a checagem.
 const build = fs.readFileSync('scripts/build-apk-local.mjs', 'utf8');
