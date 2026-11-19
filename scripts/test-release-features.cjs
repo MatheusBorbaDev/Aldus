@@ -33,6 +33,11 @@ assert.ok(has(Buffer.from('Pedidos para seguir voc\\u00ea', 'utf8'), 'Pedidos pa
 assert.ok(has(Buffer.from('Pedidos para seguir você', 'utf16le'), 'Pedidos para seguir você'), 'Hermes em UTF-16');
 assert.ok(!has(Buffer.from('Pedidos para seguir voce', 'utf8'), 'Pedidos para seguir você'), 'sem acento não conta');
 
+for (const required of ['default-cover', 'drive-quiet-header', 'build-revision', 'library-catalog-offer']) assert.ok(ids.includes(required), required);
+// O ícone da marca é conferido no APK (recurso, não texto): adaptativo, monocromático e fundo azul-noite. Testado contra o APK 79ad0a2
+// (ícone antigo: recusado) e o d44a911 (aceito) em 19/11; aqui só se garante que a checagem continua no script.
+assert.match(fs.readFileSync('scripts/verify-release-features.cjs', 'utf8'), /brand-icon[\s\S]*iconBackground: t=0x1d d=0xff1b1c30/);
+
 // 4. O comando de compilar limpa os recursos antigos e não termina com sucesso sem a checagem.
 const build = fs.readFileSync('scripts/build-apk-local.mjs', 'utf8');
 assert.match(build, /rmSync\(path\.join\(androidDir, "app\/build\/generated\/res\/react\/release"\)/);

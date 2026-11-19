@@ -70,6 +70,9 @@ const FEATURES = [
   { id: 'reflow-highlight', pedido: '18/11: grifar na Leitura Livre do PDF (relato de usuarios externos)', markers: ['Abra a Leitura Livre para ir'] },
   { id: 'catalog-search', pedido: '18/11: buscar qualquer livro no catalogo e guardar sem arquivo (Quero ler)', markers: ['Buscar qualquer livro', 'Buscar no cat', 'x.aldus-record', 'Quero ler'], routes: ['catalog'] },
   { id: 'library-catalog-offer', pedido: '19/11: busca da Biblioteca sem resultado leva ao catalogo ("a biblioteca como catalogo nao ta funcionando")', markers: ['Procurar no cat', 'não está na sua biblioteca'] },
+  { id: 'default-cover', pedido: '18/11: capa padrao Aldus para livro sem capa (aprovada)', markers: ['terracota', '#8A3B25', 'trelica'] },
+  { id: 'drive-quiet-header', pedido: '18/11: Drive "feio, dificil de acessar": aviso numa faixa fina e ordenacao num menu', markers: ['Reconecte o Google Drive para atualizar.', 'Os livros já listados continuam aqui.'] },
+  { id: 'build-revision', pedido: '18/11: "nao mudou nada": cada APK mostra o commit em Ajustes > Versao', markers: [], androidMarkers: ['[0-9a-f]{7,12}'] },
   { id: 'release-notes', pedido: '18/11: aviso de novidades com aviso de beta e link para as limitações', markers: ['Novidades do Aldus', 'O que esperar desta beta', 'release-notes-seen'], routes: ['beta'] },
   { id: 'loading-quote', pedido: '18/11: frase de livro na tela de carregamento', markers: ["O livro caindo n'alma", 'Castro Alves'] },
   { id: 'account-delete', pedido: '17/11: excluir conta no app (betas públicas)', markers: ['Excluir conta', 'EXCLUIR MINHA CONTA', 'Continuar para a exclusão', 'account-delete'], routes: ['account/delete'] },
@@ -177,6 +180,14 @@ function checkApk(apk) {
       if (/application-debuggable/.test(badging)) missing.push('manifesto: APK depurável');
       if (!/android:allowBackup\([^)]*\)=\(type 0x12\)0x0/.test(tree)) missing.push('manifesto: allowBackup não está desligado');
       if (!/android:dataExtractionRules/.test(tree)) missing.push('manifesto: dataExtractionRules ausente (transferência entre aparelhos)');
+      // Ícone Aldus (pedido "pode ser" para a logo, 18/11): adaptativo, com monocromático, fundo azul-noite.
+      const icon = [...badging.matchAll(/application-icon-\d+:'([^']+)'/g)].at(-1)?.[1];
+      let iconTree = ''; // an image icon (not adaptive XML) makes aapt fail: that is the old, non-brand icon
+      try { if (icon) iconTree = cp.execFileSync(aapt, ['dump', 'xmltree', apk, icon], { encoding: 'utf8', maxBuffer: 16 * 1024 * 1024, stdio: ['ignore', 'pipe', 'ignore'] }); } catch { iconTree = ''; }
+      const resources = cp.execFileSync(aapt, ['dump', 'resources', apk], { encoding: 'utf8', maxBuffer: 256 * 1024 * 1024 });
+      const background = resources.match(/resource (0x[0-9a-f]+) [\w.]+:color\/iconBackground: t=0x1d d=0xff1b1c30/)?.[1];
+      if (!/adaptive-icon/.test(iconTree) || !/E: monochrome/.test(iconTree) || !background || !iconTree.includes(`=@${background}`))
+        missing.push('brand-icon (18/11: ícone Aldus adaptativo, monocromático, fundo azul-noite): ícone do app não é o da marca');
     }
   } finally { fs.rmSync(work, { recursive: true, force: true }); }
   if (missing.length) return fail(missing);
