@@ -583,6 +583,12 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
   `Aldus-1.0.0-beta.2-10.apk`, digest do GitHub = `258d1191…380bb3b1`; download anônimo do link direto conferido por hash em fluxo
   (157.165.047 bytes). NÃO colocado no site (pedido do dono). Notas do release: versão, hashes, certificado e aviso de desinstalar a
   versão de teste anterior. Disco C: estava 100% cheio (artifacts/apk ~4,7 GB em 26 APKs; `android/app/build` ~2,3 GB).
+- Dono perguntou pelo "Source code" do release (automático do GitHub) e aceitou ("era bom") um repositório só de downloads: criado
+  `matheusbitlab/aldus-downloads` (público, sem issues/wiki, só README apontando para o código). Pré-release `v1.0.0-beta.2-build10`
+  com o mesmo APK (digest `258d1191…`, nome `Aldus-1.0.0-beta.2-10.apk`), notas citando o commit `2691c55`. Download anônimo conferido
+  por hash; "Source code" desse repo = 651 bytes. Link para o futuro botão do site:
+  `https://github.com/matheusbitlab/aldus-downloads/releases/download/v1.0.0-beta.2-build10/Aldus-1.0.0-beta.2-10.apk`. O pré-release
+  igual em `matheusbitlab/Aldus` continua publicado (apagar só com OK do dono). Site sem botão ("Ainda não").
 
 ### 17/11/2026 — Revisão para as betas públicas: dependências, banco, hospedagem (Claude)
 - Pedido do dono: ajustar dependências e configurações (banco, hospedagem etc.) e revisar o necessário para iniciar o plano das betas públicas.
