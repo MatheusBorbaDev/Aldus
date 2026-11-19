@@ -37,10 +37,10 @@ for(let i=1;i<=1000;i++){
  assert(current>previous,'No scroll interval freezes the visual story');
  assert(Math.abs(current-previous-.001)<1e-12,'Continuous mapping avoids compressed bursts between stationary scenes');
 }
-assert(bookStoryViewports>10.5,'A longer physical track slows motion per pixel without increasing input lag');
+assert(bookStoryViewports<=9&&bookStoryViewports>=8,'The track is short enough not to drag, yet longer than the hurried 6.1-screen version');
 for(let index=0;index<4;index++){
  const start=bookStops[index+1],end=bookStops[index+2];
- assert((end-start)*(bookStoryViewports-1)>1.7,'Each slower page turn spans more than 1.7 viewports of continuous scroll');
+ assert((end-start)*(bookStoryViewports-1)>1.2,'Each page turn still spans more than 1.2 viewports of continuous scroll');
  for(const t of [0,.25,.5,.75,1])assert(Math.abs(resolveBookPose(start+(end-start)*t).leaves[index].angle+171*bookTransitionEase(t))<1e-8,'A turn uses the whole transition with one easing curve');
 }
 assert.equal(bookTransitionEase(0),0);assert.equal(bookTransitionEase(.5),.5);assert.equal(bookTransitionEase(1),1);

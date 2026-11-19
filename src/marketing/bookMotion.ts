@@ -1,5 +1,7 @@
 /** Scroll is the only clock. Shared by the WebGL renderer and deterministic tests. */
-export const bookStoryViewports = 12;
+// 19/11/2026 (owner: "Pode acelerar um pouco animação? precisa ficar scrollando muito tempo"): 12 → 9 screens, 25% less scrolling,
+// still well above the 6.1 track the owner found hurried.
+export const bookStoryViewports = 9;
 /** Navigation anchors identify complete scenes without freezing scroll between them. */
 export const bookStops = [0, .215, .37, .535, .695, .865, 1] as const;
 export const bookChapters = [
