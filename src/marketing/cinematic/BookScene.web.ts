@@ -29,17 +29,14 @@ const paperVertex = `
     gl_Position=projectionMatrix*modelViewMatrix*vec4(p,1.);
   }`;
 const paperFragment = `
-  uniform sampler2D uMap; uniform float uDissolve; varying vec2 vUv; varying float vLight;
-  float grain(vec2 p){return fract(sin(dot(floor(p*145.),vec2(127.1,311.7)))*43758.5453);}
+  uniform sampler2D uMap; uniform float uOpacity; varying vec2 vUv; varying float vLight;
   void main(){
-    if(uDissolve>0.){
-      float edge=vUv.x+.055*sin(vUv.y*17.)+.04*grain(vUv);
-      if(edge<uDissolve*1.3-.07)discard;
-    }
+    // A clean fade with the rest of the book (the former ragged "torn paper" dissolve read as a rendering fault).
+    if(uOpacity<.01)discard;
     vec2 uv=gl_FrontFacing?vUv:vec2(1.-vUv.x,vUv.y);
     vec3 color=gl_FrontFacing?texture2D(uMap,uv).rgb:vec3(.94,.90,.82);
     float gutter=.83+.17*smoothstep(0.,.12,vUv.x);
-    gl_FragColor=vec4(color*vLight*gutter,1.);
+    gl_FragColor=vec4(color*vLight*gutter,uOpacity);
     #include <tonemapping_fragment>
     #include <colorspace_fragment>
   }`;
@@ -112,6 +109,7 @@ export function mountBookScene(host: HTMLElement, onFailure: (reason: string) =>
   const makeTexture = (kind: string, title = '', background = '#f4ecda') => {
     const wide = kind === 'card' || kind === 'answer';
     const textureHeight = wide ? 311 : kind === 'mini' ? 790 : 717;
+    const studyText = kind === 'card' && title ? title.split('\n') : null;
     const c = document.createElement('canvas'); c.width = quality.name === 'desktop' ? 512 : 256; c.height = c.width * textureHeight / 512;
     const ctx = c.getContext('2d'); if (!ctx) throw new Error('Canvas textures unavailable');
     const s = c.width / 512; ctx.scale(s, s); ctx.fillStyle = background; ctx.fillRect(0, 0, 512, textureHeight);
@@ -127,11 +125,30 @@ export function mountBookScene(host: HTMLElement, onFailure: (reason: string) =>
       ctx.font = '14px sans-serif'; ctx.fillText(kind === 'cover' ? 'LEIA · ORGANIZE · DESCUBRA' : 'TÍTULO ILUSTRATIVO', 256, 610);
       ctx.fillStyle = '#ffffff08'; for (let i = 0; i < 1300; i++) ctx.fillRect((i * 79) % 512, (i * 113) % 717, 1, 1);
     } else if (kind === 'card' || kind === 'answer') {
+      // Question in the top band: the cards are stacked so that this band of each card behind stays visible.
       ctx.fillStyle = '#10281e';
-      ctx.textAlign = 'left'; ctx.font = '12px sans-serif'; ctx.fillText(kind === 'card' ? 'FLASHCARD · SEU DECK' : 'REVISITAR UMA IDEIA', 45, 84);
-      ctx.font = '37px Georgia'; const lines = kind === 'card' ? ['O que fica depois', 'da última página?'] : ['Uma pergunta.', 'Novas conexões.'];
-      lines.forEach((line, i) => ctx.fillText(line, 45, 145 + i * 44));
-      ctx.font = '13px sans-serif'; ctx.fillText('Revisão no seu ritmo', 45, 256);
+      ctx.textAlign = 'left'; ctx.font = '12px sans-serif'; ctx.fillText(kind === 'card' ? 'FLASHCARD · SEU DECK' : 'REVISITAR UMA IDEIA', 45, 68);
+      ctx.font = '34px Georgia'; const lines = studyText ?? ['Uma pergunta.', 'Novas conexões.'];
+      lines.forEach((line, i) => ctx.fillText(line, 45, 104 + i * 38));
+      ctx.font = '13px sans-serif'; ctx.fillText('Revisão no seu ritmo', 45, 268);
+    } else if (kind === 'reader-ui') {
+      // The Reader scene shows the Reader: theme, letter size, a highlight with a note and progress (no numbers, no account data).
+      ctx.textAlign = 'left'; ctx.fillStyle = '#7c6a4c'; ctx.font = '13px sans-serif'; ctx.fillText('CAPÍTULO  ·  TEMA PAPEL', 58, 122);
+      ctx.textAlign = 'right'; ctx.font = '22px Georgia'; ctx.fillText('A−  A+', 454, 124); ctx.textAlign = 'left';
+      ctx.fillStyle = '#31483a'; ctx.font = '25px Georgia';
+      ['Há livros que pedem pausa', 'e outros que puxam a gente', 'para a próxima página.'].forEach((line, i) => ctx.fillText(line, 58, 190 + i * 36));
+      ctx.fillStyle = '#e4d59c'; ctx.fillRect(54, 326, 380, 34); ctx.fillRect(54, 362, 300, 34);
+      ctx.fillStyle = '#31483a'; ctx.fillText('Grifar é responder ao livro', 58, 351); ctx.fillText('em voz baixa.', 58, 387);
+      ctx.fillStyle = '#efe6cf'; ctx.fillRect(58, 412, 330, 52); ctx.strokeStyle = '#c9b98d'; ctx.strokeRect(58, 412, 330, 52);
+      ctx.fillStyle = '#7c6a4c'; ctx.font = '12px sans-serif'; ctx.fillText('NOTA', 74, 432);
+      ctx.fillStyle = '#31483a'; ctx.font = '17px Georgia'; ctx.fillText('Voltar a este trecho amanhã.', 74, 454);
+      [['#f4ecda', 'Papel'], ['#e9d8b4', 'Sépia'], ['#24302a', 'Escuro']].forEach(([color, label], i) => {
+        const x = 78 + i * 120; ctx.fillStyle = color; ctx.beginPath(); ctx.arc(x, 548, 15, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = i === 0 ? '#244632' : '#b8b19a'; ctx.lineWidth = i === 0 ? 3 : 1.5; ctx.stroke();
+        ctx.fillStyle = '#31483a'; ctx.font = '14px sans-serif'; ctx.fillText(label, x + 24, 553);
+      });
+      ctx.fillStyle = '#d8ccae'; ctx.fillRect(58, 612, 396, 5); ctx.fillStyle = '#244632'; ctx.fillRect(58, 612, 168, 5);
+      ctx.fillStyle = '#7c6a4c'; ctx.font = '13px sans-serif'; ctx.fillText('PROGRESSO DO LIVRO', 58, 645);
     } else if (kind === 'inside') {
       ctx.font = '58px Georgia'; ['Todo livro', 'abre um', 'universo.'].forEach((line, i) => ctx.fillText(line, 256, 290 + i * 78));
       ctx.font = '15px sans-serif'; ctx.fillText('ALDUS READER', 256, 610);
@@ -164,10 +181,12 @@ export function mountBookScene(host: HTMLElement, onFailure: (reason: string) =>
   // The ribbon belongs to the book: it fades with it (19/11/2026: it stayed opaque, floating under the shelf and the network).
   const ribbon = solid('#b56c4d'); ribbon.transparent = true; bookMaterials.push(ribbon); cube(book, .13, .58, .012, ribbon, 1.38, -1.47, -.01);
   const leaves: { mesh: Mesh; material: ShaderMaterial }[] = [];
+  // The third leaf is the right-hand page at the Reader scene (after two turns): it carries its own Reader page.
+  const readerTexture = makeTexture('reader-ui');
   for (let i = 0; i < 4; i++) {
     const geometry = keepGeometry(new PlaneGeometry(1.9, 2.65, 24, 2)); geometry.translate(.95, 0, 0);
     const material = keepMaterial(new ShaderMaterial({ vertexShader: paperVertex, fragmentShader: paperFragment, side: DoubleSide,
-      uniforms: { uMap: { value: pageTexture }, uTurn: { value: 0 }, uCurl: { value: 0 }, uDissolve: { value: 0 } } }));
+      uniforms: { uMap: { value: i === 2 ? readerTexture : pageTexture }, uTurn: { value: 0 }, uCurl: { value: 0 }, uOpacity: { value: 1 } } }));
     const mesh = new Mesh(geometry, material); mesh.frustumCulled = false; mesh.userData.pageIndex = i; book.add(mesh); leaves.push({ mesh, material });
   }
 
@@ -184,10 +203,12 @@ export function mountBookScene(host: HTMLElement, onFailure: (reason: string) =>
   const shelf = solid('#c4aa7f'); libraryMaterials.push(shelf); cube(library, 3.6, .04, .65, shelf, 0, -.62, -.05);
   fading.push({ group: library, materials: libraryMaterials, kind: 'library' });
   const studyMaterials: MeshStandardMaterial[] = [], cards: Group[] = [];
-  const face = makeTexture('card'), answer = makeTexture('answer');
+  // Three different questions, stacked so the question band of each card behind stays readable (front card: lowest, nearest).
+  const questions = ['O que fica depois\nda última página?', 'Qual ideia você\nquer lembrar?', 'Que trecho mudou\no seu olhar?'];
+  const answer = makeTexture('answer');
   for (let i = 2; i >= 0; i--) {
-    const group = new Group(); group.position.set((i - 1) * .65, .3 - i * .28, .7 - i * .28); group.rotation.z = (i - 1) * -.17;
-    const edge = solid(i === 0 ? '#c2a57c' : '#254a38'), a = solid('#ffffff', face), b = solid('#ffffff', answer);
+    const group = new Group(); group.position.set((i - 1) * .3, -.5 + i * .5, .7 - i * .28); group.rotation.z = (i - 1) * .05;
+    const edge = solid(i === 0 ? '#c2a57c' : '#254a38'), a = solid('#ffffff', makeTexture('card', questions[i])), b = solid('#ffffff', answer);
     studyMaterials.push(edge, a, b); cube(group, 1.7, 1.03, .045, [edge, edge, edge, edge, a, b]); study.add(group); cards.push(group);
   }
   fading.push({ group: study, materials: studyMaterials, kind: 'study' });
@@ -296,13 +317,15 @@ export function mountBookScene(host: HTMLElement, onFailure: (reason: string) =>
     const transformed = Math.max(pose.library, pose.study, pose.community);
     book.position.set(-.95 + .95 * pose.open - 1.05 * pose.community, -.45 * pose.community, -.7 * transformed);
     book.scale.setScalar(pose.bookScale);
-    bookMaterials.forEach(material => { material.opacity = 1 - .72 * transformed; material.depthWrite = transformed < .1; });
+    const presence = pose.bookPresence; book.visible = presence > .005;
+    bookMaterials.forEach(material => { material.opacity = presence; material.depthWrite = presence > .9; });
     library.position.z = pose.library; study.position.z = .55 * pose.study;
     coverHinge.rotation.y = radians(pose.coverAngle);
     leaves.forEach((leaf, i) => {
       leaf.mesh.position.z = pose.leaves[i].z; leaf.material.uniforms.uTurn.value = radians(pose.leaves[i].angle);
       leaf.material.uniforms.uCurl.value = pose.leaves[i].curl;
-      leaf.material.uniforms.uDissolve.value = Math.min(.94, pose.library * .87 + pose.study * .88 + pose.community * .94);
+      leaf.material.uniforms.uOpacity.value = presence;
+      leaf.material.transparent = presence < .999; leaf.material.depthWrite = presence > .9;
     });
     fading.forEach(item => {
       const opacity = pose[item.kind]; item.group.visible = opacity > .005;
@@ -356,7 +379,7 @@ export function mountBookScene(host: HTMLElement, onFailure: (reason: string) =>
     metricsHost.aldusBookMetrics = { frames, particles: budget, dpr, drawCalls: renderer.info.render.calls,
       triangles: renderer.info.render.triangles, textures: renderer.info.memory.textures, geometries: renderer.info.memory.geometries,
       quality: effectiveQuality, progress: current.progress, visualProgress: motion, disposed: false, shadowUpdates,
-      particlesVisible: particles.visible, particleOpacity: pose.particleOpacity, ...bounds,
+      particlesVisible: particles.visible, particleOpacity: pose.particleOpacity, bookVisible: book.visible, bookPresence: pose.bookPresence, ...bounds,
       coverAngle: pose.coverAngle, leafAngle0: pose.leaves[0].angle, leafAngle1: pose.leaves[1].angle,
       particleFrom: pose.from, particleTo: pose.to, particleMorph: pose.morph, cameraDistance: distance, particleGeometryId: geometry.id };
   };

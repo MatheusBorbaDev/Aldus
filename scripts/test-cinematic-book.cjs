@@ -17,6 +17,10 @@ assert(resolveBookPose(.12).open>0&&resolveBookPose(.12).open<1,'Partial opening
 assert(resolveBookPose(.94).open>0&&resolveBookPose(.94).open<1,'Physical closing in final reconstruction');
 assert(closed.leaves.every(leaf=>leaf.z>.085&&leaf.z<.1475),'Printed leaves stay above the paper block and below the closed cover');
 for(const [p,key]of [[.36,'library'],[.52,'reader'],[.69,'study'],[.85,'community']])assert(resolveBookPose(p)[key]>.99,'A complete readable scene: '+key);
+// 19/11/2026: the open book leaves the stage in library, study and community (no ghost text) and is whole in the Reader.
+for(const p of [.36,.69,.85])assert.equal(resolveBookPose(p).bookPresence,0,'no ghost book at '+p);
+for(const p of [0,.215,.52,1])assert.equal(resolveBookPose(p).bookPresence,1,'whole book at '+p);
+{let mid=0,old=0;for(let i=0;i<=2000;i++){const pose=resolveBookPose(i/2000);if(pose.atmosphere>.15&&pose.atmosphere<.8)mid++;const o=pose.community*.94;if(o>.15&&o<.8)old++;}assert(mid<old*.6,'the light-to-dark grey lasts clearly less than before ('+mid+' vs '+old+' samples)');assert(resolveBookPose(.865).atmosphere>.9,'community scene stays dark');}
 assert(resolveBookPose(0).particleOpacity>0,'Closed-book introduction retains a little atmosphere');
 for(let i=0;i<=1000;i++){const pose=resolveBookPose(i/1000);if(pose.visualProgress>=.065)assert.equal(pose.particleOpacity,0,'Opening, every page turn and closing stay free of particles');}
 for(const [index,stop]of bookStops.entries()){
@@ -107,7 +111,8 @@ for(const count of [0,-1,NaN,8193,1.2])assert.throws(()=>createParticleTargets(c
 const position=p=>{const pose=resolveBookPose(p);return Array.from({length:3},(_,i)=>a.targets[pose.from][i]*(1-pose.morph)+a.targets[pose.to][i]*pose.morph)};
 for(const p of [.075,.19,.36,.52,.69,.85]){const before=position(p-1e-6),after=position(p+1e-6);assert(before.every((v,i)=>Math.abs(v-after[i])<.001),'Morph endpoints do not jump');}
 const scene=fs.readFileSync('src/marketing/cinematic/BookScene.web.ts','utf8');
-assert.match(scene,/new Points\(/);assert.match(scene,/new BufferAttribute\(target, 3\)/);assert.match(scene,/uMorph/);assert.match(scene,/uDissolve/);
+assert.match(scene,/new Points\(/);assert.match(scene,/new BufferAttribute\(target, 3\)/);assert.match(scene,/uMorph/);assert.match(scene,/uOpacity/);assert.doesNotMatch(scene,/uDissolve|grain\(/,'pages fade cleanly, no ragged dissolve (19/11)');assert.ok(scene.includes('book.visible = presence > .005'),'a hidden book is not drawn at all');assert.ok(scene.includes('i === 2 ? readerTexture : pageTexture'),'the Reader scene page has its own texture');
+{const list=scene.match(/const questions = \[([^\]]+)\]/);assert.ok(list,'flashcard questions');assert.equal(new Set(list[1].split("',").map(q=>q.trim())).size,3,'three different flashcard questions');}
 assert.doesNotMatch(scene,/fetch\(|TextureLoader|setInterval|Date\.now|requestAnimationFrame/,'Renderer has no autonomous clock or remote model dependency');
 assert.match(scene,/key\.shadow\.dispose\(\)/);assert.match(scene,/renderer\.forceContextLoss\(\)/);
 assert.match(scene,/qualitySamples < 24/,'Rendering budget probes are strictly bounded');

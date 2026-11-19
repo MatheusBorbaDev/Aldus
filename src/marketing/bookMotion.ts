@@ -71,16 +71,20 @@ export function resolveBookPose(value: number) {
   const library = envelope(progress, .23, .33, .38, .45), reader = envelope(progress, .40, .49, .55, .61);
   const study = envelope(progress, .56, .65, .72, .79), community = envelope(progress, .74, .82, .88, .96);
   const closing = smooth(ramp(progress, .88, 1));
+  // 19/11/2026 (owner: "Todas as quatro"): the open book leaves the stage completely while library, study and community are shown,
+  // instead of staying as a 28% ghost whose printed text showed through, and comes back for the next page turn.
+  const bookPresence = 1 - Math.max(library, study, community);
   return {
     progress: scroll, visualProgress: progress, chapter, open, coverAngle: -174 * open,
     cameraX: mix(8, 3, open), cameraY: -22 + 26 * Math.sin(progress * Math.PI * 1.1),
     cameraZ: -5 + 5 * open, cameraDistance: 7 - .75 * open + .6 * community,
     bookScale: 1 - .29 * library - .26 * study - .48 * community,
-    library, reader, study, community, closing,
+    library, reader, study, community, closing, bookPresence,
     // A little atmosphere belongs to the closed-book introduction only.
     // Opening, page turns and closing keep the printed paper completely clean.
     from, to, morph, pulse, particleOpacity: (.10 + pulse * .74) * (1 - smooth(ramp(progress, .025, .065))),
-    atmosphere: community * .94,
+    // The light-to-dark crossing happens over the middle 40% of the community fade, so the in-between grey lasts less.
+    atmosphere: .94 * smooth(ramp(community, .3, .7)),
     captionOpacity,
     leaves: Array.from({ length: 4 }, (_, index) => {
       // Spread the turn across the entire distance between scenes, gently
