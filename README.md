@@ -164,6 +164,12 @@ Saída: android/app/build/outputs/apk/release/app-release.apk. O release local e
 assinatura privada: ALDUS_SIGNING_STORE_FILE, ALDUS_SIGNING_STORE_PASSWORD,
 ALDUS_SIGNING_KEY_ALIAS e ALDUS_SIGNING_KEY_PASSWORD. Configure os valores por um
 mecanismo protegido, fora do Git e sem gravá-los no histórico do terminal.
+Neste PC, a chave própria do Aldus é criada uma única vez pelo dono com
+`powershell -ExecutionPolicy Bypass -File scripts\create-signing-key.ps1` (senha digitada
+no próprio terminal; arquivo em `%USERPROFILE%\.aldus-signing`; nunca substitui uma chave
+existente). Sem `ALDUS_SIGNING_*` no ambiente, `build:apk:local` usa essa chave. Faça
+duas cópias do `.p12` fora do PC e guarde a senha num gerenciador: sem elas, o app não
+recebe mais atualizações.
 A exceção ALDUS_ALLOW_DEVELOPMENT_SIGNING=device-rehearsal serve exclusivamente ao
 ensaio autorizado com a assinatura antiga. Esse derivado não é o APK Beta privado.
 build:apk usa o perfil EAS preview (APK interno); build:apk:archive arquiva o hash atual

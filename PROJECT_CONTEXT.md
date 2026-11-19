@@ -563,6 +563,13 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
   (mesma do Redmi); bundle JS recompilado com a revisão `6fface7`; 7 livros; `verify --apk` PASS (55). Árvore limpa no build. NÃO instalado
   (Redmi não conectado). Dono pediu link de download no site: BLOQUEADO até decisão — APK > 100 MB (limite de upload da Vercel Hobby) e
   `fac61745…` é a chave de debug pública do React Native (qualquer um assina "atualização"); proposto: chave própria + GitHub Releases/Drive.
+- Dono: "Pode preparar" (chave própria). `870c215`: `scripts/create-signing-key.ps1` (o dono roda e digita a senha; PKCS12 RSA 4096,
+  `CN=Aldus Reader, C=BR`, `%USERPROFILE%\.aldus-signing`, senha guardada só por DPAPI desta conta, recusa substituir chave existente,
+  mostra a impressão digital); `build:apk:local` usa a chave quando não há `ALDUS_SIGNING_*` (ensaio `device-rehearsal` segue explícito);
+  Gradle com `storeType pkcs12`. Teste `signing-key` (critical, 144/144) roda o script de verdade numa pasta temporária com senha
+  descartável. VALIDADO no PC: build release com chave descartável → modo `private`, `verify --apk` PASS, `apksigner` mostra
+  `CN=Aldus Reader`; esse APK de teste foi apagado. PENDENTE do dono: rodar o script, guardar a senha e 2 cópias do `.p12`; depois,
+  APK com a chave nova (Redmi exige desinstalar uma vez) e hospedagem do link (GitHub/Drive, a decidir).
 
 ### 17/11/2026 — Revisão para as betas públicas: dependências, banco, hospedagem (Claude)
 - Pedido do dono: ajustar dependências e configurações (banco, hospedagem etc.) e revisar o necessário para iniciar o plano das betas públicas.
