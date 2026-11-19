@@ -1,0 +1,22 @@
+# Files that never go to Vercel with `vercel deploy` (the Web build only needs the app source, scripts, assets and supabase/migrations).
+# Secrets and local state
+.env*
+.vercel
+credentials.json
+*.jks
+*.keystore
+# Local builds, APKs and personal files
+.expo/
+dist/
+node_modules/
+artifacts/
+*.apk
+*.aab
+/Livros/
+.browser-*
+# Android project (not used by the Web export)
+android/
+modules/*/android/
+# Documentation and test fixtures (not used by the Web export)
+docs/
+tests/
