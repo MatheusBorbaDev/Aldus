@@ -611,6 +611,18 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
   "Pode publicar": branding salvo (nome "Aldus Reader", página inicial, `/legal/privacy`, `/legal/terms`, domínios `supabase.co` do
   projeto e `kindle-reader-two.vercel.app`, sem logotipo) e app enviado para "Em produção" sem verificação: tela de app não verificado
   no Drive e limite vitalício de 100 usuários (3 usados). NÃO TESTADO: Drive e login Google com conta fora da lista no aparelho.
+- Dono mandou vídeos do Papel Amassado (`G:\Meu Drive\Concorrencia`) e pediu "no geral tudo, exceto o que deveríamos deixar de fora";
+  escolheu "Google Books + Open Library" (revoga o "sem Google" de 18/11 só para o catálogo) e aprovou chave e textos. Feito:
+  `d590cc6` fonte Google Books (primeira, quando há `EXPO_PUBLIC_GOOGLE_BOOKS_API_KEY`), busca enquanto digita (600 ms, cancela a
+  anterior, não repete o mesmo texto), sinopse e "Edição de" (Google não dá a 1ª publicação); `3b19564` textos legais 0.12 (Google
+  Books no lugar de Gutendex/BibliON/MEC; redação aprovada) e edições em português primeiro; `8fd29d1` "Buscar informações no
+  catálogo" ao fim da importação (só com o toque: o título do arquivo não sai sozinho, como diz a política) e ficha com capa desfocada
+  e "Ler livro"; `c36c853` calendário de leitura com capas no Diário (privado, sem contadores). Google Cloud: Books API ativada e chave
+  "Aldus - catalogo (Books API)" restrita à Books API, gravada em `.env.local` (fora do Git; sha256 do valor `5d3ddb33e939…`); busca real
+  "percy jackson" trouxe edições pt-BR. critical 144/144, lista de entrega 60. NÃO TESTADO no aparelho; APK ainda não gerado com isso.
+  Observação para o dono: no vídeo, o Papel Amassado ligou `marx_biografia.pdf` (José Paulo Netto) a outro livro (Óscar René Cruz).
+  Pendentes de decisão: Skoob (sem exportação oficial; só raspagem da estante pública) e leitor de ISBN pela câmera (dependência nativa,
+  permissão CAMERA e texto de privacidade novos).
 
 ### 17/11/2026 — Revisão para as betas públicas: dependências, banco, hospedagem (Claude)
 - Pedido do dono: ajustar dependências e configurações (banco, hospedagem etc.) e revisar o necessário para iniciar o plano das betas públicas.
