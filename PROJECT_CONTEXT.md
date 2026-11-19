@@ -538,6 +538,21 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
   .vercel.app/auth/callback` e `…?next=reset-password` na lista do Supabase (6→8, Site URL intacta). PENDENTE: login da CLI (a Vercel pediu o
   código do autenticador; o pedido expirou), nome do controlador para `EXPO_PUBLIC_LEGAL_CONTROLLER_NAME` (o guard de produção exige),
   variáveis de Production na Vercel, deploy e conferência pós-deploy. Drive na Web segue sem `EXPO_PUBLIC_GOOGLE_DRIVE_WEB_CLIENT_ID`.
+- Dono: "Estou no PC Nome Matheus Borba". CLI logada (`matheusborbaifc-9395`; o dono digitou o código do autenticador), `vercel link` ao
+  `kindle-reader` (a CLI gravou `VERCEL_OIDC_TOKEN` no `.env.local`; removido, voltou às 3 chaves). Production: 6 variáveis públicas
+  (Supabase URL/publishable como `config`, contato do catálogo, contato legal = padrão aprovado, `EXPO_PUBLIC_LEGAL_CONTROLLER_NAME`
+  "Matheus Borba", `EXPO_PUBLIC_SITE_URL` = `https://kindle-reader-two.vercel.app`), sem valor no chat. `a2685d8` `.vercelignore` (env,
+  APK, android, artifacts, docs, tests fora do upload). Achado local: `expo export` reaproveitou o cache sem a variável nova
+  (`controllerName:null`); com `--clear` o nome entra (a Vercel compila sem cache). Deploy de produção `a2685d8`: READY, mas rotas do app
+  404 (também no deploy de 06/10): com `cleanUrls` o `app.html` só existe em `/app`. `b8ea7bc` reescrita para `/app` (+ robots `/app`),
+  preview conferido, produção. Prévia do site: a política aberta por link ficava atrás da frase de abertura → `d28a81d` páginas `legal`
+  e `beta` na Web abrem direto no texto (o app mantém a frase). Produção atual: `kindle-reader-two.vercel.app` = `d28a81d`
+  (`dpl` `kindle-reader-o4krdv93q…`), build-info `production`, commit por `deployment-env` (upload sem Git); 11 rotas 200, `/app.html` 308,
+  cabeçalhos de segurança, sitemap/robots com o domínio; 55 recursos conferidos nos bundles baixados de produção; no Chrome: landing,
+  política com "Matheus Borba" sem a frase, login após "Continuar". `contentSha256` remoto ≠ export local do Windows (build Linux); a
+  identidade foi conferida por marcadores, não por hash. `test:critical` 143/143 em cada commit. NÃO TESTADO: login real no site (e-mail,
+  Google), confirmação/recuperação por e-mail na URL nova, Drive na Web (sem client ID), domínio próprio. Os commits seguem só locais
+  (`main` à frente do GitHub); a produção foi enviada pela CLI.
 
 ### 17/11/2026 — Revisão para as betas públicas: dependências, banco, hospedagem (Claude)
 - Pedido do dono: ajustar dependências e configurações (banco, hospedagem etc.) e revisar o necessário para iniciar o plano das betas públicas.
