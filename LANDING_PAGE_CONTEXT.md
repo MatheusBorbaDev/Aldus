@@ -171,3 +171,18 @@ As duas rodadas de comparação usam 240 frames de ida/volta, sem builds nem out
 - Regressões atualizadas substituem a exigência anterior de cenas congeladas por progresso estritamente crescente em mil amostras e movimento através das cinco âncoras. O ensaio de navegador verifica que wheel para frente e para trás muda poses e pixels; somente a parada real mantém a imagem e o contador GPU estáveis.
 - Validação concluída: `test:marketing`, typecheck e export Web PASS. Chromium Intel HD520/ANGLE D3D11 aprovou as cinco cenas em movimento contínuo com wheel real, parada e cache, viradas completas nos dois sentidos, navegação suave e interrupção pelas setas, 108 combinações viewport/pose, enquadramento, teclado, acessibilidade, falhas WebGL, reduced motion e ausência de JavaScript. Evidências em `.expo/cinematic-validation/results.json` (`continuousScenes`, `turnMotion` e navegação); baseline anterior preservada em `artifacts/landing-fluidity/before-continuous-results.json`, ignorada pelo Git.
 - Fixtures HTTP controladas; sem escrita remota, validação física Android ou benchmark comparativo de FPS. A matriz crítica integral não foi repetida neste ajuste isolado. Nenhuma dependência, alteração Native, APK ou implantação Vercel. O export está no preview local existente; os três arquivos locais preexistentes permanecem preservados.
+
+## Revisão geral do livro 3D — 19/11/2026
+
+- Pedido do dono: "Da uma geral na landing page do aldus, principalmente no objeto 3d do incio e nas animações". Revisão pelas capturas
+  do `test:marketing:web` com GPU (`CINEMATIC_CHROME_ANGLE=d3d11`) em 9 tamanhos × 12 poses; este PC tem animações do Windows
+  desligadas, então o Chrome do dono mostra a versão estática (sem canvas), como previsto.
+- Corrigido em `e0acb0d`: a fita marcadora não estava entre os materiais do livro e ficava opaca, flutuando sob a estante e na rede
+  da comunidade; os controles da história (setas, "06 / 07", "Pular demonstração") mudavam de cor junto com o fundo escuro e
+  encontravam o mesmo cinza (contraste ~1:1) na transição; agora trocam de tinta no meio (`--story-ink`). Teste no controlador.
+- Achados que mudam o visual, aguardando o dono: (1) o livro aberto fica a 28% (`1 - .72 * transformed`) e as folhas dissolvem até
+  94% nas cenas de biblioteca, estudo e comunidade, então "Todo livro abre um universo" aparece como fantasma atrás dos objetos;
+  o dissolve das folhas tem borda rasgada nas transições; (2) a cena 04 "Reader" repete as mesmas páginas da cena 02; (3) os três
+  flashcards têm a mesma pergunta e os de trás ficam cortados; (4) a transição para a comunidade passa por um cinza-esverdeado.
+- `test:marketing:web` (d3d11) falhou 3 vezes seguidas no passo de DPR ("Missing settled actual scroll pose 0.36": rolagem parada em
+  0,142), também no código anterior à correção, e passou na 4ª execução: intermitente, não investigado.
