@@ -516,7 +516,7 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
   busca da Biblioteca só filtra os livros guardados; o catálogo só abria pelo menu Adicionar/Descobrir, e o `q` da tela do catálogo só era
   buscado no fluxo de ligar arquivo. `de3449e`: busca vazia oferece "Procurar no catálogo" e a tela busca o `q` na hora (teste falha sem a
   correção). `test:critical` 143/143, lista de entrega 52 (`--source`/`--dist`), `export:web`. NÃO em APK; captura visual não feita.
-  NÃO TESTADO no aparelho: prévia, retomada pelo texto e o ganho dos itens 1 e 2.
+  NÃO TESTADO no aparelho: esta correção, e do `d44a911` a prévia, a retomada pelo texto e o ganho dos itens 1 e 2.
 
 ### 17/11/2026 — Revisão para as betas públicas: dependências, banco, hospedagem (Claude)
 - Pedido do dono: ajustar dependências e configurações (banco, hospedagem etc.) e revisar o necessário para iniciar o plano das betas públicas.
