@@ -9,6 +9,8 @@ import { libraryAccountScope } from "@/src/data/library/LibraryAccountScope";
 import { buildDiary, DiaryDay, diaryDayLabel, formatActiveTime, localDayKey } from "@/src/domain/reader/readingDiary";
 import { goodreadsCsv } from "@/src/domain/library/goodreadsCsv";
 import { inferredReadingStatus } from "@/src/domain/types/libraryOrganization";
+import { LibraryBook } from "@/src/domain/entities/LibraryBook";
+import { ReadingCalendar } from "@/src/presentation/components/ReadingCalendar";
 
 /**
  * Diário de leitura (FASE 3, B1) e exportação CSV no padrão Goodreads (B2). Só sessões medidas neste aparelho, na conta aberta;
@@ -18,6 +20,7 @@ export function ReadingDiaryScreen() {
   const { palette } = useAppTheme();
   const settings = useReaderSettings();
   const [days, setDays] = useState<DiaryDay[] | null>(null);
+  const [library, setLibrary] = useState<Map<string, LibraryBook>>(new Map()), [selectedDay, setSelectedDay] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null), [notice, setNotice] = useState<string | null>(null), [busy, setBusy] = useState(false);
   const run = useRef(0);
   const showTime = !settings.hideReadingCounts;
@@ -29,7 +32,7 @@ export function ReadingDiaryScreen() {
     try {
       const [sessions, books] = await Promise.all([appDependencies.readingSessions.list(account.userId), appDependencies.bookRepository.listActive()]);
       account.check();
-      if (run.current === current) setDays(buildDiary(sessions, new Map(books.map(book => [book.id, readableBookTitle(book)]))));
+      if (run.current === current) { setDays(buildDiary(sessions, new Map(books.map(book => [book.id, readableBookTitle(book)])))); setLibrary(new Map(books.map(book => [book.id, book]))); }
     } catch (failure) {
       if (run.current === current) setError(failure instanceof Error ? failure.message : "Não foi possível ler o diário.");
     }
@@ -70,7 +73,9 @@ export function ReadingDiaryScreen() {
       {error ? <EmptyState icon="alert-circle-outline" title="Não foi possível ler o diário" description={error} /> : null}
       {!error && days === null ? <AppText tone="secondary">Carregando diário…</AppText> : null}
       {days && days.length === 0 ? <EmptyState icon="calendar-outline" title="Nenhuma sessão registrada" description="As sessões aparecem aqui depois que você lê um livro neste aparelho." /> : null}
-      {days?.map(day => (
+      {days && days.length > 0 ? <ReadingCalendar days={days} books={library} selected={selectedDay} onSelect={setSelectedDay} /> : null}
+      {selectedDay ? <Button label="Mostrar todos os dias" variant="ghost" onPress={() => setSelectedDay(null)} /> : null}
+      {days?.filter(day => !selectedDay || day.day === selectedDay).map(day => (
         <View key={day.day} style={[styles.card, { borderColor: palette.border, backgroundColor: palette.surface }]}>
           <AppText variant="title">{diaryDayLabel(day.day, today, yesterday)}{showTime ? ` · ${formatActiveTime(day.seconds)}` : ""}</AppText>
           {day.books.map(entry => <AppText key={entry.bookId} tone="secondary">{entry.title}{showTime ? ` · ${formatActiveTime(entry.seconds)}` : ""}</AppText>)}

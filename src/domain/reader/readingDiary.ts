@@ -48,3 +48,29 @@ export function diaryDayLabel(day: string, today: string, yesterday: string): st
   const weekday = WEEKDAYS[new Date(year, month - 1, date).getDay()];
   return `${weekday[0].toUpperCase()}${weekday.slice(1)}, ${date} de ${MONTHS[month - 1]}${String(year) === today.slice(0, 4) ? "" : ` de ${year}`}`;
 }
+
+/**
+ * Calendário de leitura (19/11/2026, dono: "gostei do calendário" do Papel Amassado). Mês em semanas de domingo a sábado; cada dia
+ * traz os livros lidos nele (mais recente primeiro), só a partir das sessões medidas. Sem contagem de dias seguidos nem meta.
+ */
+export interface CalendarCell { day: string | null; date: number | null; bookIds: string[] }
+export function calendarMonth(year: number, month: number, days: DiaryDay[]): CalendarCell[][] {
+  const pad = (value: number) => String(value).padStart(2, "0");
+  const byDay = new Map(days.map(entry => [entry.day, entry.books.map(book => book.bookId)]));
+  const first = new Date(year, month, 1).getDay(), total = new Date(year, month + 1, 0).getDate();
+  const cells: CalendarCell[] = Array.from({ length: first }, () => ({ day: null, date: null, bookIds: [] }));
+  for (let date = 1; date <= total; date++) {
+    const day = `${year}-${pad(month + 1)}-${pad(date)}`;
+    cells.push({ day, date, bookIds: byDay.get(day) ?? [] });
+  }
+  while (cells.length % 7) cells.push({ day: null, date: null, bookIds: [] });
+  return Array.from({ length: cells.length / 7 }, (_, week) => cells.slice(week * 7, week * 7 + 7));
+}
+export function calendarMonthLabel(year: number, month: number): string {
+  const name = MONTHS[month];
+  return `${name[0].toUpperCase()}${name.slice(1)} de ${year}`;
+}
+export function diaryFullDayLabel(day: string): string {
+  const [year, month, date] = day.split("-").map(Number);
+  return `${date} de ${MONTHS[month - 1]} de ${year}`;
+}
