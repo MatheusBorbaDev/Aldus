@@ -7,12 +7,12 @@ function setReader(next){reader={...reader,...next};listeners.forEach(fn=>fn());
 const readerStore=()=>React.useSyncExternalStore(fn=>{listeners.add(fn);return()=>listeners.delete(fn)},()=>reader);readerStore.getState=()=>reader;
 const noop=()=>{},widget=name=>props=>React.createElement(name,props,props.children);
 const palette={background:'#fff',panel:'#eee',text:'#222',secondaryText:'#777',accent:'#a54'};
-const dependencies={highlightRepository:{listByBookId:async()=>[]},openBook:{execute:async id=>({book:{id,title:'Fixture',mimeType:fixture==='epub'?'application/epub+zip':'application/pdf',filePath:'file:///fixture',fileName:'fixture.pdf',fileSize:123,fileHash:'fixture-signature'},chapters:fixture==='epub'?[{id:'epub',title:'Chapter',html:'<p>Text</p>',characterCount:4}]:[],progress:{percentage:.5}})},pdfReaderSettings:{get:async()=>({...load('src/domain/types/pdfReader.ts').defaultPdfReaderSettings,mode:fixture==='original'?'original':'reflow',reflowProgress:.5,originalProgress:.2}),save:async()=>{}},pdfReflowCache:{findByBookId:async()=>null,save:async()=>{}},updateReadingProgress:{execute:async x=>writes.push(x)}};
+const dependencies={highlightRepository:{listByBookId:async()=>[]},openBook:{execute:async id=>({book:{id,title:'Fixture',mimeType:fixture==='epub'?'application/epub+zip':'application/pdf',filePath:'file:///fixture',fileName:'fixture.pdf',fileSize:123,fileHash:'fixture-signature'},chapters:fixture==='epub'?[{id:'epub',title:'Chapter',html:'<p>Text</p>',characterCount:4}]:[],progress:{percentage:fixture==='preview'?0:.5}})},pdfReaderSettings:{get:async()=>({...load('src/domain/types/pdfReader.ts').defaultPdfReaderSettings,mode:fixture==='original'?'original':'reflow',reflowProgress:fixture==='preview'?0:.5,originalProgress:.2}),save:async()=>{}},pdfReflowCache:{findByBookId:async()=>null,save:async()=>{}},updateReadingProgress:{execute:async x=>writes.push(x)}};
 function load(file){if(cache.has(file))return cache.get(file);const exports={};cache.set(file,exports);const input=(baseline||finalizationBaseline)&&file.endsWith('ReaderScreen.tsx')?cp.execFileSync('git',['show',(finalizationBaseline?'3df3f5b':'77c490c')+':'+file],{encoding:'utf8'}):fs.readFileSync(file,'utf8');const code=ts.transpileModule(input,{compilerOptions:{module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.ReactJSX,target:ts.ScriptTarget.ES2022,esModuleInterop:true}}).outputText;
 new Function('require','exports','setTimeout','clearTimeout',code)(name=>{
 if(name==='react')return React;if(name==='react/jsx-runtime')return require('../.expo/auth-test-tools/node_modules/react/jsx-runtime');if(name==='react-native')return {View:'View',Text:'Text',Pressable:'Pressable',ActivityIndicator:'Spinner',StatusBar:'StatusBar',Platform:{OS:'android'},StyleSheet:{create:x=>x,absoluteFill:{position:'absolute',top:0,bottom:0,left:0,right:0}},AppState:{currentState:'active',addEventListener:()=>({remove:noop})},BackHandler:{addEventListener:(_,fn)=>{back.add(fn);return {remove:()=>back.delete(fn)}}},useWindowDimensions:()=>({width:420,height:780})};if(name==='react-native-safe-area-context')return {useSafeAreaInsets:()=>({top:32,bottom:24,left:5,right:7})};if(name==='expo-router')return {router:{push:noop}};if(name==='expo-brightness')return {isAvailableAsync:async()=>false};if(name==='expo-speech')return {speak(){},stop:async()=>{}};if(name.includes('/services/dependencies'))return {appDependencies:dependencies};if(name.includes('/stores/readerStore'))return {useReaderStore:readerStore};if(name.includes('/contexts/ReaderSettingsContext'))return {useReaderSettings:()=>({hideReadingCounts,fontSize:16,fontFamily:'Georgia',marginSize:24,theme:'light',brightness:100,useSystemBrightness:true,palette})};if(name.includes('epubOpenMetrics'))return {epubDiagnosticConsole:{log:noop},markEpubOpenEvent:noop,markEpubOpenSpanStart:noop,markEpubOpenSpanEnd:noop};
 if(name.endsWith('/StudyPanelControls'))return {studyColorNames:{yellow:'Amarelo',green:'Verde',blue:'Azul',pink:'Rosa',purple:'Roxo'}};
-for(const component of ['QuoteCardModal','HighlightSelectionPopup','MotionCuesOverlay','StudyBookmarksPanel','ReaderControls','ReaderSettingsPanel','DocumentReaderAdapter','PdfModeChooser','PdfReflowProcessor'])if(name.endsWith('/'+component))return {[component]:widget(component)};
+for(const component of ['QuoteCardModal','HighlightSelectionPopup','MotionCuesOverlay','StudyBookmarksPanel','ReaderControls','ReaderSettingsPanel','DocumentReaderAdapter','PdfModeChooser','PdfReflowProcessor','PdfReflowPreviewReader'])if(name.endsWith('/'+component))return {[component]:widget(component)};
 if(name.startsWith('@/')||name.startsWith('.')){const base=name.startsWith('@/')?name.slice(2):path.posix.join(path.posix.dirname(file),name);return load(['.ts','.tsx'].map(ext=>base+ext).find(p=>fs.existsSync(p)));}return require(name);},exports,file.endsWith('cooperativeWork.ts')?global.setTimeout:fn=>{timers.set(++timerId,fn);return timerId},file.endsWith('cooperativeWork.ts')?global.clearTimeout:id=>timers.delete(id));return exports;}
 const flushTimers=async()=>act(async()=>{const due=[...timers.values()];timers.clear();due.forEach(fn=>fn());});
 (async()=>{
@@ -171,5 +171,37 @@ const flushTimers=async()=>act(async()=>{const due=[...timers.values()];timers.c
  await act(async()=>renderer.root.findByType('ReaderControls').props.onStudy());
  assert.deepEqual(renderer.root.findByType('StudyBookmarksPanel').props.highlights.map(h=>h.id),['h-reflow']);assert.equal(renderer.root.findByType('StudyBookmarksPanel').props.highlightMode,'pdf-reflow');
  await act(async()=>renderer.unmount());dependencies.highlightRepository.listByBookId=oldList;
- console.log('PASS ReaderScreen Reflow publication/restore/persistence, EPUB layout acknowledgement, controls/settings identity, real page-1 navigation, hardware Back + preserved Original progress, Native safe owner');
+ // Leitura Livre preview (18/11/2026): offered only from the start, readable while preparing, Back closes it first, never writes
+ // progress; the complete book continues from the paragraph at the top of the preview, located by its text.
+ {const lines=text=>{const cut=text.lastIndexOf(' ',text.length>>1);return [{text:text.slice(0,cut),x:70,y:700,width:400,height:11},{text:text.slice(cut+1),x:40,y:684,width:430,height:11}];};
+  const pageText=n=>Array.from({length:12},(_,i)=>`Frase ${i} da página ${n} conta a vida de Marx em Londres.`).join(' ');
+  const full=builder.buildPdfReflowDocument(Array.from({length:6},(_,i)=>({pageNumber:i+1,pageWidth:500,pageHeight:760,images:[],textItems:lines(pageText(i+1))})),6);
+  const paragraphs=full.chapters.flatMap(c=>c.blocks).filter(b=>b.type==='paragraph').map(b=>b.text);assert.equal(paragraphs.length,6);
+  const preview={pageCount:3,blocks:paragraphs.slice(0,3).map(text=>({type:'paragraph',text}))};
+  const offer=()=>renderer.root.findAll(n=>n.props.accessibilityHint==='Abre as primeiras páginas enquanto o restante é preparado'&&typeof n.props.onPress==='function');
+  const previewReader=()=>renderer.root.findAllByType('PdfReflowPreviewReader');
+  fixture='reflow';await act(async()=>{renderer=create(React.createElement(ReaderScreen,{bookId:'saved-place'}));});
+  await act(async()=>renderer.root.findByType('PdfReflowProcessor').props.onPreview(preview));
+  assert.equal(offer().length,0,'a saved position is never replaced by the opening pages');await act(async()=>renderer.unmount());
+  fixture='preview';writes.length=0;await act(async()=>{renderer=create(React.createElement(ReaderScreen,{bookId:'preview'}));});
+  assert.equal(offer().length,0);await act(async()=>renderer.root.findByType('PdfReflowProcessor').props.onPreview(preview));
+  assert.equal(offer().length,1,'offered once the first pages are ready');await act(async()=>offer()[0].props.onPress());
+  assert.equal(previewReader().length,1);assert.deepEqual(previewReader()[0].props.preview,preview);
+  assert.equal(renderer.root.findAllByType('PdfReflowProcessor').length,1,'preparation goes on underneath');
+  await act(async()=>{assert.equal([...back].at(-1)(),true)});assert.equal(previewReader().length,0,'Back closes the preview');assert.equal(renderer.root.findAllByType('PdfReflowProcessor').length,1,'without cancelling the preparation');
+  await act(async()=>offer()[0].props.onPress());await act(async()=>previewReader()[0].props.onResumeText(paragraphs[2]));
+  await flushTimers();assert.equal(writes.length,0,'reading the preview writes no progress');
+  await act(async()=>renderer.root.findByType('PdfReflowProcessor').props.onComplete(full,undefined,true));
+  assert.equal(previewReader().length,0);assert.equal(offer().length,0);
+  const resume=getDoc().props.restoreTextAnchor;assert.equal(resume.chapterId,'preview-reflow-0');assert.ok(paragraphs[2].startsWith(resume.quote),'continues at the paragraph read');
+  assert.equal(getDoc().props.initialRestorePending,true,'restored by the reader (missing/ambiguous reported), not assumed');assert.equal(writes.length,0);
+  await act(async()=>renderer.unmount());
+  writes.length=0;await act(async()=>{renderer=create(React.createElement(ReaderScreen,{bookId:'preview-lost'}));});
+  await act(async()=>renderer.root.findByType('PdfReflowProcessor').props.onPreview(preview));await act(async()=>offer()[0].props.onPress());
+  await act(async()=>previewReader()[0].props.onResumeText('Parágrafo que não existe no livro completo.'));
+  await act(async()=>renderer.root.findByType('PdfReflowProcessor').props.onComplete(full,undefined,true));
+  assert.equal(getDoc().props.restoreTextAnchor,null,'no guessed position');
+  assert.ok(renderer.root.findAll(n=>typeof n.props.message==='string'&&n.props.message.includes('não foi localizado com segurança')).length>0,'and the reader is told');
+  await act(async()=>renderer.unmount());fixture='reflow';}
+ console.log('PASS ReaderScreen Reflow publication/restore/persistence, EPUB layout acknowledgement, controls/settings identity, real page-1 navigation, hardware Back + preserved Original progress, Native safe owner, Leitura Livre preview (start only, Back, no progress writes, continues by text, unlocated told)');
 })().catch(e=>{console.error(e);process.exitCode=1;});

@@ -1,4 +1,5 @@
 import { PdfReflowDocument } from "@/src/domain/types/pdfReader";
+import type { PdfReflowPreview } from "@/src/data/local/pdfReflowPreview";
 
 export interface PdfReflowProgress {
   stage?: "opening" | "extracting" | "awaiting-ocr" | "ocr" | "building" | "validating" | "finalizing";
@@ -14,6 +15,8 @@ export interface PdfReflowProcessorProps {
   onComplete: (document: PdfReflowDocument, signal?: AbortSignal, validated?: boolean) => void | Promise<void>;
   onError: (message: string) => void;
   onCancel: () => void;
+  /** The first pages, readable while the rest is prepared (18/11/2026); at most once per preparation. */
+  onPreview?: (preview: PdfReflowPreview) => void;
 }
 
 export function reflowProgressLabel(progress: PdfReflowProgress) {

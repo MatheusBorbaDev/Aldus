@@ -28,6 +28,7 @@ import { readableBookTitle } from "@/src/presentation/services/bookDisplay";
 
 /** Confirmação passageira: some sozinha. Avisos de falha/âncora continuam até o leitor fechar. */
 const REFLOW_READY_MESSAGE = "Leitura livre pronta.";
+const PREVIEW_NOT_FOUND_MESSAGE = "Leitura livre pronta. O trecho em que você parou na prévia não foi localizado com segurança no livro completo; a leitura começa do início.";
 const TRANSIENT_FEEDBACK_MS = 4000;
 const PDF_SETTINGS_SAVE_ERROR = "Não foi possível salvar os ajustes deste PDF. Eles valem até você fechar o livro.";
 import {
@@ -61,6 +62,10 @@ import { EpubNavigationRequest, EpubPageInfo } from "@/src/presentation/componen
 import { getPdfPageMode, PdfPageMode } from "@/src/presentation/components/PdfPageViewerProps";
 import { PdfModeChooser } from "@/src/presentation/components/PdfModeChooser";
 import { PdfReflowProcessor } from "@/src/presentation/components/PdfReflowProcessor";
+import { reflowProgressLabel } from "@/src/presentation/components/PdfReflowProcessorProps";
+import { PdfReflowPreviewReader } from "@/src/presentation/components/reader/PdfReflowPreviewReader";
+import type { PdfReflowPreview } from "@/src/data/local/pdfReflowPreview";
+import { previewReadingAnchor } from "@/src/domain/reader/reflowPreviewAnchor";
 import { toStoredReflowChaptersAsync } from "@/src/data/local/PdfReflowDocumentBuilder";
 import { isValidatedReflowDocumentAsync } from "@/src/data/local/pdfReflowQuality";
 import { throwIfAborted } from "@/src/core/utils/cancellation";
@@ -72,7 +77,7 @@ import {
   PdfReadingMode,
   PdfReflowDocument,
 } from "@/src/domain/types/pdfReader";
-import { fontFamilies, pdfReaderThemes, readerChromePalette } from "@/src/theme/tokens";
+import { appThemeTokens, fontFamilies, pdfReaderThemes, readerChromePalette } from "@/src/theme/tokens";
 import { paperTextureCss } from "@/src/domain/reader/paperTexture";
 import { effectivePageTurn } from "@/src/domain/reader/pageTurn";
 import { useReduceMotion } from "@/src/presentation/hooks/useReduceMotion";
@@ -187,6 +192,16 @@ export function ReaderScreen({ bookId }: Props) {
   const [reflowProgress, setReflowProgress] = useState({ currentPage: 0, totalPages: 0 });
   const [pdfModeChooserVisible, setPdfModeChooserVisible] = useState(false);
   const [reflowFeedback, setReflowFeedback] = useState<string | null>(null);
+  // Start of the book while the Leitura Livre is prepared (18/11/2026): text only, never cached or saved as a position.
+  const [reflowPreview, setReflowPreview] = useState<PdfReflowPreview | null>(null);
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const previewResume = useRef<string | null>(null);
+  const previewAnchorRestore = useRef(false);
+  const clearReflowPreview = useCallback(() => {
+    setReflowPreview(null);
+    setPreviewOpen(false);
+    previewResume.current = null;
+  }, []);
   const transientFeedback = reflowFeedback === REFLOW_READY_MESSAGE;
   useEffect(() => {
     if (!transientFeedback) return;
@@ -486,6 +501,7 @@ export function ReaderScreen({ bookId }: Props) {
 
   const returnToOriginal = useCallback((message?: string) => {
     reflowPublication.current?.abort();
+    clearReflowPreview();
     const originalProgress = pdfReaderSettings?.originalProgress ?? initialPdfProgress.current;
     initialPdfProgress.current = originalProgress;
     setProgress(originalProgress);
@@ -497,7 +513,7 @@ export function ReaderScreen({ bookId }: Props) {
     setPdfReflowChapters([]);
     setPdfReaderSettings(current => ({ ...(current ?? defaultPdfReaderSettings), mode: "original" }));
     if (message) setReflowFeedback(message);
-  }, [pdfReaderSettings, setProgress]);
+  }, [pdfReaderSettings, setProgress, clearReflowPreview]);
 
   const handlePdfModeChange = useCallback(async (mode: PdfReadingMode) => {
     reflowPublication.current?.abort();
@@ -511,6 +527,7 @@ export function ReaderScreen({ bookId }: Props) {
     acceptedNavigationId.current = 0;
     setPdfModeChooserVisible(false);
     setReflowFeedback(null);
+    clearReflowPreview();
     const nextSettings = { ...(pdfReaderSettings ?? defaultPdfReaderSettings), mode };
     setPdfReaderSettings(nextSettings);
     if (mode === "original" || !currentBook) {
@@ -563,11 +580,18 @@ export function ReaderScreen({ bookId }: Props) {
         returnToOriginal("Não foi possível abrir o cache Reflow. O PDF Original continua disponível.");
       }
     }
-  }, [currentBook, pdfReaderSettings, pdfTotalPages, progress, returnToOriginal]);
+  }, [currentBook, pdfReaderSettings, pdfTotalPages, progress, returnToOriginal, clearReflowPreview]);
 
   const handleReflowProgress = useCallback((nextProgress: { currentPage: number; totalPages: number }) => {
     setReflowProgress(nextProgress);
   }, []);
+
+  // Only for a book read from the start: a saved position is never replaced by the opening pages.
+  const handleReflowPreview = useCallback((preview: PdfReflowPreview) => {
+    if (restoreTextAnchor || (initialEpubProgress.current ?? 0) > 0) return;
+    previewResume.current = null;
+    setReflowPreview(preview);
+  }, [restoreTextAnchor]);
 
   const handleReflowComplete = useCallback(async (document: PdfReflowDocument, signal?: AbortSignal, validated = false) => {
     const generation = reflowModeGeneration.current;
@@ -595,10 +619,18 @@ export function ReaderScreen({ bookId }: Props) {
       }, publication.signal);
       throwIfAborted(publication.signal);
       if (generation !== reflowModeGeneration.current) return;
+      // Continue from the paragraph at the top of the preview, located by its text in the complete book (never by a page number).
+      const resume = previewResume.current;
+      const resumeAnchor = resume ? previewReadingAnchor(currentBook.id, document, resume) : null;
+      clearReflowPreview();
+      if (resumeAnchor) {
+        previewAnchorRestore.current = true;
+        setRestoreTextAnchor(resumeAnchor);
+      }
       setPdfReflowChapters(prepared);
       setPdfReflowDocument(document);
       setPdfReaderSettings(current => ({ ...(current ?? defaultPdfReaderSettings), mode: "reflow" }));
-      setReflowFeedback(REFLOW_READY_MESSAGE);
+      setReflowFeedback(resume && !resumeAnchor ? PREVIEW_NOT_FOUND_MESSAGE : REFLOW_READY_MESSAGE);
       setReflowPreparing(false);
     } catch (error) {
       if (!publication.signal.aborted && generation === reflowModeGeneration.current) {
@@ -606,7 +638,7 @@ export function ReaderScreen({ bookId }: Props) {
         throw error;
       }
     } finally { signal?.removeEventListener("abort", abort); }
-  }, [currentBook, pdfReaderSettings, returnToOriginal]);
+  }, [currentBook, pdfReaderSettings, returnToOriginal, clearReflowPreview]);
 
   const handleReflowError = useCallback((message: string) => {
     reflowModeGeneration.current++;
@@ -620,9 +652,12 @@ export function ReaderScreen({ bookId }: Props) {
 
   useEffect(() => {
     if (Platform.OS === "web" || !reflowPreparing) return;
-    const listener = BackHandler.addEventListener("hardwareBackPress", () => { handleCancelReflow(); return true; });
+    const listener = BackHandler.addEventListener("hardwareBackPress", () => {
+      if (previewOpen) setPreviewOpen(false); else handleCancelReflow();
+      return true;
+    });
     return () => listener.remove();
-  }, [reflowPreparing, handleCancelReflow]);
+  }, [reflowPreparing, previewOpen, handleCancelReflow]);
 
   const handleToggleFullscreen = useCallback(() => {
     if (Platform.OS !== "web") return;
@@ -832,11 +867,14 @@ export function ReaderScreen({ bookId }: Props) {
       if (anchorAcknowledged) {
         if (info.anchorRestoreStatus === "missing" || info.anchorRestoreStatus === "ambiguous") {
           positionRestoreFailed.current = true;
-          setStudyFeedback("O trecho salvo não pôde ser localizado com segurança. A posição por progresso foi recuperada; confira a leitura antes de continuar.");
+          setStudyFeedback(previewAnchorRestore.current
+            ? "O trecho em que você parou na prévia não pôde ser localizado com segurança no livro completo. Confira a posição antes de continuar."
+            : "O trecho salvo não pôde ser localizado com segurança. A posição por progresso foi recuperada; confira a leitura antes de continuar.");
           setStudyVisible(true);
         }
         initialEpubProgress.current = null;
         reflowRestoreTarget.current = null;
+        previewAnchorRestore.current = false;
         setReflowRestoreState("inactive");
       } else {
       const savedProgress = Math.max(0, Math.min(1, initialEpubProgress.current ?? 0));
@@ -1169,6 +1207,32 @@ export function ReaderScreen({ bookId }: Props) {
             onComplete={handleReflowComplete}
             onError={handleReflowError}
             onCancel={handleCancelReflow}
+            onPreview={handleReflowPreview}
+          />
+        ) : null}
+        {isPdf && reflowPreparing && reflowPreview && !previewOpen ? (
+          <View pointerEvents="box-none" style={[styles.previewOffer, { bottom: insets.bottom + 28 }]}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityHint="Abre as primeiras páginas enquanto o restante é preparado"
+              onPress={() => setPreviewOpen(true)}
+              style={styles.previewOfferButton}
+            >
+              <Text style={styles.previewOfferText}>Começar a ler o início</Text>
+            </Pressable>
+          </View>
+        ) : null}
+        {isPdf && reflowPreparing && reflowPreview && previewOpen ? (
+          <PdfReflowPreviewReader
+            preview={reflowPreview}
+            palette={activePalette}
+            fontSize={activeReaderSettings.fontSize}
+            lineHeight={activeReaderSettings.lineHeight}
+            progressLabel={reflowProgressLabel(reflowProgress)}
+            topInset={insets.top}
+            bottomInset={insets.bottom}
+            onResumeText={text => { previewResume.current = text; }}
+            onClose={() => setPreviewOpen(false)}
           />
         ) : null}
 
@@ -1279,6 +1343,10 @@ async function getPdfSourceSignature(book: LibraryBook, signal: AbortSignal): Pr
 }
 
 const styles = StyleSheet.create({
+  // Over the dark preparation veil: same accent pair as its panel (dark theme of the app).
+  previewOffer: { position: "absolute", left: 16, right: 16, zIndex: 31, alignItems: "center" },
+  previewOfferButton: { minHeight: 48, borderRadius: 8, paddingHorizontal: 22, justifyContent: "center", backgroundColor: appThemeTokens.dark.accent },
+  previewOfferText: { color: appThemeTokens.dark.onAccent, fontSize: 15, fontWeight: "700", textAlign: "center" },
   screen: {
     flex: 1,
     width: "100%",

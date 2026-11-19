@@ -4,6 +4,7 @@ import type { PDFDocumentLoadingTask, PDFDocumentProxy, PDFPageProxy } from "pdf
 import { loadedPdfJs, loadPdfJs, PdfJsModule } from "./pdfjsRuntime.web";
 import { PdfReflowImage, PdfReflowPageData } from "@/src/domain/types/pdfReader";
 import { buildPdfReflowDocumentAsync } from "@/src/data/local/PdfReflowDocumentBuilder";
+import { buildPdfReflowPreviewAsync, REFLOW_PREVIEW_PAGES } from "@/src/data/local/pdfReflowPreview";
 import { assessTextExtractionQuality, isClearlyCorruptedTextExtraction, CORRUPT_PDF_TEXT, isValidatedReflowDocumentAsync } from "@/src/data/local/pdfReflowQuality";
 import { createPdfOcrPlanAsync, createReflowDerivation } from "@/src/data/local/pdfOcrPolicy";
 import { PdfReflowProgress, PdfReflowProcessorProps, reflowProgressLabel } from "@/src/presentation/components/PdfReflowProcessorProps";
@@ -20,12 +21,12 @@ interface PdfTextItem {
   hasEOL: boolean;
 }
 
-export function PdfReflowProcessor({ uri, onProgress, onComplete, onError, onCancel }: PdfReflowProcessorProps) {
+export function PdfReflowProcessor({ uri, onProgress, onComplete, onError, onCancel, onPreview }: PdfReflowProcessorProps) {
   const [progress, setProgress] = useState<PdfReflowProgress>({ currentPage: 0, totalPages: 0 });
   const [ocrRequiredPages, setOcrRequiredPages] = useState(0);
   const cancel = useRef<() => void>(() => {});
-  const callbacks = useRef({ onComplete, onError, onProgress, onCancel });
-  callbacks.current = { onComplete, onError, onProgress, onCancel };
+  const callbacks = useRef({ onComplete, onError, onProgress, onCancel, onPreview });
+  callbacks.current = { onComplete, onError, onProgress, onCancel, onPreview };
 
   useEffect(() => {
     const operation = createReflowOperation();
@@ -94,6 +95,11 @@ export function PdfReflowProcessor({ uri, onProgress, onComplete, onError, onCan
           }
           const images = await extractPageImages(page, operatorList.fnArray, operatorList.argsArray, viewport.width, viewport.height);
           pages.push({ pageNumber, pageWidth: viewport.width, pageHeight: viewport.height, textItems, images });
+          if (pages.length === REFLOW_PREVIEW_PAGES && callbacks.current.onPreview) {
+            void buildPdfReflowPreviewAsync(pages, operation.signal)
+              .then(preview => { if (preview && operation.active) callbacks.current.onPreview?.(preview); })
+              .catch(() => undefined);
+          }
           update({ stage: "extracting", currentPage: pageNumber, totalPages: pdf.numPages, imageCount: images.length });
           } finally { page.cleanup(); }
         }

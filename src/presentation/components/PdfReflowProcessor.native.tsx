@@ -4,6 +4,7 @@ import { WebView, WebViewMessageEvent } from "react-native-webview";
 import * as FileSystem from "expo-file-system/legacy";
 import { PdfReflowPageData, PdfTextProcessingState } from "@/src/domain/types/pdfReader";
 import { buildPdfReflowDocumentAsync } from "@/src/data/local/PdfReflowDocumentBuilder";
+import { buildPdfReflowPreviewAsync, REFLOW_PREVIEW_PAGES } from "@/src/data/local/pdfReflowPreview";
 import { isValidatedReflowDocumentAsync, CORRUPT_PDF_TEXT } from "@/src/data/local/pdfReflowQuality";
 import { createPdfOcrPlanAsync, createReflowDerivation, isSufficientOcrText, PdfOcrPlan, replacePageWithOcr } from "@/src/data/local/pdfOcrPolicy";
 import { beginPdfOcr, cancelPdfOcr, recognizePdfPage } from "@/src/data/local/pdfOcr.native";
@@ -17,7 +18,7 @@ import { appThemeTokens } from "@/src/theme/tokens";
 // O painel do OCR fica sempre sobre um véu escuro: usa o par destaque/texto do tema escuro do app (7,66:1; antes #B65F42 + branco, 4,46:1).
 const OCR_ACCENT = appThemeTokens.dark.accent, OCR_ON_ACCENT = appThemeTokens.dark.onAccent;
 
-export function PdfReflowProcessor({ uri, onProgress, onComplete, onError, onCancel }: PdfReflowProcessorProps) {
+export function PdfReflowProcessor({ uri, onProgress, onComplete, onError, onCancel, onPreview }: PdfReflowProcessorProps) {
   const webView = useRef<WebView>(null);
   const pages = useRef<PdfReflowPageData[]>([]);
   const generation = useRef(0);
@@ -25,8 +26,8 @@ export function PdfReflowProcessor({ uri, onProgress, onComplete, onError, onCan
   const started = useRef(false);
   const assembling = useRef(false);
   const temporaryOcrUri = useRef<string | null>(null);
-  const callbacks = useRef({ onComplete, onError, onProgress, onCancel });
-  callbacks.current = { onComplete, onError, onProgress, onCancel };
+  const callbacks = useRef({ onComplete, onError, onProgress, onCancel, onPreview });
+  callbacks.current = { onComplete, onError, onProgress, onCancel, onPreview };
   const [pdfBase64, setPdfBase64] = useState<string | null>(null);
   const [progress, setProgress] = useState<PdfReflowProgress>({ currentPage: 0, totalPages: 0 });
   const [ocrPlan, setOcrPlan] = useState<PdfOcrPlan | null>(null);
@@ -191,6 +192,12 @@ export function PdfReflowProcessor({ uri, onProgress, onComplete, onError, onCan
       if (assembling.current && message.type !== "error") return;
       if (message.type === "page" && message.page) {
         pages.current.push(message.page);
+        if (pages.current.length === REFLOW_PREVIEW_PAGES && callbacks.current.onPreview) {
+          // The start of the book while the rest is extracted; a failure only means no preview.
+          void buildPdfReflowPreviewAsync(pages.current, run.signal)
+            .then(preview => { if (preview && run.active) callbacks.current.onPreview?.(preview); })
+            .catch(() => undefined);
+        }
       } else if (message.type === "progress") {
         const nextProgress = {
           currentPage: message.currentPage ?? 0,
