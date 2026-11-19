@@ -67,6 +67,9 @@ async function render(component,props){if(renderer)await act(async()=>renderer.u
   await act(async()=>release({secretA:record('secretA')}));
   assert.equal(renderer.root.findAllByType('Modal').length,0,'late export of account A is not displayed to B');
   const library=fs.readFileSync('app/(tabs)/library.tsx','utf8');assert.doesNotMatch(library,/Backup da organização|OrganizationBackupModal|backupVisible/);
+  // 19/11: tocar na aba Biblioteca já aberta volta ao início. O hook do expo-router só rola a lista que recebe a mesma ref.
+  assert.match(library,/useScrollToTop\(listRef\)/,'library list scrolls to top on tab press');
+  assert.equal((library.match(/<FlatList\s+ref=\{listRef\}/g)||[]).length,1,'the book list (not the shelf row) carries the scroll-to-top ref');
   await act(async()=>renderer.unmount());
   console.log('PASS library React UI: compact long-title menu, both removals/confirmations, bundled/transfer guards; authenticated optional export, Share, foreign import rejection, merge policy and late-account isolation. Native primitives controlled; Android pending.');
 })().catch(error=>{console.error(error);process.exitCode=1;});

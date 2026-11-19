@@ -11,7 +11,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { router } from "expo-router";
+import { router, useScrollToTop } from "expo-router";
 import { isRecordBook, LibraryBook } from "@/src/domain/entities/LibraryBook";
 import { manualProgressFraction, manualProgressLabel, RECORD_FORMAT_LABELS } from "@/src/domain/catalog/recordBook";
 import { useHideReadingCounts } from "@/src/presentation/contexts/ReaderSettingsContext";
@@ -91,6 +91,9 @@ function LibraryContent() {
   const [format, setFormat] = useState<'all' | 'epub' | 'pdf'>('all');
   const [layout, setLayout] = useState<'grid' | 'list'>('grid');
   const requests = useRef(0);
+  // 19/11/2026 (dono): tocar de novo na aba Biblioteca, já nela, volta ao início da lista, como nos outros apps.
+  const listRef = useRef<FlatList<LibraryBook>>(null);
+  useScrollToTop(listRef);
   const { width: windowWidth } = useWindowDimensions();
   const gutter = uiLayout.gutter(windowWidth);
   const columns = layout === 'list' ? 1 : Math.max(1, Math.min(6, Math.floor((layoutWidth - gutter * 2 + space.md) / 170)));
@@ -327,6 +330,8 @@ function LibraryContent() {
       ) : null}
       {status !== "error" && (status === "success" || books.length > 0) ? (
         <FlatList
+          ref={listRef}
+          testID="library-book-list"
           data={visibleBooks}
           key={`columns-${columns}-${layout}`}
           numColumns={columns}
