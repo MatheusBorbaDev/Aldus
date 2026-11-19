@@ -590,6 +590,11 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
   `https://github.com/matheusbitlab/aldus-downloads/releases/download/v1.0.0-beta.2-build10/Aldus-1.0.0-beta.2-10.apk`. O pré-release
   igual em `matheusbitlab/Aldus` foi apagado (dono: "Pode apagar"; link antigo 404, o novo responde); a tag `v1.0.0-beta.2-build10`
   segue no repo principal marcando o commit-fonte `2691c55`. Site sem botão ("Ainda não").
+- Redmi (23117RA68G, Android 16): o APK baixado do link acima pelo navegador falhou com "pacote parece ser inválido", mesmo depois de o
+  dono desinstalar a v9 (chave antiga). APK do PC conferido: v2 válido, chave do dono, alinhado, digest igual ao do GitHub. Por USB,
+  1ª tentativa `INSTALL_FAILED_USER_RESTRICTED` (confirmação na tela não aceita); 2ª `Success`: `com.aldus.reader` versionCode 10,
+  assinatura `b4d3d601` = hash Java do certificado `A8:EE:8E…0F:4A`. VALIDADO só a instalação; app não aberto/testado por mim. Falha do
+  download pelo navegador sem causa: ver BUGS_ATUAIS "INSTALAÇÃO 01".
 
 ### 17/11/2026 — Revisão para as betas públicas: dependências, banco, hospedagem (Claude)
 - Pedido do dono: ajustar dependências e configurações (banco, hospedagem etc.) e revisar o necessário para iniciar o plano das betas públicas.
