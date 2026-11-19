@@ -568,7 +568,16 @@ e 7f50a90^:DIAGNOSTICO_BUGS_APK.md. Não restaurar esses arquivos como contexto.
 
 ## BUG 09 — Login por username depende de função não implantada
 
-- Prioridade: MÉDIA. Status: BLOQUEADO EXTERNAMENTE.
+- Prioridade: MÉDIA. Status: **IMPLANTADO em 19/11/2026**; login real com conta e senha NÃO TESTADO.
+- 19/11 (dono: "deixei o uptash e o supabase abertos aqui no chrome, faz ai oq precisa"): Redis do Upstash criado pelo dono ("Aldus reader",
+  `funky-yeti-207186`, AWS us-east-1, Free, eviction desligado; o Supabase fica em us-west-2, ~70 ms a mais por login). Segredos da função no
+  painel do Supabase, sem passar pelo chat: URL digitada (SHA-256 `066aeb52…`), token copiado do console pela área de transferência
+  (`b33e94d9…`), `USERNAME_LOGIN_HMAC_KEY` gerada no PC direto para a área de transferência (48 bytes aleatórios, `a13fb9cf…`); cada digest
+  do painel conferido com o hash local; área de transferência limpa depois. Função publicada pelo editor do painel como arquivo único
+  (import do `index.ts` + `handler.ts` + `Deno.serve`, SHA-256 `83c6e3aa…`, conferido no editor antes e depois de publicar), "Verify JWT"
+  desligado e conferido depois de recarregar. Sondas anônimas do PC: OPTIONS 200, GET 405, formato inválido 401, @ inexistente 401 com a
+  mesma mensagem; o limitador gravou as 3 chaves (global e duas HMAC) no Redis. Falta: login válido pelo app com conta real, limite (429)
+  observado de verdade, APK/Web com a tela de login por @usuário.
 - Sintoma/reprodução: login por username chama Edge Function username-login.
 - Evidência/primeira divergência: OPTIONS /functions/v1/username-login retornou
   HTTP404/NOT_FOUND reconfirmado em 15/10/2026 às 14:22 BRT, sem autenticar/criar conta.

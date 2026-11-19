@@ -525,6 +525,9 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
   card de trecho permitiria). Dependem do dono: Web (publicado recusa livro sem arquivo), Upstash/`username-login`, domínio/SMTP, verificação
   Google, dados do controlador, chave de assinatura/Play, página web de exclusão de conta, segundo celular. Só planejados, sem pedido de
   produção: A4, B3, D (links "Onde ler"), fila de denúncias no Admin (exigência da Play antes do público).
+- Dono criou o Upstash e pediu "faz ai oq precisa" (Chrome "Browser 1"): segredos cadastrados e `username-login` publicada no Supabase,
+  tudo conferido por hash sem expor valores (detalhes em BUGS_ATUAIS BUG 09). O texto colado antes (MCP/CLI do Upstash, `.env`,
+  `@upstash/redis` e `lib/redis.ts`) NÃO foi seguido: o token ficaria no app/PC, contra a decisão de 17/11. NÃO TESTADO: login real.
 
 ### 17/11/2026 — Revisão para as betas públicas: dependências, banco, hospedagem (Claude)
 - Pedido do dono: ajustar dependências e configurações (banco, hospedagem etc.) e revisar o necessário para iniciar o plano das betas públicas.
