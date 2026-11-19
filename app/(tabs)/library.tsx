@@ -23,6 +23,7 @@ import { BookOrganization, inferredReadingStatus, normalizeLibraryText, Organiza
 import { BookCard as SharedBookCard } from "@/src/presentation/components/BookCard";
 import { Book } from "@/src/constants/mockBooks";
 import { catalogBookFor } from "@/src/presentation/services/bookDisplay";
+import { libraryCatalogQuery } from "@/src/domain/catalog/libraryCatalogQuery";
 import { isStalled, recentReads } from "@/src/domain/library/readingShelves";
 import { FirstStepsCard } from "@/src/presentation/components/FirstStepsCard";
 import { markEpubLibraryReady, startEpubOpenTrace } from "@/src/utils/epubOpenMetrics";
@@ -178,6 +179,7 @@ function LibraryContent() {
 
   const paddingTop = Platform.OS === "web" ? space.xxl : Math.max(insets.top, space.lg);
   const filtersActive = Boolean(query || filter !== "all" || format !== "all" || collection);
+  const catalogQuery = libraryCatalogQuery(query);
   const clearFilters = () => { setQuery(""); setFilter("all"); setFormat("all"); setCollection(""); };
   const startSelecting = () => { setSelecting(true); setSelection(new Set()); setNotice(null); };
   const stopSelecting = () => { setSelecting(false); setSelection(new Set()); setNotice(null); };
@@ -342,8 +344,9 @@ function LibraryContent() {
             <EmptyState
               icon={books.length === 0 ? "library-outline" : "search-outline"}
               title={books.length === 0 ? "Sua estante começa aqui" : "Nenhum livro encontrado"}
-              description={books.length === 0 ? "Importe um EPUB ou PDF, conecte o Google Drive ou busque em catálogos públicos." : "Tente outro termo ou remova os filtros."}
+              description={books.length === 0 ? "Importe um EPUB ou PDF, conecte o Google Drive ou busque em catálogos públicos." : catalogQuery ? `“${catalogQuery}” não está na sua biblioteca. Procure no catálogo e guarde o livro mesmo sem o arquivo.` : "Tente outro termo ou remova os filtros."}
             >
+              {books.length && catalogQuery ? <Button label="Procurar no catálogo" icon="search" variant="primary" onPress={() => router.push({ pathname: "/catalog", params: { q: catalogQuery } } as never)} /> : null}
               {books.length ? <Button label="Limpar filtros" onPress={clearFilters} /> : <Button label="Adicionar livros" icon="add" variant="primary" onPress={() => setOpenMenu("add")} />}
             </EmptyState>
           }

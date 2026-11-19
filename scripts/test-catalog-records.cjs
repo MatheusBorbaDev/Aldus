@@ -1,6 +1,7 @@
 // Catalog phase 2 (owner, 18/11/2026): book without a file ("record"), "Quero ler", Sync guards and the catalog screen.
 // Real repositories over SQLite with a fake backend; the screen runs with stub React Native and a controlled catalog.
 const assert = require('node:assert/strict');
+const fs = require('node:fs');
 const { backend, device } = require('./test-library-reading-sync.cjs');
 const React = require('../.expo/auth-test-tools/node_modules/react');
 const { act, create } = require('../.expo/auth-test-tools/node_modules/react-test-renderer');
@@ -145,6 +146,24 @@ const dom = { id: 'ol:OL45883W', source: 'openlibrary', title: 'Dom Casmurro', s
   await press('Ligar “Dom Casmurro” a este livro');
   assert.equal(saved.length, 1); assert.equal(saved[0].id, 'file-dom'); assert.equal(saved[0].catalogId, dom.id); assert.deepEqual(saved[0].catalogCategories, ['literatura-brasileira']); assert.equal(saved[0].catalogPages, 256);
   assert.match(text(tree.root), /“Dom Casmurro” ligado a “Dom Casmurro”/); await press('Voltar'); assert.deepEqual(routes, ['back']);
+  await act(async () => tree.unmount()); params = {};
+
+  // 4b. Library search with nothing on the shelf (19/11, owner: "a biblioteca como catálogo não ta funcionando"): the words go to the
+  // catalog, which searches them at once and offers to keep the book (not the linking sheet).
+  const { libraryCatalogQuery } = a.load('src/domain/catalog/libraryCatalogQuery.ts');
+  assert.equal(libraryCatalogQuery('  percy   jackson '), 'percy jackson');
+  assert.equal(libraryCatalogQuery(' p '), null, 'one letter is not searched');
+  assert.equal(libraryCatalogQuery(''), null);
+  assert.equal(libraryCatalogQuery('x'.repeat(300)).length, 200, 'same limit as the catalog screen');
+  const libraryScreen = fs.readFileSync('app/(tabs)/library.tsx', 'utf8');
+  assert.match(libraryScreen, /label="Procurar no catálogo"[^\n]*router\.push\(\{ pathname: "\/catalog", params: \{ q: catalogQuery \} \}/, 'the empty Library search opens the catalog with the same words');
+  params = { q: 'Dom Casmurro' }; fail = null; searches.length = 0; saved.length = 0; organized.length = 0;
+  await act(async () => { tree = create(h(CatalogScreen)); }); await flush();
+  assert.deepEqual(searches, ['Dom Casmurro'], 'searched at once, without a second tap'); assert.equal(field().props.value, 'Dom Casmurro');
+  await act(async () => resolveSearch()); await flush();
+  assert.doesNotMatch(text(tree.root), /Escolha o livro do catálogo que corresponde/, 'not the linking flow');
+  await press('Memórias póstumas'); await press('Quero ler');
+  assert.equal(saved.length, 1); assert.ok(saved[0].id.startsWith('record-'), 'kept as a book without a file'); assert.equal(organized[0].wantToRead, true);
   await act(async () => tree.unmount()); params = {};
 
   // 5. A5 domain and data: pair a fileB with a kept record, merge on request, carry the link through Sync.

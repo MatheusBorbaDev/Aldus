@@ -69,6 +69,7 @@ const FEATURES = [
   { id: 'reflow-preview', pedido: '18/11: ler o início do PDF enquanto a Leitura Livre é preparada', markers: ['Começar a ler o início', 'Fim do trecho disponível'] },
   { id: 'reflow-highlight', pedido: '18/11: grifar na Leitura Livre do PDF (relato de usuarios externos)', markers: ['Abra a Leitura Livre para ir'] },
   { id: 'catalog-search', pedido: '18/11: buscar qualquer livro no catalogo e guardar sem arquivo (Quero ler)', markers: ['Buscar qualquer livro', 'Buscar no cat', 'x.aldus-record', 'Quero ler'], routes: ['catalog'] },
+  { id: 'library-catalog-offer', pedido: '19/11: busca da Biblioteca sem resultado leva ao catalogo ("a biblioteca como catalogo nao ta funcionando")', markers: ['Procurar no cat', 'não está na sua biblioteca'] },
   { id: 'release-notes', pedido: '18/11: aviso de novidades com aviso de beta e link para as limitações', markers: ['Novidades do Aldus', 'O que esperar desta beta', 'release-notes-seen'], routes: ['beta'] },
   { id: 'loading-quote', pedido: '18/11: frase de livro na tela de carregamento', markers: ["O livro caindo n'alma", 'Castro Alves'] },
   { id: 'account-delete', pedido: '17/11: excluir conta no app (betas públicas)', markers: ['Excluir conta', 'EXCLUIR MINHA CONTA', 'Continuar para a exclusão', 'account-delete'], routes: ['account/delete'] },

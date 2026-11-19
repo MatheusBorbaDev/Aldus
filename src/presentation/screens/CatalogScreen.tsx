@@ -56,9 +56,10 @@ export function CatalogScreen() {
   const backToShelves = () => { request.current?.abort(); request.current = null; setLoading(false); setResults(null); setError(null); setHeading(null); };
   const browsing = results !== null || loading || error !== null;
   useEffect(() => {
-    if (!linkId || started.current) return;
+    if (started.current) return;
     started.current = true;
-    appDependencies.bookRepository.findById(linkId).then(book => setLinkTarget(book && !book.isDeleted ? book : null)).catch(() => setLinkTarget(null));
+    if (linkId) appDependencies.bookRepository.findById(linkId).then(book => setLinkTarget(book && !book.isDeleted ? book : null)).catch(() => setLinkTarget(null));
+    // Also opened from the Library search with no match on the shelf: the same words are searched here at once.
     const text = typeof params.q === "string" ? params.q.trim().slice(0, 200) : "";
     if (text.length >= 2) { setQuery(text); run(text, null); }
     // eslint-disable-next-line react-hooks/exhaustive-deps
