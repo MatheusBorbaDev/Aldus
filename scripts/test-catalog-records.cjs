@@ -87,12 +87,12 @@ const dom = { id: 'ol:OL45883W', source: 'openlibrary', title: 'Dom Casmurro', s
   const opened = [];
   const load = require('./community-test-loader.cjs')({
     react: React, 'react/jsx-runtime': require('../.expo/auth-test-tools/node_modules/react/jsx-runtime'),
-    'react-native': { View: 'View', Text: 'Text', Pressable: 'Pressable', ScrollView: 'ScrollView', Modal: ({ children }) => h('Modal', null, children), Linking: { openURL: async url => opened.push(url) }, StyleSheet: { create: x => x, absoluteFill: {}, hairlineWidth: 1 } },
+    'react-native': { View: 'View', Text: 'Text', Pressable: 'Pressable', ScrollView: 'ScrollView', Image: 'Image', Modal: ({ children }) => h('Modal', null, children), Linking: { openURL: async url => opened.push(url) }, StyleSheet: { create: x => x, absoluteFill: {}, hairlineWidth: 1 } },
     '@/src/ui': ui, '@/src/presentation/contexts/AppThemeContext': { useAppTheme: () => ({ palette: { separator: '#ccc', panel: '#fff', border: '#ddd', surfaceSecondary: '#eee' } }) },
     '@/src/presentation/services/dependencies': { appDependencies: { bookRepository: { listActive: async () => library, findById: async id => library.find(book => book.id === id) ?? null, save: async book => { saved.push(book); library = [...library.filter(item => item.id !== book.id), book]; } } }, libraryOrganization: { save: async value => organized.push(value), list: async () => organizationRecords } },
     '@/src/data/catalog/catalogDependencies': { catalog }, '@/src/data/catalog/catalogSources': { CatalogUnavailableError },
     '@/src/presentation/components/BookCover': { BookCover: props => h('Cover', props) },
-    'expo-router': { router: { back: () => routes.push('back'), push: () => {} }, useLocalSearchParams: () => params },
+    'expo-router': { router: { back: () => routes.push('back'), push: route => routes.push(route) }, useLocalSearchParams: () => params },
     '@/src/presentation/components/catalog/YourSources': { YourSources: () => h('YourSources') },
   });
   const { CatalogScreen } = load('src/presentation/screens/CatalogScreen.tsx');
@@ -148,6 +148,16 @@ const dom = { id: 'ol:OL45883W', source: 'openlibrary', title: 'Dom Casmurro', s
   assert.equal(saved.length, 1); assert.equal(saved[0].id, 'file-dom'); assert.equal(saved[0].catalogId, dom.id); assert.deepEqual(saved[0].catalogCategories, ['literatura-brasileira']); assert.equal(saved[0].catalogPages, 256);
   assert.match(text(tree.root), /“Dom Casmurro” ligado a “Dom Casmurro”/); await press('Voltar'); assert.deepEqual(routes, ['back']);
   await act(async () => tree.unmount()); params = {};
+  // Ficha mais rica (19/11): com o arquivo já ligado, "Ler livro" abre o leitor; capa desfocada ao fundo, fora da leitura de tela.
+  await act(async () => { tree = create(h(CatalogScreen)); }); await flush();
+  await act(async () => field().props.onChangeText('Dom Casmurro')); await act(async () => field().props.onSubmit()); await act(async () => resolveSearch()); await flush();
+  await press('Dom Casmurro');
+  const backdrops = tree.root.findAll(n => n.type === 'Image');
+  assert.ok(backdrops.length >= 1 && backdrops.every(n => n.props.accessibilityElementsHidden && n.props.blurRadius > 0), 'blurred cover backdrop is decorative');
+  routes.length = 0; await press('Ler livro');
+  assert.deepEqual(routes, [{ pathname: '/reader/[bookId]', params: { bookId: 'file-dom' } }], 'opens the linked file in the reader');
+  await act(async () => tree.unmount());
+  library = library.filter(book => book.id !== 'file-dom');
 
   // 4b. Library search with nothing on the shelf (19/11, owner: "a biblioteca como catálogo não ta funcionando"): the words go to the
   // catalog, which searches them at once and offers to keep the book (not the linking sheet).

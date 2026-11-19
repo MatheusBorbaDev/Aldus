@@ -37,6 +37,7 @@ const FEATURES = [
   // Biblioteca e importação
   { id: 'library-continue', pedido: 'Onda A2: Continue lendo', markers: ['Continue lendo'] },
   { id: 'catalog-google-books', pedido: '19/11: catálogo com edições brasileiras (Google Books + Open Library), busca enquanto digita, sinopse e ano da edição', markers: ['Google Books e Open Library', 'Informações: ', 'Sinopse', 'Edição de ', 'gbs_api'] },
+  { id: 'catalog-import-offer', pedido: '19/11: depois de importar um arquivo, buscar as informações no catálogo (só com o toque) e ficha com Ler livro e capa ao fundo', markers: ['Buscar informações no catálogo', 'coverBackdrop', 'Ler livro'] },
   { id: 'discover-catalog-tab', pedido: '19/11: aba Descobrir vira o catalogo (vitrine, Sortear um livro, Suas fontes); sem Gutendex/BibliON/MEC', markers: ['Sortear um livro', 'abrir seus arquivos por aqui', 'Calculado neste aparelho'] },
   { id: 'library-tab-scroll-top', pedido: '19/11: tocar na aba Biblioteca, já nela, volta ao início da lista', markers: ['library-book-list'] },
   { id: 'library-first-steps', pedido: 'Onda A5: primeiros passos', markers: ['Primeiros passos'] },

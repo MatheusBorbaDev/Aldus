@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Linking, Modal, Pressable, ScrollView, StyleSheet, View } from "react-native";
+import { Image, Linking, Modal, Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { AppText, Button, Chip, EmptyState, Screen, ScreenHeader, SearchField } from "@/src/ui";
 import { useAppTheme } from "@/src/presentation/contexts/AppThemeContext";
 import { appDependencies, libraryOrganization } from "@/src/presentation/services/dependencies";
@@ -11,7 +11,7 @@ import { OrganizationRecords } from "@/src/domain/types/libraryOrganization";
 import { CatalogShelves } from "@/src/presentation/components/catalog/CatalogShelves";
 import { createRecordBook, libraryMatchesForCatalog, RECORD_FORMAT_LABELS, RECORD_START_LABELS, recordBookOrganization, RecordBookFormat, RecordBookStart } from "@/src/domain/catalog/recordBook";
 import { newLibraryId } from "@/src/domain/entities/libraryId";
-import { LibraryBook } from "@/src/domain/entities/LibraryBook";
+import { isRecordBook, LibraryBook } from "@/src/domain/entities/LibraryBook";
 import { BookCover } from "@/src/presentation/components/BookCover";
 import { router, useLocalSearchParams } from "expo-router";
 import { linkFileToCatalog } from "@/src/data/catalog/catalogLinking";
@@ -173,6 +173,8 @@ function CatalogBookSheet({ book, inLibrary, onClose, onAdded, linkTarget, onLin
     finally { setBusy(false); }
   };
   const google = book.source === "googlebooks", sourceName = google ? "Google Books" : "Open Library";
+  // Com o arquivo na biblioteca, a ficha leva direto à leitura.
+  const readable = inLibrary.find(item => !isRecordBook(item) && !item.isDeleted) ?? null;
   const facts = [
     book.firstPublishYear ? `Primeira publicação: ${book.firstPublishYear}` : book.editionYear ? `Edição de ${book.editionYear}` : null,
     book.pages ? (google ? `${book.pages} páginas` : `${book.pages} páginas (média das edições)`) : null,
@@ -185,6 +187,8 @@ function CatalogBookSheet({ book, inLibrary, onClose, onAdded, linkTarget, onLin
         <View style={[styles.sheet, { backgroundColor: palette.panel, borderColor: palette.border }]}>
           <View style={[styles.grab, { backgroundColor: palette.separator }]} />
           <ScrollView contentContainerStyle={styles.sheetContent}>
+            {/* Capa ampliada e desfocada ao fundo do topo da ficha (19/11, como no Papel Amassado); decorativa, fora da leitura de tela. */}
+            {book.coverUrl ? <Image source={{ uri: book.coverUrl }} blurRadius={24} resizeMode="cover" accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={styles.coverBackdrop} /> : null}
             <View style={styles.head}>
               <View style={styles.cover}><BookCover identity={book.id} title={book.title} author={book.authors[0]} format="livro" source={book.coverUrl ? { uri: book.coverUrl } : null} /></View>
               <View style={{ flex: 1, minWidth: 0, gap: 4 }}>
@@ -194,6 +198,7 @@ function CatalogBookSheet({ book, inLibrary, onClose, onAdded, linkTarget, onLin
               </View>
             </View>
             {/* The decision comes first, so it is visible without scrolling at 320 px; details follow. */}
+            {readable && !linkTarget ? <Button label="Ler livro" variant="primary" icon="book-outline" block onPress={() => { onClose(); router.push({ pathname: "/reader/[bookId]", params: { bookId: readable.id } } as never); }} /> : null}
             {linkTarget ? <Button label={`Ligar “${linkTarget.title}” a este livro`} variant="primary" block onPress={() => void link()} disabled={busy} loading={busy} />
             : added ? <View style={[styles.notice, { backgroundColor: palette.surfaceSecondary }]}>
               <AppText variant="label">Na sua biblioteca</AppText>
@@ -235,6 +240,7 @@ const styles = StyleSheet.create({
   grab: { width: 40, height: 4, borderRadius: 2, alignSelf: "center", marginTop: 8 },
   sheetContent: { padding: 20, gap: 14 },
   head: { flexDirection: "row", gap: 16 },
+  coverBackdrop: { position: "absolute", top: 0, left: 0, right: 0, height: 170, opacity: 0.28 },
   cover: { width: 80, height: 120, borderRadius: 4, overflow: "hidden" },
   chips: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   tag: { borderWidth: 1, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 4 },

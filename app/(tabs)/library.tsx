@@ -22,7 +22,7 @@ import { BookOrganizationModal, readingStatusLabels } from "@/src/presentation/c
 import { BookOrganization, inferredReadingStatus, normalizeLibraryText, OrganizationRecords } from "@/src/domain/types/libraryOrganization";
 import { BookCard as SharedBookCard } from "@/src/presentation/components/BookCard";
 import { Book } from "@/src/constants/mockBooks";
-import { catalogBookFor } from "@/src/presentation/services/bookDisplay";
+import { catalogBookFor, readableBookTitle } from "@/src/presentation/services/bookDisplay";
 import { libraryCatalogQuery } from "@/src/domain/catalog/libraryCatalogQuery";
 import { isStalled, recentReads } from "@/src/domain/library/readingShelves";
 import { FirstStepsCard } from "@/src/presentation/components/FirstStepsCard";
@@ -375,6 +375,11 @@ function LibraryContent() {
         restoredTitle={bookImport.restored ? bookImport.importedBook?.title ?? null : null}
         onOpenDuplicate={bookImport.openDuplicate}
         onImportDuplicate={bookImport.importDuplicateAnyway}
+        onFindInCatalog={bookImport.importedBook && !bookImport.importedBook.catalogId && !bookImport.restored ? () => {
+          const book = bookImport.importedBook!;
+          bookImport.dismiss();
+          router.push({ pathname: "/catalog", params: { link: book.id, q: readableBookTitle(book) } } as never);
+        } : undefined}
         onOpenBook={() => {
           const bookId = bookImport.importedBook?.id;
           bookImport.dismiss();

@@ -122,5 +122,31 @@ const book = (id, extra = {}) => ({ id, title: 'Livro ' + id, author: 'Teste', f
   for (const label of ['Este livro já está na biblioteca', 'Abrir o existente', 'Importar outra cópia']) assert.ok(modal.includes(label), label);
   const screen = fs.readFileSync('app/(tabs)/library.tsx', 'utf8');
   assert.match(screen, /duplicate=\{bookImport\.duplicate\}/);
-  console.log('PASS import duplicates: SHA-256 nativo/Web, índice local por conta (A≠B), excluído/removido/sem conta/>512 MiB/falha sem aviso, cancelamento, fileHash intacto. Sem aparelho.');
+  // 19/11: depois de importar, "Buscar informações no catálogo" (só com o toque; a busca leva o título ao catálogo da tela de ligação).
+  {
+    const React = require('../.expo/auth-test-tools/node_modules/react');
+    const { act, create } = require('../.expo/auth-test-tools/node_modules/react-test-renderer');
+    global.IS_REACT_ACT_ENVIRONMENT = true;
+    const h = React.createElement;
+    const load = require('./community-test-loader.cjs')({
+      react: React, 'react/jsx-runtime': require('../.expo/auth-test-tools/node_modules/react/jsx-runtime'),
+      'react-native': { ActivityIndicator: 'ActivityIndicator', Modal: ({ children }) => h('Modal', null, children), Pressable: 'Pressable', Text: 'Text', View: 'View', StyleSheet: { create: x => x } },
+      '@/src/presentation/contexts/AppThemeContext': { useAppTheme: () => ({ palette: { accent: '#a00', text: '#111', secondaryText: '#555', separator: '#ccc', panel: '#fff', border: '#ddd', background: '#fff' } }) },
+    });
+    const { BookImportModal } = load('src/presentation/components/BookImportModal.tsx');
+    let found = 0, tree;
+    const props = { state: { phase: 'success', cancellable: false, error: null }, onCancel() {}, onClose() {}, onOpenBook() {}, onImportAnother() {} };
+    await act(async () => { tree = create(h(BookImportModal, { ...props, onFindInCatalog: () => found++ })); });
+    const button = label => tree.root.findAll(n => n.type === 'Pressable' && n.findAllByType('Text').some(t => t.children.join('') === label))[0];
+    assert.ok(button('Buscar informações no catálogo'), 'offered after a successful import');
+    await act(async () => button('Buscar informações no catálogo').props.onPress()); assert.equal(found, 1);
+    await act(async () => tree.update(h(BookImportModal, props)));
+    assert.equal(button('Buscar informações no catálogo'), undefined, 'not offered without a target (restored book or already linked)');
+    await act(async () => tree.update(h(BookImportModal, { ...props, state: { phase: 'error', cancellable: false, error: 'x' }, onFindInCatalog: () => found++ })));
+    assert.equal(button('Buscar informações no catálogo'), undefined, 'not offered when the import failed');
+    await act(async () => tree.unmount());
+    assert.ok(screen.includes('onFindInCatalog={bookImport.importedBook && !bookImport.importedBook.catalogId && !bookImport.restored'), 'offered only for a new file book not yet linked');
+    assert.ok(screen.includes('pathname: "/catalog", params: { link: book.id, q: readableBookTitle(book) }'), 'opens the linking catalog with the title');
+  }
+  console.log('PASS import duplicates: catalog offer after import (tap only); SHA-256 nativo/Web, índice local por conta (A≠B), excluído/removido/sem conta/>512 MiB/falha sem aviso, cancelamento, fileHash intacto. Sem aparelho.');
 })().catch(error => { console.error(error); process.exit(1); });

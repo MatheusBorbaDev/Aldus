@@ -8,6 +8,8 @@ interface Props {
   onCancel: () => void;
   onClose: () => void;
   onOpenBook: () => void;
+  /** 19/11: depois de importar, oferecer as informações do catálogo; a busca só sai com o toque (política de privacidade). */
+  onFindInCatalog?: () => void;
   onImportAnother: () => void;
   /** Mesmo arquivo já importado (SHA-256): a importação espera "Abrir o existente", "Importar outra cópia" ou "Cancelar". */
   duplicate?: LibraryBook | null;
@@ -17,7 +19,7 @@ interface Props {
   restoredTitle?: string | null;
 }
 
-export function BookImportModal({ state, onCancel, onClose, onOpenBook, onImportAnother, duplicate, onOpenDuplicate, onImportDuplicate, restoredTitle }: Props) {
+export function BookImportModal({ state, onCancel, onClose, onOpenBook, onFindInCatalog, onImportAnother, duplicate, onOpenDuplicate, onImportDuplicate, restoredTitle }: Props) {
   const { palette } = useAppTheme();
   const visible = state.phase !== "idle" && state.phase !== "selecting";
   const terminal = isBookImportTerminal(state.phase);
@@ -63,6 +65,9 @@ export function BookImportModal({ state, onCancel, onClose, onOpenBook, onImport
               <Action label="Abrir livro" onPress={onOpenBook} color={palette.accent} border={palette.separator} />
               <Action label="Ir para biblioteca" onPress={onClose} color={palette.text} border={palette.separator} />
             </View>
+          ) : null}
+          {state.phase === "success" && onFindInCatalog ? (
+            <Action label="Buscar informações no catálogo" onPress={onFindInCatalog} color={palette.accent} border={palette.separator} />
           ) : null}
           {state.phase === "error" || state.phase === "cancelled" ? (
             <View style={styles.actions}>
