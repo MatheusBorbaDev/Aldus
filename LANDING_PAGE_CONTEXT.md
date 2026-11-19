@@ -184,5 +184,11 @@ As duas rodadas de comparação usam 240 frames de ida/volta, sem builds nem out
   94% nas cenas de biblioteca, estudo e comunidade, então "Todo livro abre um universo" aparece como fantasma atrás dos objetos;
   o dissolve das folhas tem borda rasgada nas transições; (2) a cena 04 "Reader" repete as mesmas páginas da cena 02; (3) os três
   flashcards têm a mesma pergunta e os de trás ficam cortados; (4) a transição para a comunidade passa por um cinza-esverdeado.
+- Dono: "Todas as quatro" → `c034c31`: `bookPresence` (em `bookMotion`) zera o livro nas cenas de biblioteca, estudo e comunidade
+  (livro não desenhado abaixo de 0,005) e as folhas esmaecem por opacidade, sem o dissolve rasgado; cena 04 com página própria do
+  Reader (tema Papel/Sépia/Escuro, A−/A+, grifo com nota, barra de progresso, sem números); três flashcards com perguntas diferentes,
+  empilhados com a faixa da pergunta visível; fundo escuro cruza o meio em 40% do esmaecer da comunidade (teste: menos de 60% das
+  amostras cinzentas de antes). Capturas d3d11 conferidas em 320, 390, 844×390 e 1440; `test:marketing:web` PASS (2ª execução),
+  `test:marketing`, `test:critical` 143/143. Não publicado na Vercel.
 - `test:marketing:web` (d3d11) falhou 3 vezes seguidas no passo de DPR ("Missing settled actual scroll pose 0.36": rolagem parada em
   0,142), também no código anterior à correção, e passou na 4ª execução: intermitente, não investigado.
