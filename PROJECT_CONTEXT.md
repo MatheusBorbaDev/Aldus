@@ -281,7 +281,7 @@ Legenda: **IVER** = implementado e verificado (suíte/execução citada); **ISVS
 | Sources / Drive | Sources IVER (local); Drive ISVS | `src/data/sources/*`, `src/data/drive/*`, `modules/aldus-drive-auth`; `test:source-catalog`, `test:drive`. BUG 03 (Drive real Android) aberto; BUG 12 resolvido no código (`10d6d24`, `test-source-ownership`), Android não testado. |
 | Community | PARC (local v0.1 + Etapas 2 e 3 no código e no servidor; sem homologação com sessões reais) | `LocalCommunityRepository`; Pessoas/Leitor + `SupabaseCommunityGateway` (12/11); `test-community-*`. Migrations `202610130001_community_foundation.sql` e `20261112120000_community_social_graph.sql` **aplicadas no Supabase em 12/11** pelo editor SQL do painel (não constam no ledger `supabase_migrations`). Clubes/Fóruns (16/11): `20261116120000_community_clubs_forums.sql` **aplicada em 16/11** pelo mesmo caminho (fora do ledger); `test-community-clubs{,-schema}`. Falta APK/deploy com o código e teste com duas contas reais. |
 | SaaS/planos/cotas e Admin | IVER (local) / remoto ISVS | `src/domain/saas`, `src/admin`, migrations `20261015*`; `test:saas*`, `test:admin*`. Deploy/OWNER só por registro; login/TOTP real pendente. |
-| Landing Web e legal | IVER (local/Chromium) | `src/marketing`, `src/legal`; `test:marketing*`, `test:legal*`. Produção Vercel = `5ac93af` (19/11), conferida por rotas e bundle. |
+| Landing Web e legal | IVER (local/Chromium) | `src/marketing`, `src/legal`; `test:marketing*`, `test:legal*`. Produção Vercel = `09fcb02` (19/11), conferida por rotas e bundle. |
 | Android (build/APK/módulos) | PARC | `android/`, `scripts/build-apk-local.mjs`; APK `00b6e4d`/`53b4e32` (privados, ignorados). Homologação física BLOQUEADA (Redmi ausente), APK do HEAD inexistente. |
 | UX/UI reformulação (27/10) | IVER (Web controlado) / físico PENDENTE | commits `d6ef9c7`, `ea0b1ec`, `f970c2d`; `test-app-design`, 8 suítes Chromium. Será substituída pelo redesign abaixo. |
 | Rolagem contínua (16/11) | PDF Original, EPUB e Leitura Livre IVER (Chromium); Android NÃO TESTADO | `src/domain/reader/pdfScroll.ts` (`createPdfScroller`), `PdfPageViewer.{native,web}`; `test-pdf-scroll`, `test:reader:pdf:web`. |
@@ -555,7 +555,7 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
   (`main` à frente do GitHub); a produção foi enviada pela CLI.
 - Dono: "Da uma geral na landing page" / "Todas as quatro" / "Pode publicar": `e0acb0d` (fita e setas) e `c034c31` (livro some nas cenas
   de biblioteca/estudo/comunidade, página própria do Reader, três flashcards, transição escura curta); detalhes em `LANDING_PAGE_CONTEXT.md`.
-  Produção atual = `5ac93af` (`dpl` `kindle-reader-dxd32k8by…`), rotas 200 e marcadores da cena 3D conferidos no bundle baixado; a CLI
+  Produção = `5ac93af`, depois `09fcb02` (trilha 12 → 9 telas, `e1eab14`; `dpl` `kindle-reader-1gz0gjk2p…`), rotas 200 e marcadores da cena 3D conferidos no bundle baixado; a CLI
   não gravou token desta vez. NÃO TESTADO: animação vista no site real e em celular.
 
 ### 17/11/2026 — Revisão para as betas públicas: dependências, banco, hospedagem (Claude)

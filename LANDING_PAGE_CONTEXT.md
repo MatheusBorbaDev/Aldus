@@ -197,6 +197,8 @@ As duas rodadas de comparação usam 240 frames de ida/volta, sem builds nem out
 - Dono: "Pode acelerar um pouco animação? precisa ficar scrollando muito tempo" → `e1eab14`: `bookStoryViewports` 12 → 9 (25% menos
   rolagem; histórico 6,1 apressado → 13 → 10,5 → 12). Cenas, curvas e poses iguais; cada virada ainda ocupa mais de 1,2 tela. Teste
   `test-cinematic-book` exige 8–9 telas. `test:marketing`, typecheck, `test:critical` 143/143, `export:web`, `test:marketing:web` (d3d11)
-  PASS na 2ª execução (1ª: falha intermitente do passo 0,36). Não publicado na Vercel.
+  PASS na 2ª execução (1ª: falha intermitente do passo 0,36). Dono: "Pode publicar" → produção Vercel com `09fcb02` (`dpl`
+  `kindle-reader-1gz0gjk2p…`, READY): rotas 200, `/app.html` 308, bundle de entrada baixado com `const o=9,t=[0,.215,.37…`; sem token
+  gravado pela CLI. NÃO TESTADO: rolagem no celular.
 - `test:marketing:web` (d3d11) falhou 3 vezes seguidas no passo de DPR ("Missing settled actual scroll pose 0.36": rolagem parada em
   0,142), também no código anterior à correção, e passou na 4ª execução: intermitente, não investigado.
