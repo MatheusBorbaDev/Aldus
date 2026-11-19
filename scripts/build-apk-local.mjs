@@ -1,10 +1,11 @@
 import { spawnSync } from "node:child_process";
 import { existsSync, rmSync, statSync } from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { androidBuildCommand } from "./android-build-command.cjs";
 import { validate } from "./validate-web-env.cjs";
-import { validateReleaseSigning } from "./release-signing.cjs";
+import { decryptWindowsSecret, validateReleaseSigning, withLocalSigning } from "./release-signing.cjs";
 
 const projectRoot = fileURLToPath(new URL("../", import.meta.url));
 const androidDir = path.join(projectRoot, "android");
@@ -17,7 +18,12 @@ if (existsSync(path.join(projectRoot, '.env.local'))) process.loadEnvFile(path.j
 try { validate(process.env); }
 catch { console.error('Unsafe public app configuration; values redacted. Build not started.'); process.exit(1); }
 
-try { console.log(`Release signing mode: ${validateReleaseSigning(process.env, existsSync)}`); }
+// The owner's key (scripts/create-signing-key.ps1) lives outside the repository; its password is DPAPI-protected for this Windows account.
+let buildEnv = process.env;
+try {
+  buildEnv = withLocalSigning(process.env, { home: os.homedir(), exists: existsSync, decrypt: decryptWindowsSecret });
+  console.log(`Release signing mode: ${validateReleaseSigning(buildEnv, existsSync)}`);
+}
 catch (error) { console.error(error.message + ' Build not started; credentials redacted.'); process.exit(1); }
 
 if (!existsSync(wrapper)) {
@@ -38,7 +44,7 @@ const result = spawnSync(
     ...command.options,
     cwd: androidDir,
     stdio: "inherit",
-    env: { ...process.env, NODE_ENV: process.env.NODE_ENV || "production", EXPO_PUBLIC_BUILD_REVISION: buildRevision() },
+    env: { ...buildEnv, NODE_ENV: process.env.NODE_ENV || "production", EXPO_PUBLIC_BUILD_REVISION: buildRevision() },
   },
 );
 

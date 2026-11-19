@@ -106,6 +106,8 @@ android {
         beta {
             if (System.getenv('ALDUS_SIGNING_STORE_FILE')) {
                 storeFile file(System.getenv('ALDUS_SIGNING_STORE_FILE'))
+                // The owner's key from scripts/create-signing-key.ps1 is PKCS12 (.p12).
+                storeType System.getenv('ALDUS_SIGNING_STORE_FILE').toLowerCase().endsWith('.p12') ? 'pkcs12' : 'jks'
                 storePassword System.getenv('ALDUS_SIGNING_STORE_PASSWORD')
                 keyAlias System.getenv('ALDUS_SIGNING_KEY_ALIAS')
                 keyPassword System.getenv('ALDUS_SIGNING_KEY_PASSWORD')
