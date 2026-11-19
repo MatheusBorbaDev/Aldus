@@ -75,5 +75,13 @@ const flush = () => act(async () => { for (let i = 0; i < 5; i++) await Promise.
   const layout = require('node:fs').readFileSync('app/_layout.tsx', 'utf8');
   assert.match(layout, /!welcomed \? <View style=\{StyleSheet\.absoluteFill\}><AppLoadingScreen onContinue=\{\(\) => setWelcomed\(true\)\} \/>/);
   assert.match(layout, /appReady && !publicLanding && !loading && welcomed \? <ReleaseNotesModal \/>/);
+  // 19/11: public Web documents (privacy, terms, beta) open on their content, not behind the quote; the app is unchanged.
+  const { opensWithoutQuote } = load('src/presentation/services/publicWebRoutes.ts');
+  assert.equal(opensWithoutQuote('web', 'legal'), true, 'privacy/terms link opens on the text');
+  assert.equal(opensWithoutQuote('web', 'beta'), true);
+  assert.equal(opensWithoutQuote('web', 'library'), false, 'the app on the Web keeps the quote');
+  assert.equal(opensWithoutQuote('web', undefined), false);
+  assert.equal(opensWithoutQuote('android', 'legal'), false, 'the Android app keeps the quote everywhere');
+  assert.match(layout, /!publicDocument && !welcomed \? <View/);
   console.log('PASS release notes: shown once per version with every item, the beta notice and the link to the beta page; Entendi and the link mark as seen; read failure does not nag, write failure does not trap; beta page has no placeholders and a filled report channel; loading screen shows the Castro Alves quote with credit.');
 })().catch(error => { console.error(error); process.exitCode = 1; });

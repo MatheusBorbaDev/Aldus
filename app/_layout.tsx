@@ -14,6 +14,7 @@ import { AuthProvider, useAuth } from "@/src/presentation/contexts/AuthContext";
 import { authDiagnostic, correlatedAuthDiagnostic } from "@/src/utils/authDiagnostics";
 import { useReviewReminderNavigation } from "@/src/presentation/hooks/useReviewReminderNavigation";
 import { AppLoadingScreen } from "@/src/presentation/components/AppLoadingScreen";
+import { opensWithoutQuote } from "@/src/presentation/services/publicWebRoutes";
 import { ReleaseNotesModal } from "@/src/presentation/components/ReleaseNotesModal";
 import { nativeAuthCallbacks } from '@/src/data/remote/nativeAuthCallback';
 
@@ -66,6 +67,7 @@ function AppShell() {
   const { palette, resolvedTheme } = useAppTheme();
   const { loading, session, profile } = useAuth();
   const publicLanding = Platform.OS === 'web' && (!segments.length || String(segments[0]) === 'index');
+  const publicDocument = opensWithoutQuote(Platform.OS, segments.length ? String(segments[0]) : undefined);
   // Preserve the tested Reader viewport; other task screens own their responsive width.
   const usePhoneFrame = Platform.OS === "web" && width > 480 && String(segments[0]) === 'reader';
   const appReady = !loading && !!session && !!profile?.username && profile.account_status === "active";
@@ -133,7 +135,7 @@ function AppShell() {
               </Stack.Protected>
             </Stack>}
           {/* A frase fica por cima do app já carregado até a pessoa tocar em Continuar (o app, os links e o login seguem por baixo). */}
-          {!loading && !publicLanding && !welcomed ? <View style={StyleSheet.absoluteFill}><AppLoadingScreen onContinue={() => setWelcomed(true)} /></View> : null}
+          {!loading && !publicLanding && !publicDocument && !welcomed ? <View style={StyleSheet.absoluteFill}><AppLoadingScreen onContinue={() => setWelcomed(true)} /></View> : null}
           {appReady && !publicLanding && !loading && welcomed ? <ReleaseNotesModal /> : null}
         </View>
       </View>
