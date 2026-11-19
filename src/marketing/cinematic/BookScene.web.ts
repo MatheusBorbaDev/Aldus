@@ -161,7 +161,8 @@ export function mountBookScene(host: HTMLElement, onFailure: (reason: string) =>
   cube(book, .07, 2.76, .34, forest, -.015, 0, -.02);
   cube(coverHinge, 1.94, 2.76, .055, [forest, forest, forest, forest, front, inside], .95);
   coverHinge.position.z = .175;
-  const ribbon = solid('#b56c4d'); cube(book, .13, .58, .012, ribbon, 1.38, -1.47, -.01);
+  // The ribbon belongs to the book: it fades with it (19/11/2026: it stayed opaque, floating under the shelf and the network).
+  const ribbon = solid('#b56c4d'); ribbon.transparent = true; bookMaterials.push(ribbon); cube(book, .13, .58, .012, ribbon, 1.38, -1.47, -.01);
   const leaves: { mesh: Mesh; material: ShaderMaterial }[] = [];
   for (let i = 0; i < 4; i++) {
     const geometry = keepGeometry(new PlaneGeometry(1.9, 2.65, 24, 2)); geometry.translate(.95, 0, 0);

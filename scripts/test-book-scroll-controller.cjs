@@ -102,6 +102,13 @@ async function harness({ delayImport = false, deferSmooth = false } = {}) {
   assert.equal(h.renders.length - rendersBeforeProbe, 3, 'Only requested quality frames are rendered');
   assert.ok(h.renders.slice(rendersBeforeProbe).every(pose => pose === cachedPose), 'Quality probes reuse immutable scroll pose');
   assert.equal(h.styleWrites.length, writesBeforeProbe, 'Stationary quality probes do not rewrite CSS properties');
+  // 19/11/2026: the story controls switch ink at the midpoint of the dark community background, never fading with it into the same grey.
+  const inkAt = async progress => { await h.scroll(progress); await h.drain(); const pose = h.renders.at(-1); return { dark: pose.atmosphere, ink: h.styleWrites.filter(([name]) => name === '--story-ink').at(-1)?.[1] }; };
+  for (const progress of [.80, .84, .865, .9, .1]) {
+    const { dark, ink } = await inkAt(progress);
+    assert.equal(ink, dark >= .5 ? '1' : '0', `controls ink follows the background side at ${progress} (dark ${dark.toFixed(2)})`);
+  }
+  assert.ok((await inkAt(.865)).dark > .9, 'community scene is dark'); await inkAt(.1);
   const priorResizeCount = h.resizes.length;
   await h.resize(); await h.drain(); assert.equal(h.resizes.length, priorResizeCount, 'Same dimensions do not resize renderer');
   h.window.devicePixelRatio = 1.5; await act(async () => h.resolution.emit('change')); await h.drain();

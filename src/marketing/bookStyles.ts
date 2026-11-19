@@ -1,7 +1,7 @@
 import { bookStoryViewports } from './bookMotion';
 
 export const bookCss = `
-.al-book-story{--story-dark:0;--story-intro:1;--story-caption:1;position:relative;background:#f6f3ec}
+.al-book-story{--story-dark:0;--story-ink:0;--story-intro:1;--story-caption:1;position:relative;background:#f6f3ec}
 .al-book-sticky{position:relative;max-width:1920px;margin:auto;min-height:670px;display:grid;grid-template-columns:1fr 1fr;align-items:center;padding:50px max(24px,5vw);gap:30px}
 .al-story-intro{position:relative;z-index:3;min-width:0;max-width:520px}
 [data-aldus-landing] .al-story-intro h1{font:400 clamp(48px,5.5vw,83px)/1.04 Georgia,serif;letter-spacing:-.055em}
@@ -50,7 +50,7 @@ export const bookCss = `
 .al-book-story[data-enhanced=true] .al-book-caption h2{color:inherit}
 .al-book-story[data-enhanced=true] .al-book-caption-kicker{color:rgb(calc(147 + 58 * var(--story-dark)),calc(103 + 74 * var(--story-dark)),calc(71 + 54 * var(--story-dark)))}
 .al-book-story[data-enhanced=true][data-chapter="0"] .al-book-caption{visibility:hidden}
-.al-book-story[data-enhanced=true] .al-story-controls{position:absolute;bottom:14px;left:0;right:0;color:rgb(calc(36 + 204 * var(--story-dark)),calc(61 + 171 * var(--story-dark)),calc(48 + 160 * var(--story-dark)))}
+.al-book-story[data-enhanced=true] .al-story-controls{position:absolute;bottom:14px;left:0;right:0;color:rgb(calc(36 + 204 * var(--story-ink)),calc(61 + 171 * var(--story-ink)),calc(48 + 160 * var(--story-ink)))}
 .al-book-story[data-enhanced=true] .al-book-outline{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);padding:0;margin:0;display:block}
 .al-book-story[data-chapter="6"][data-enhanced=true] .al-book-caption{top:20px}
 .al-book-story[data-chapter="6"] .al-book-caption h2{font-size:clamp(30px,3.8vw,54px)}

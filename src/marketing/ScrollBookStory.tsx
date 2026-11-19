@@ -85,7 +85,12 @@ export function ScrollBookStory({ children, cta = '/auth/signup', ctaText = 'Cri
       if (changed) { visual.dataset.bookProgress = pose.progress.toFixed(5); visual.dataset.bookVisualProgress = pose.visualProgress.toFixed(5); visual.dataset.bookChapter = String(pose.chapter); }
       const intro = 1 - smooth(Math.min(1, pose.visualProgress / .125));
       if (intro !== previousIntro) { element.style.setProperty('--story-intro', String(intro)); previousIntro = intro; }
-      if (pose.atmosphere !== previousAtmosphere) { element.style.setProperty('--story-dark', String(pose.atmosphere)); previousAtmosphere = pose.atmosphere; }
+      if (pose.atmosphere !== previousAtmosphere) {
+        element.style.setProperty('--story-dark', String(pose.atmosphere));
+        // Controls switch ink at the midpoint instead of fading with the background (both met at the same grey, ~1:1 contrast).
+        element.style.setProperty('--story-ink', pose.atmosphere >= .5 ? '1' : '0');
+        previousAtmosphere = pose.atmosphere;
+      }
       const caption = pose.captionOpacity * smooth(Math.max(0, Math.min(1, (pose.visualProgress - .075) / .065)));
       if (caption !== previousCaption) { element.style.setProperty('--story-caption', String(caption)); previousCaption = caption; }
       chapterChange(pose.chapter);
@@ -117,7 +122,7 @@ export function ScrollBookStory({ children, cta = '/auth/signup', ctaText = 'Cri
       previousWidth = 0; previousHeight = 0; pendingChapter = null;
       element.dataset.enhanced = 'false'; element.dataset.motion = media.matches ? 'reduce' : 'static';
       visual.dataset.renderState = reason;
-      element.style.setProperty('--story-dark', '0'); element.style.setProperty('--story-intro', '1');
+      element.style.setProperty('--story-dark', '0'); element.style.setProperty('--story-ink', '0'); element.style.setProperty('--story-intro', '1');
       previousAtmosphere = -1; previousIntro = -1; previousCaption = -1;
       chapterChange(0); setMode(media.matches ? 'reduced' : reason === 'performance-limited' || reason === 'constrained-device' ? 'limited' : 'unavailable');
     };
