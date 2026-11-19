@@ -557,6 +557,12 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
   de biblioteca/estudo/comunidade, página própria do Reader, três flashcards, transição escura curta); detalhes em `LANDING_PAGE_CONTEXT.md`.
   Produção = `5ac93af`, depois `09fcb02` (trilha 12 → 9 telas, `e1eab14`; `dpl` `kindle-reader-1gz0gjk2p…`), rotas 200 e marcadores da cena 3D conferidos no bundle baixado; a CLI
   não gravou token desta vez. NÃO TESTADO: animação vista no site real e em celular.
+- Dono: "gera a ultima versão do apk". `6fface7` versionCode 10 (typecheck/critical 143/143 e `--source` 55 antes do commit). APK
+  `device-rehearsal`: `artifacts/apk/Aldus-6fface7-device-rehearsal.apk` (cópia em `Desktop\Aldus APK\Aldus-v10-6fface7.apk`), 157.187.171
+  bytes, SHA-256 `59ba29fa…d722876a`; `aapt`: `com.aldus.reader`, versionCode 10, `1.0.0-beta.2`, 4 ABIs; assinatura v2 `fac61745…033b9c`
+  (mesma do Redmi); bundle JS recompilado com a revisão `6fface7`; 7 livros; `verify --apk` PASS (55). Árvore limpa no build. NÃO instalado
+  (Redmi não conectado). Dono pediu link de download no site: BLOQUEADO até decisão — APK > 100 MB (limite de upload da Vercel Hobby) e
+  `fac61745…` é a chave de debug pública do React Native (qualquer um assina "atualização"); proposto: chave própria + GitHub Releases/Drive.
 
 ### 17/11/2026 — Revisão para as betas públicas: dependências, banco, hospedagem (Claude)
 - Pedido do dono: ajustar dependências e configurações (banco, hospedagem etc.) e revisar o necessário para iniciar o plano das betas públicas.
