@@ -511,7 +511,12 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
   `d44a911`: versionCode 9; APK `artifacts/apk/Aldus-d44a911-device-rehearsal.apk`, 157.183.919 bytes, SHA-256 `55ba0e56…9a7886cd`, revisão
   `d44a911` sem sujeira, assinatura e versionCode 9 conferidos, checagem PASS (51 recursos). 19/11 (dono: "vc consegue instalar o app e deixar o arquivo apk em uma pasta"): instalado no Redmi por
   `adb install -r`, versionCode 9, `base.apk` com o mesmo SHA-256, firstInstallTime 11/10 preservado; cópia para compartilhar em
-  `Desktop\Aldus APK\Aldus-v9-d44a911.apk` (mesmo hash). NÃO TESTADO no aparelho: prévia, retomada pelo texto e o ganho dos itens 1 e 2.
+  `Desktop\Aldus APK\Aldus-v9-d44a911.apk` e `/sdcard/Download/Aldus/` no Redmi (mesmo hash).
+- Dono (captura: "percy jackson" na Biblioteca → "Nenhum livro encontrado"): "a biblioteca como catálogo não ta funcionando". Causa: a
+  busca da Biblioteca só filtra os livros guardados; o catálogo só abria pelo menu Adicionar/Descobrir, e o `q` da tela do catálogo só era
+  buscado no fluxo de ligar arquivo. `de3449e`: busca vazia oferece "Procurar no catálogo" e a tela busca o `q` na hora (teste falha sem a
+  correção). `test:critical` 143/143, lista de entrega 52 (`--source`/`--dist`), `export:web`. NÃO em APK; captura visual não feita.
+  NÃO TESTADO no aparelho: prévia, retomada pelo texto e o ganho dos itens 1 e 2.
 
 ### 17/11/2026 — Revisão para as betas públicas: dependências, banco, hospedagem (Claude)
 - Pedido do dono: ajustar dependências e configurações (banco, hospedagem etc.) e revisar o necessário para iniciar o plano das betas públicas.
