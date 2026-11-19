@@ -517,6 +517,14 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
   buscado no fluxo de ligar arquivo. `de3449e`: busca vazia oferece "Procurar no catálogo" e a tela busca o `q` na hora (teste falha sem a
   correção). `test:critical` 143/143, lista de entrega 52 (`--source`/`--dist`), `export:web`. NÃO em APK; captura visual não feita.
   NÃO TESTADO no aparelho: esta correção, e do `d44a911` a prévia, a retomada pelo texto e o ganho dos itens 1 e 2.
+- Dono: "antes de gerar, garanta que o app tenha tudo que pedi". Pedidos do log/BUGS cruzados com a lista de entrega: 4 feitos e fora da
+  lista entraram em `9b74a34` (capa padrão, cabeçalho do Drive, commit em Ajustes > Versão só no APK, ícone da marca conferido no APK por
+  `aapt`: adaptativo, monocromático, fundo `#1B1C30`; APK `79ad0a2` recusado, `d44a911` aceito salvo a correção de 19/11). `9b74a34` entrou
+  com `test-release-features` falhando (142/143, saída cortada por `| tail` numa cadeia `&&`); `1dfc259` corrige, 143/143. Lista: 55 itens
+  (`--source`, `--dist`). Pedidos ainda NÃO feitos por inteiro: cartão de foco compartilha texto (plano C previa imagem; hoje o canvas do
+  card de trecho permitiria). Dependem do dono: Web (publicado recusa livro sem arquivo), Upstash/`username-login`, domínio/SMTP, verificação
+  Google, dados do controlador, chave de assinatura/Play, página web de exclusão de conta, segundo celular. Só planejados, sem pedido de
+  produção: A4, B3, D (links "Onde ler"), fila de denúncias no Admin (exigência da Play antes do público).
 
 ### 17/11/2026 — Revisão para as betas públicas: dependências, banco, hospedagem (Claude)
 - Pedido do dono: ajustar dependências e configurações (banco, hospedagem etc.) e revisar o necessário para iniciar o plano das betas públicas.
