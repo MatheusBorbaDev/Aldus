@@ -6,7 +6,7 @@ import { appDependencies, libraryOrganization } from "@/src/presentation/service
 import { catalog } from "@/src/data/catalog/catalogDependencies";
 import { CatalogUnavailableError } from "@/src/data/catalog/catalogSources";
 import { ALDUS_CATEGORIES, AldusCategory, CatalogBook } from "@/src/domain/catalog/catalogBook";
-import { CATEGORY_QUERIES } from "@/src/domain/catalog/catalogShelves";
+import { CATEGORY_QUERIES, INITIAL_SHELVES, libraryAffinity, pickSurprise } from "@/src/domain/catalog/catalogShelves";
 import { OrganizationRecords } from "@/src/domain/types/libraryOrganization";
 import { CatalogShelves } from "@/src/presentation/components/catalog/CatalogShelves";
 import { createRecordBook, libraryMatchesForCatalog, RECORD_FORMAT_LABELS, RECORD_START_LABELS, recordBookOrganization, RecordBookFormat, RecordBookStart } from "@/src/domain/catalog/recordBook";
@@ -15,13 +15,15 @@ import { LibraryBook } from "@/src/domain/entities/LibraryBook";
 import { BookCover } from "@/src/presentation/components/BookCover";
 import { router, useLocalSearchParams } from "expo-router";
 import { linkFileToCatalog } from "@/src/data/catalog/catalogLinking";
+import { YourSources } from "@/src/presentation/components/catalog/YourSources";
 
 /**
  * Catálogo de livros só com metadados (fase 2, 18/11/2026). Busca por título, autor ou ISBN no Open Library (só o texto buscado sai
  * do aparelho); a ficha mostra o que a fonte informa e permite guardar o livro sem arquivo: Quero ler, Estou lendo ou Já li.
  * Nunca há conteúdo nem link de download.
  */
-export function CatalogScreen() {
+/** `tab`: a aba Descobrir (19/11/2026, dono: "troca essa aba descobrir pelo catalogo estilo netflix"), sem voltar e com Suas fontes no fim. */
+export function CatalogScreen({ tab = false }: { tab?: boolean } = {}) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<CatalogBook[] | null>(null);
   const [heading, setHeading] = useState<string | null>(null);
@@ -35,6 +37,8 @@ export function CatalogScreen() {
   const linkId = typeof params.link === "string" && params.link ? params.link : null;
   const [linkTarget, setLinkTarget] = useState<LibraryBook | null>(null), [linkedTo, setLinkedTo] = useState<string | null>(null);
   const started = useRef(false);
+  const recentSurprises = useRef<string[]>([]);
+  const [surprising, setSurprising] = useState(false), [surpriseError, setSurpriseError] = useState<string | null>(null);
 
   const loadLibrary = useCallback(() => {
     appDependencies.bookRepository.listActive().then(setLibrary).catch(() => setLibrary([]));
@@ -55,6 +59,22 @@ export function CatalogScreen() {
   const browse = (category: AldusCategory) => { setQuery(""); run(CATEGORY_QUERIES[category], ALDUS_CATEGORIES[category]); };
   const backToShelves = () => { request.current?.abort(); request.current = null; setLoading(false); setResults(null); setError(null); setHeading(null); };
   const browsing = results !== null || loading || error !== null;
+  const surprise = async () => {
+    if (surprising) return;
+    setSurprising(true); setSurpriseError(null);
+    try {
+      const owned = new Set(library.map(book => book.catalogId).filter((id): id is string => !!id));
+      const affinity = libraryAffinity(library, organization), recent = new Set(recentSurprises.current);
+      let book = pickSurprise(await catalog.cachedBooks(), affinity, owned, recent);
+      // Nada baixado ainda neste aparelho: carrega uma das fileiras iniciais e sorteia dela.
+      if (!book) book = pickSurprise(await catalog.search(CATEGORY_QUERIES[INITIAL_SHELVES[Math.floor(Math.random() * INITIAL_SHELVES.length)]]), affinity, owned, recent);
+      if (!book) { setSurpriseError("Não há livros para sortear agora. Tente de novo em instantes."); return; }
+      recentSurprises.current = [book.id, ...recentSurprises.current].slice(0, 20);
+      setSelected(book);
+    } catch (failure) {
+      setSurpriseError(failure instanceof CatalogUnavailableError ? failure.message : "Não foi possível sortear agora. Tente de novo.");
+    } finally { setSurprising(false); }
+  };
   useEffect(() => {
     if (started.current) return;
     started.current = true;
@@ -66,12 +86,19 @@ export function CatalogScreen() {
   }, [linkId]);
 
   return (
-    <Screen header={<ScreenHeader title="Buscar livros" subtitle="Qualquer livro, só as informações. Guarde na sua biblioteca mesmo sem o arquivo." back />}>
+    <Screen inTabs={tab} header={tab
+      ? <ScreenHeader title="Descobrir" subtitle="Qualquer livro, só as informações. Guarde na sua biblioteca mesmo sem o arquivo." large />
+      : <ScreenHeader title="Buscar livros" subtitle="Qualquer livro, só as informações. Guarde na sua biblioteca mesmo sem o arquivo." back />}>
       <View style={styles.searchRow}>
         <View style={{ flex: 1 }}><SearchField value={query} onChangeText={setQuery} placeholder="Título, autor ou ISBN" label="Buscar no catálogo" onSubmit={search} /></View>
         <Button label="Buscar" variant="primary" onPress={search} disabled={query.trim().length < 2 || loading} loading={loading} />
       </View>
       <AppText variant="caption" tone="secondary">Informações do Open Library. Só o texto buscado ou a categoria escolhida sai do aparelho.</AppText>
+      {!browsing ? <View style={styles.surprise}>
+        <Button label="Sortear um livro" icon="shuffle" onPress={() => void surprise()} loading={surprising} disabled={surprising}
+          accessibilityHint="Abre a ficha de um livro sorteado entre as prateleiras e o Para você" />
+        {surpriseError ? <AppText variant="bodySmall" tone="secondary" accessibilityRole="alert">{surpriseError}</AppText> : null}
+      </View> : null}
       {linkTarget ? <View style={[styles.notice, { backgroundColor: "transparent", borderWidth: 1, borderColor: "#8884" }]}>
         <AppText variant="label">{linkedTo ? `“${linkTarget.title}” ligado a “${linkedTo}”.` : `Escolha o livro do catálogo que corresponde a “${linkTarget.title}”.`}</AppText>
         {linkedTo ? <Button label="Voltar" variant="ghost" onPress={() => router.back()} /> : <AppText variant="bodySmall" tone="secondary">O arquivo não muda: o Aldus só passa a usar as informações e as categorias do catálogo.</AppText>}
@@ -83,6 +110,7 @@ export function CatalogScreen() {
       {error ? <EmptyState icon="cloud-offline-outline" title="Catálogo indisponível" description={error}><Button label="Tentar de novo" onPress={() => last.current && run(last.current.text, last.current.heading)} /></EmptyState> : null}
       {!error && results && results.length === 0 ? <EmptyState icon="search-outline" title="Nenhum livro encontrado" description="Tente outro título, o sobrenome do autor ou o ISBN. Edições brasileiras recentes podem faltar nesta base." /> : null}
       {!browsing ? <CatalogShelves library={library} organization={organization} onOpen={setSelected} onBrowse={browse} /> : null}
+      {tab && !browsing ? <YourSources /> : null}
       <View style={styles.list}>
         {(results ?? []).map(book => <CatalogRow key={book.id} book={book} inLibrary={libraryMatchesForCatalog(library, book.id).length > 0} onPress={() => setSelected(book)} />)}
       </View>
@@ -180,6 +208,7 @@ function CatalogBookSheet({ book, inLibrary, onClose, onAdded, linkTarget, onLin
 
 const styles = StyleSheet.create({
   searchRow: { flexDirection: "row", alignItems: "center", gap: 8 },
+  surprise: { alignItems: "flex-start", gap: 6 },
   list: { marginTop: 4 },
   resultHead: { flexDirection: "row", alignItems: "center", gap: 8 },
   row: { flexDirection: "row", gap: 12, paddingVertical: 10, borderBottomWidth: StyleSheet.hairlineWidth, minHeight: 76 },

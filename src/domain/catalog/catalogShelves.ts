@@ -77,3 +77,26 @@ export function recommendFor(candidates: CatalogBook[], affinity: Map<AldusCateg
   });
   return scored.sort((a, b) => b.score - a.score || a.order - b.order).slice(0, limit).map(({ book, because }) => ({ book, because }));
 }
+
+/**
+ * "Sortear um livro" (19/11/2026, dono: "o randomizer de indicação"). Sorteia entre livros do catálogo já baixados neste aparelho,
+ * sem os que a pessoa tem e, enquanto houver outros, sem repetir os últimos sorteados. Quando a estante tem afinidade, metade dos
+ * sorteios sai do "Para você". Sem candidatos devolve null: a tela carrega uma categoria antes, nunca inventa um livro.
+ */
+export function pickSurprise(
+  candidates: CatalogBook[],
+  affinity: Map<AldusCategory, number>,
+  ownedCatalogIds: ReadonlySet<string>,
+  recentIds: ReadonlySet<string> = new Set(),
+  random: () => number = Math.random,
+): CatalogBook | null {
+  const unique = new Map<string, CatalogBook>();
+  for (const book of candidates) if (!ownedCatalogIds.has(book.id) && !unique.has(book.id)) unique.set(book.id, book);
+  const all = [...unique.values()];
+  if (!all.length) return null;
+  const fresh = all.filter(book => !recentIds.has(book.id));
+  const pool = fresh.length ? fresh : all;
+  const recommended = recommendFor(pool, affinity, ownedCatalogIds, pool.length).map(item => item.book);
+  const from = recommended.length && random() < 0.5 ? recommended : pool;
+  return from[Math.min(from.length - 1, Math.floor(random() * from.length))];
+}

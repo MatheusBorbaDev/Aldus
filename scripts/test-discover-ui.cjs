@@ -1,5 +1,6 @@
-// Descobrir tab (app/(tabs)/search.tsx): sources are visible and reachable without digging into settings.
-// Stub stores/host components with react-test-renderer. Does not prove layout, Chromium or Android behavior.
+// Descobrir tab (app/(tabs)/search.tsx). Since 19/11/2026 (owner: "troca essa aba descobrir pelo catalogo estilo netflix ... e remove
+// esses negocios de gutendex biblion e mec livros") the tab is the catalog showcase (covered in test-catalog-records) with Suas
+// fontes at the end. Here: the tab wiring and the account-scoped sources block. Stub stores/host components; not a visual/Android proof.
 const assert = require('node:assert/strict');
 const React = require('../.expo/auth-test-tools/node_modules/react');
 const { act, create } = require('../.expo/auth-test-tools/node_modules/react-test-renderer');
@@ -46,6 +47,8 @@ const overrides = {
   'react-native-safe-area-context': { useSafeAreaInsets: () => ({ top: 24, bottom: 16, left: 0, right: 0 }) },
   '@/src/presentation/contexts/AppThemeContext': { useAppTheme: () => ({ palette }) },
   '@/src/presentation/components/BookCover': { BookCover: host('BookCover') },
+  '@/src/presentation/components/AuthGuard': { AuthGuard: ({ children }) => React.createElement('AuthGuard', null, children) },
+  '@/src/presentation/screens/CatalogScreen': { CatalogScreen: props => React.createElement('CatalogScreen', props) },
   '@/src/presentation/stores/searchStore': { useSearchStore: store(searchState) },
   '@/src/presentation/stores/downloadStore': { useDownloadStore: store({ jobs: {}, enqueue: async () => undefined, cancel: async () => undefined }) },
   '@/src/presentation/stores/sourceStore': { useSourceStore: store(sourcesState) },
@@ -69,51 +72,34 @@ Object.defineProperty(overrides, "@/src/ui", { get: () => load("src/ui/index.ts"
 const text = node => typeof node === 'string' ? node : (node.children ?? []).map(text).join('');
 
 (async () => {
+  // The tab is the catalog in tab mode, behind the same guard as the /catalog route; the old search/sources code is gone.
   const Discover = load('app/(tabs)/search.tsx').default;
   let view;
   await act(async () => { view = create(React.createElement(Discover)); });
+  const screens = view.root.findAll(node => node.type === 'CatalogScreen');
+  assert.equal(screens.length, 1); assert.equal(screens[0].props.tab, true);
+  assert.equal(view.root.findAll(node => node.type === 'AuthGuard').length, 1);
+  const tabSource = require('node:fs').readFileSync('app/(tabs)/search.tsx', 'utf8');
+  assert.doesNotMatch(tabSource, /Gutendex|Gutenberg|BibliON|MEC|BNDigital|searchStore|downloadStore/, 'old catalogs and digital libraries removed from the tab');
+  const settings = require('node:fs').readFileSync('src/presentation/screens/SettingsScreen.tsx', 'utf8');
+  assert.doesNotMatch(settings, /BibliON e MEC Livros/, 'Conta no longer links to BibliON/MEC');
+  await act(async () => view.unmount());
+
+  // Suas fontes: only this account's sources, disabled ones say so, and every row/button goes where it should.
+  const { YourSources } = load('src/presentation/components/catalog/YourSources.tsx');
+  await act(async () => { view = create(React.createElement(YourSources)); });
   const all = text(view.root);
   const button = label => view.root.findAllByType('Pressable').find(node => node.props.accessibilityLabel === label);
-  // Never hand a test instance to assert: on failure Node would inspect the whole fiber graph.
   const has = label => Boolean(button(label));
-
-  assert.ok(view.root.findAllByType('Text').some(node => node.props.accessibilityRole === 'header' && text(node) === 'Descobrir'), 'screen title is Descobrir');
-  for (const label of ['Adicionar fonte', 'Gerenciar fontes', 'BibliON', 'MEC Livros', 'Buscar']) assert.ok(has(label), `visible on first screen: ${label}`);
   assert.match(all, /Suas fontes/);
-  assert.match(all, /Bibliotecas digitais/);
-
-  // Only this account's sources are listed; disabled ones say so.
-  assert.ok(has('Meu Drive'));
-  assert.ok(has('Clube de leitura'));
-  assert.equal(view.root.findAllByType('Pressable').filter(node => node.props.accessibilityLabel === 'Meu Drive').length, 2, 'own active source: list row + filter chip');
-  assert.equal(has('Drive de outra conta'), false, 'other account sources stay hidden (list and filter chips)');
+  for (const label of ['Adicionar fonte', 'Gerenciar fontes', 'Meu Drive', 'Clube de leitura']) assert.ok(has(label), 'visible: ' + label);
+  assert.equal(has('Drive de outra conta'), false, 'other account sources stay hidden');
   assert.match(all, /Biblioteca por link · desativada/);
-
-  await act(async () => button('Adicionar fonte').props.onPress());
-  assert.equal(routes.pop(), '/sources?add=1');
-  await act(async () => button('Gerenciar fontes').props.onPress());
-  assert.equal(routes.pop(), '/sources');
-  const driveRow = view.root.findAllByType('Pressable').find(node => node.props.accessibilityLabel === 'Meu Drive' && node.props.accessibilityHint === 'Google Drive');
-  await act(async () => driveRow.props.onPress());
+  await act(async () => button('Adicionar fonte').props.onPress()); assert.equal(routes.pop(), '/sources?add=1');
+  await act(async () => button('Gerenciar fontes').props.onPress()); assert.equal(routes.pop(), '/sources');
+  await act(async () => button('Meu Drive').props.onPress());
   assert.deepEqual(routes.pop(), { pathname: '/sources/[sourceId]', params: { sourceId: 'drive-a' } });
-  await act(async () => button('BibliON').props.onPress());
-  assert.equal(routes.pop(), '/services/biblion');
-  await act(async () => button('MEC Livros').props.onPress());
-  assert.equal(routes.pop(), '/services/mec');
+  await act(async () => view.unmount());
 
-  // Search stays primary: disabled while empty, filters are selectable chips.
-  assert.equal(button('Buscar').props.disabled, true);
-  const chip = button('Gutendex');
-  assert.equal(chip.props.accessibilityState.selected, false);
-  await act(async () => chip.props.onPress());
-  assert.equal(selected.pop(), 'Gutendex');
-  assert.equal(button('Todos').props.accessibilityState.selected, false);
-  assert.equal(button('Gutendex').props.accessibilityState.selected, true);
-
-  // Once a search runs, the sources block gives way to results.
-  searchState.status = 'empty';
-  await act(async () => { view.update(React.createElement(Discover)); });
-  assert.equal(has('Adicionar fonte'), false);
-
-  console.log('PASS Descobrir: title, search, chips, account-scoped sources, Adicionar/Gerenciar fontes, BibliON/MEC routes. Stub stores; not a visual/Android proof.');
+  console.log('PASS Descobrir: catalog tab behind AuthGuard, no Gutendex/Gutenberg/BibliON/MEC, account-scoped Suas fontes with Adicionar/Gerenciar/open routes. Stub stores; not a visual/Android proof.');
 })().catch(error => { console.error(error); process.exit(1); });

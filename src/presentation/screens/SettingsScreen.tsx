@@ -44,7 +44,6 @@ export default function SettingsScreen() {
     </SettingsGroup>
     <SettingsGroup title="Fontes de livros">
       <SettingsLink title="Minhas bibliotecas" description="Google Drive e bibliotecas por link" icon="albums-outline" onPress={() => go('/sources')} />
-      <SettingsLink title="Serviços de leitura" description="BibliON e MEC Livros" icon="library-outline" onPress={() => go('/preferences?section=services')} />
     </SettingsGroup>
     <SettingsGroup title="Comunidade"><SettingsLink title="Comunidade literária" icon="people-outline" onPress={() => go('/community')} /></SettingsGroup>
     <SettingsGroup title="Privacidade e informações">

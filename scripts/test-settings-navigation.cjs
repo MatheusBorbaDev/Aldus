@@ -31,7 +31,9 @@ const load=require('./community-test-loader.cjs')({react:React,'react/jsx-runtim
     assert.equal(style.flexDirection,'row');assert.equal(style.alignItems,'center');assert.ok(style.minHeight>=44);
     const content=row.findAllByType('View').find(n=>n.props.style?.flex===1);assert(content,'Text must retain flexible width');
   }
-  for(const [label,route]of [['Minha conta','/account'],['Meu Plano','/plan'],['Sincronização','/preferences?section=sync'],['Tema do aplicativo','/preferences?section=appearance'],['Conforto durante a leitura','/preferences?section=comfort'],['Minhas bibliotecas','/sources'],['Serviços de leitura','/preferences?section=services'],['Comunidade literária','/community'],['Privacidade e Dados','/legal/data'],['Legal e informações','/legal']]){await click(label);assert.equal(routes.at(-1),route);}
+  for(const [label,route]of [['Minha conta','/account'],['Meu Plano','/plan'],['Sincronização','/preferences?section=sync'],['Tema do aplicativo','/preferences?section=appearance'],['Conforto durante a leitura','/preferences?section=comfort'],['Minhas bibliotecas','/sources'],['Comunidade literária','/community'],['Privacidade e Dados','/legal/data'],['Legal e informações','/legal']]){await click(label);assert.equal(routes.at(-1),route);}
+  // 19/11 (dono): BibliON e MEC Livros saíram da Conta e da Descobrir.
+  assert(!text().includes('Serviços de leitura'),'no BibliON/MEC entry in Conta');
   await click('Preferências do leitor');assert.match(text(),/Preferências abertas/);
   await click('Ajuda e feedback');assert.equal(routes.at(-1),'/support');
   adminSession={role:'OWNER'};await render(Settings);await click('Aldus Admin');assert.equal(routes.at(-1),'/admin');adminSession=null;

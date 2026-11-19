@@ -193,7 +193,6 @@ function LibraryContent() {
     { key: "link", label: "Adicionar biblioteca por link", description: "Uma coleção de livros disponível na internet", icon: "link-outline", onPress: () => router.push("/sources?add=link" as never) },
     { key: "catalog", label: "Buscar qualquer livro", description: "Catálogo de informações: guarde mesmo sem o arquivo", icon: "search-outline", onPress: () => router.push("/catalog" as never) },
     { key: "goodreads", label: "Importar do Goodreads", description: "Sua estante em CSV, revisada antes de entrar", icon: "list-outline", onPress: () => router.push("/import/goodreads" as never) },
-    { key: "discover", label: "Buscar em catálogos públicos", description: "Gutenberg, Gutendex e suas fontes", icon: "compass-outline", onPress: () => router.push("/(tabs)/search" as never) },
   ];
   const moreItems: ActionMenuItem[] = [
     { key: "select", label: "Selecionar livros", description: "Organizar vários livros de uma vez", icon: "checkbox-outline", onPress: startSelecting },

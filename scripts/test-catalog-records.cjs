@@ -93,6 +93,7 @@ const dom = { id: 'ol:OL45883W', source: 'openlibrary', title: 'Dom Casmurro', s
     '@/src/data/catalog/catalogDependencies': { catalog }, '@/src/data/catalog/catalogSources': { CatalogUnavailableError },
     '@/src/presentation/components/BookCover': { BookCover: props => h('Cover', props) },
     'expo-router': { router: { back: () => routes.push('back'), push: () => {} }, useLocalSearchParams: () => params },
+    '@/src/presentation/components/catalog/YourSources': { YourSources: () => h('YourSources') },
   });
   const { CatalogScreen } = load('src/presentation/screens/CatalogScreen.tsx');
   const text = node => typeof node === 'string' ? node : (node.children ?? []).map(text).join('');
@@ -165,6 +166,37 @@ const dom = { id: 'ol:OL45883W', source: 'openlibrary', title: 'Dom Casmurro', s
   await press('Memórias póstumas'); await press('Quero ler');
   assert.equal(saved.length, 1); assert.ok(saved[0].id.startsWith('record-'), 'kept as a book without a file'); assert.equal(organized[0].wantToRead, true);
   await act(async () => tree.unmount()); params = {};
+
+  // 4c. Aba Descobrir (19/11, dono): a mesma vitrine sem "voltar", com "Sortear um livro" e Suas fontes no fim.
+  const { pickSurprise, libraryAffinity: affinityOf } = a.load('src/domain/catalog/catalogShelves.ts');
+  const ownedIds = new Set([fantasy(1).id]);
+  assert.equal(pickSurprise([], new Map(), ownedIds), null, 'nothing to draw: no invented book');
+  assert.equal(pickSurprise([fantasy(1)], new Map(), ownedIds), null, 'only owned books: nothing to draw');
+  const seq = values => () => values.shift() ?? 0;
+  assert.equal(pickSurprise(shelfBooks, new Map(), ownedIds, new Set(), seq([0.99])).id, fantasy(5).id, 'uniform over books not owned');
+  assert.ok([2, 3, 4, 5].map(n => fantasy(n).id).includes(pickSurprise(shelfBooks, new Map(), ownedIds, new Set(), seq([0])).id));
+  assert.equal(pickSurprise(shelfBooks, new Map(), ownedIds, new Set([2, 3, 4].map(n => fantasy(n).id)), seq([0])).id, fantasy(5).id, 'recent draws are skipped while others remain');
+  assert.ok(pickSurprise(shelfBooks, new Map(), ownedIds, new Set([2, 3, 4, 5].map(n => fantasy(n).id)), seq([0])), 'all recent: draws again instead of failing');
+  const mixed = [...shelfBooks, { ...dom, id: 'ol:OLX1W', categories: ['terror'] }];
+  const affinity = affinityOf(library, organizationRecords);
+  assert.equal(pickSurprise(mixed, affinity, ownedIds, new Set(), seq([0.1, 0])).categories[0], 'fantasia', 'half the draws come from Para você');
+  shelfRequests.length = 0;
+  await act(async () => { tree = create(h(CatalogScreen, { tab: true })); }); await flush();
+  assert.match(text(tree.root), /Descobrir/); assert.doesNotMatch(text(tree.root), /Buscar livros/);
+  assert.equal(tree.root.findAll(n => n.type === 'YourSources').length, 1, 'Suas fontes at the end of the tab');
+  assert.doesNotMatch(text(tree.root), /Gutendex|Gutenberg|BibliON|MEC Livros/, 'the old public catalogs and digital libraries are gone');
+  await press('Sortear um livro');
+  assert.match(text(tree.root), /Como você tem este livro?/, 'the drawn book opens its sheet');
+  const sheet = text(tree.root.findAllByType('Modal').at(-1)); assert.match(sheet, /Fantasia [2-5]/); assert.doesNotMatch(sheet, /Fantasia 1/, 'never a book already on the shelf');
+  await press('Fechar');
+  const cachedBefore = catalog.cachedBooks; catalog.cachedBooks = async () => [];
+  await press('Sortear um livro');
+  assert.ok(shelfRequests.some(q => INITIAL_SHELVES.map(key => CATEGORY_QUERIES[key]).includes(q)), 'empty cache: loads a fixed category first');
+  catalog.cachedBooks = cachedBefore;
+  await act(async () => tree.unmount());
+  await act(async () => { tree = create(h(CatalogScreen)); }); await flush();
+  assert.equal(tree.root.findAll(n => n.type === 'YourSources').length, 0, 'the /catalog route keeps its own layout');
+  await act(async () => tree.unmount());
 
   // 5. A5 domain and data: pair a fileB with a kept record, merge on request, carry the link through Sync.
   const link = a.load('src/domain/catalog/catalogLink.ts');

@@ -28,7 +28,8 @@ const wait=ms=>new Promise(r=>setTimeout(r,ms));
   await click('Continuar lendo Livro sintético 0001');assert.equal((await evaluate('window.fixture.route')).params.bookId,'A-0');
   await add('Conectar Google Drive');assert.equal(await evaluate('window.fixture.route'),'/sources?add=drive');
   await add('Adicionar biblioteca por link');assert.equal(await evaluate('window.fixture.route'),'/sources?add=link');
-  await add('Buscar em catálogos públicos');assert.equal(await evaluate('window.fixture.route'),'/(tabs)/search');
+  // 19/11: "Buscar em catálogos públicos" (Gutenberg/Gutendex) saiu com a nova Descobrir; o catálogo segue em "Buscar qualquer livro".
+  await add('Buscar qualquer livro');assert.equal(await evaluate('window.fixture.route'),'/catalog');
   await more('Minhas fontes');assert.equal(await evaluate('window.fixture.route'),'/sources');
   await click('Exibir em lista');assert(await evaluate(`document.querySelector('[aria-label^="Abrir Livro sintético"]').getBoundingClientRect().width>600`));
   await click('Exibir em grade');
