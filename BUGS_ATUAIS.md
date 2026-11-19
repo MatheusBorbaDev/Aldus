@@ -20,7 +20,9 @@
   ~11 s, texto aos ~25 s, sem nova preparação. PENDENTE: a montagem do documento ("Montando documento...", JS no Hermes) é o gargalo da
   primeira preparação; abrir pelo cache leva ~25 s num PDF de 1.144 páginas. 18/11: agendamento sem tempo ocioso (`cooperativeWork`) NÃO
   mudou a montagem no aparelho (~4,5 min). Causa CONFIRMADA no PC: montagem quadrática em parágrafo longo (junção da linha ao texto inteiro);
-  corrigida no código e no APK `5651bc8`, sem medição no aparelho ainda. Texto abaixo é o registro anterior, mantido como histórico: O overlay de `EpubPageViewer.native.tsx` só some com a primeira mensagem `page` do documento; ela não chegou.
+  corrigida no código e no APK `5651bc8`; medido no Redmi: montagem ~36 s, preparação ~2 min no total. 18/11: segunda validação
+  removida (`ec9c75a`), contagem de qualidade mais leve (`d4aa73e`) e prévia das 40 primeiras páginas durante a preparação (`aecdb90`);
+  NÃO medidos no aparelho. Texto abaixo é o registro anterior, mantido como histórico: O overlay de `EpubPageViewer.native.tsx` só some com a primeira mensagem `page` do documento; ela não chegou.
   Causa INCONCLUSIVA. Descartado no Chrome (`EpubReaderDocument` real, 2 milhões de caracteres, 1 ou 30 capítulos, CPU 6× mais
   lenta, com as injeções que o app faz no carregamento): primeira `page` com `layoutReady` em 7–14 s, cerca de 2.900 páginas. Com o
   script vivo, o `beginInitialRestore` injetado no `onLoadEnd` reenvia o estado (zera `lastReportedKey`), então uma mensagem inicial

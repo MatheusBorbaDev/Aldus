@@ -497,7 +497,19 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
   parágrafos longos. `5651bc8` (código em `PdfReflowDocumentBuilder`, pai do bump): parágrafo em pedaços, mesmo resultado em 300 livros
   sintéticos, 1.144 páginas de um parágrafo em 0,84 s (2,7 s sem JIT). Teste `reflow-assembly-scaling` (critical, 142/142). APK `5651bc8`
   (versionCode 8): `artifacts/apk/Aldus-5651bc8-device-rehearsal.apk`, 157.174.555 bytes, SHA-256 `20264a25…14eea4bc`, checagem PASS.
-  Instalado no Redmi (pedido "instala aí"): versionCode 8, hash `20264a25…14eea4bc`, firstInstallTime preservado. Ganho NÃO medido ainda.
+  Instalado no Redmi (pedido "instala aí"): versionCode 8, hash `20264a25…14eea4bc`, firstInstallTime preservado. Medido no Redmi (Marx
+  reimportado, cronômetro pela tela via adb): extração ~29 s, validação ~14 s, montagem ~36 s (era ~4,5 min), segunda validação ~21 s,
+  finalização ~24 s; o celular desconectou antes da primeira página (dono: "foi").
+- Dono: "tem como melhorar esse tempo?" / "pode incluir o 3". `ec9c75a`: o processador já valida o documento e a tela não repete
+  (`onComplete(…, validated)`). `d4aa73e`: contagem de qualidade do texto sem duas regex por caractere (mesmos números em todo o BMP).
+  `aecdb90`: prévia da Leitura Livre: com as 40 primeiras páginas extraídas, "Começar a ler o início" mostra o texto delas (mesmo
+  construtor e mesma checagem de texto, sem imagens, sem grifo, sem cache e sem posição salva; só em livro sem posição salva). Ao terminar,
+  o leitor continua no parágrafo do topo da prévia, achado pelo texto (citação única no livro, confirmada pelo próprio leitor; ausente ou
+  ambíguo → aviso, sem salto). Voltar do aparelho fecha a prévia primeiro. Android e Web. Testes `reflow-preview` (critical) e cenário em
+  `test-reader-screen`. `94f0a73`/`d65f317`: a lista de entrega exigia no site o módulo nativo de hash (só Android); agora é marcador só do
+  APK. VALIDADO no PC: typecheck, `test:critical` 143/143, `test:reader:reflow:web`, `export:web` + `verify --dist` (51), `git diff --check`.
+  `d44a911`: versionCode 9; APK `artifacts/apk/Aldus-d44a911-device-rehearsal.apk`, 157.183.919 bytes, SHA-256 `55ba0e56…9a7886cd`, revisão
+  `d44a911` sem sujeira, assinatura e versionCode 9 conferidos, checagem PASS (51 recursos). Não instalado (celular fora do cabo). NÃO TESTADO no aparelho: prévia, retomada pelo texto e o ganho dos itens 1 e 2.
 
 ### 17/11/2026 — Revisão para as betas públicas: dependências, banco, hospedagem (Claude)
 - Pedido do dono: ajustar dependências e configurações (banco, hospedagem etc.) e revisar o necessário para iniciar o plano das betas públicas.
