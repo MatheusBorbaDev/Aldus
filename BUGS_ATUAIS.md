@@ -10,6 +10,11 @@
   USB (`adb install` → `Success`).
 - Não confirmado: o arquivo baixado não estava em `/sdcard/Download` na hora da conferência (sem hash do lado do celular) e o logcat só mostra
   a tela `InstallFailed` às 18:03, sem o código. Hipótese principal: download incompleto/corrompido no celular. INCONCLUSIVO.
+- Hipótese forte (19/11, não confirmada no aparelho): verificação de desenvolvedor do Android, em vigor no Brasil desde 30/09/2026 —
+  app de desenvolvedor não registrado só instala em aparelho certificado por `adb` ou pelo "fluxo avançado"; `adb` é isento. Casa com o
+  padrão observado (navegador falha, USB instala) e com o relato de celulares de terceiros. Assinatura dos APKs conferida: v2 válida
+  para minSdk 24, um signatário (chave do dono). Saída do dono: registrar `com.aldus.reader` + certificado no Android Developer Console
+  (ou conta de distribuição limitada, até 20 aparelhos). Fonte: blog Android Developers, jun/2026.
 - Próximo passo: no próximo download pelo navegador, com o Redmi no USB, conferir tamanho/hash do arquivo em `Download` antes de instalar e
   ler `logcat` do `PackageInstallerSession` no mesmo minuto. Importa antes de pôr o botão de download no site.
 
