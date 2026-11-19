@@ -189,6 +189,10 @@ As duas rodadas de comparação usam 240 frames de ida/volta, sem builds nem out
   Reader (tema Papel/Sépia/Escuro, A−/A+, grifo com nota, barra de progresso, sem números); três flashcards com perguntas diferentes,
   empilhados com a faixa da pergunta visível; fundo escuro cruza o meio em 40% do esmaecer da comunidade (teste: menos de 60% das
   amostras cinzentas de antes). Capturas d3d11 conferidas em 320, 390, 844×390 e 1440; `test:marketing:web` PASS (2ª execução),
-  `test:marketing`, `test:critical` 143/143. Não publicado na Vercel.
+  `test:marketing`, `test:critical` 143/143.
+- Dono: "Pode publicar" → produção Vercel com `5ac93af` (`dpl` `kindle-reader-dxd32k8by…`, READY). Conferido de fora: `/`, `/app`,
+  `/library`, `/legal/privacy`, `/auth/callback` 200, `/app.html` 308; o pedaço `BookScene-b1e009d8….js` baixado da produção tem
+  `uOpacity`, `reader-ui`, "TEMA PAPEL" e as três perguntas, e não tem mais `uDissolve`; o bundle de entrada tem `bookPresence` e
+  `story-ink`. NÃO TESTADO: a animação 3D vista no site real (este PC tem animações reduzidas e mostra a versão estática) e em celular.
 - `test:marketing:web` (d3d11) falhou 3 vezes seguidas no passo de DPR ("Missing settled actual scroll pose 0.36": rolagem parada em
   0,142), também no código anterior à correção, e passou na 4ª execução: intermitente, não investigado.
