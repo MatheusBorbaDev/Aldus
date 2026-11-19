@@ -570,6 +570,12 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
   descartável. VALIDADO no PC: build release com chave descartável → modo `private`, `verify --apk` PASS, `apksigner` mostra
   `CN=Aldus Reader`; esse APK de teste foi apagado. PENDENTE do dono: rodar o script, guardar a senha e 2 cópias do `.p12`; depois,
   APK com a chave nova (Redmi exige desinstalar uma vez) e hospedagem do link (GitHub/Drive, a decidir).
+- Dono rodou o script (captura): chave criada em `%USERPROFILE%\.aldus-signing`, impressão digital `A8:EE:8E:C1…0F:4A`. Primeiro APK
+  com a chave própria: `npm run build:apk:archive` em `2691c55` limpo, modo `private`, `artifacts/apk/Aldus-2691c55.apk` (cópia
+  `Desktop\Aldus APK\Aldus-v10-2691c55-chave-propria.apk`), 157.165.047 bytes, SHA-256 `258d1191…380bb3b1`; `aapt`: `com.aldus.reader`,
+  versionCode 10, `1.0.0-beta.2`, 4 ABIs; `apksigner`: v2, `CN=Aldus Reader, C=BR`, `a8ee8ec1…76c80f4a` (= a chave do dono); bundle com
+  `2691c55`; `verify --apk` PASS (55). NÃO instalado: no Redmi (assinatura `fac61745…`) exige desinstalar uma vez. NÃO conferido por mim:
+  cópias de segurança do `.p12` e senha no gerenciador (feitos pelo dono).
 
 ### 17/11/2026 — Revisão para as betas públicas: dependências, banco, hospedagem (Claude)
 - Pedido do dono: ajustar dependências e configurações (banco, hospedagem etc.) e revisar o necessário para iniciar o plano das betas públicas.
