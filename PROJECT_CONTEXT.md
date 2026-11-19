@@ -576,6 +576,13 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
   versionCode 10, `1.0.0-beta.2`, 4 ABIs; `apksigner`: v2, `CN=Aldus Reader, C=BR`, `a8ee8ec1…76c80f4a` (= a chave do dono); bundle com
   `2691c55`; `verify --apk` PASS (55). NÃO instalado: no Redmi (assinatura `fac61745…`) exige desinstalar uma vez. NÃO conferido por mim:
   cópias de segurança do `.p12` e senha no gerenciador (feitos pelo dono).
+- Dono: "GitHub Releases, mas me manda o link gerado primeiro, não disponibiliza no site ainda" (+ escolhas: instalar `gh`; pré-release
+  publicado). Varredura dos 217 commits locais: sem chave/senha/arquivo privado; único achado, o usuário da CLI da Vercel num log
+  (mantido, dono avisado). `gh` 2.105.0 por winget; login do dono pelo código no navegador. Push `3cc1107..7a8486e` em
+  `matheusbitlab/Aldus` (público, `main` sem proteção; avanço simples). Pré-release `v1.0.0-beta.2-build10` no commit `2691c55`, asset
+  `Aldus-1.0.0-beta.2-10.apk`, digest do GitHub = `258d1191…380bb3b1`; download anônimo do link direto conferido por hash em fluxo
+  (157.165.047 bytes). NÃO colocado no site (pedido do dono). Notas do release: versão, hashes, certificado e aviso de desinstalar a
+  versão de teste anterior. Disco C: estava 100% cheio (artifacts/apk ~4,7 GB em 26 APKs; `android/app/build` ~2,3 GB).
 
 ### 17/11/2026 — Revisão para as betas públicas: dependências, banco, hospedagem (Claude)
 - Pedido do dono: ajustar dependências e configurações (banco, hospedagem etc.) e revisar o necessário para iniciar o plano das betas públicas.
