@@ -49,7 +49,8 @@ const flush = () => act(async () => { for (let i = 0; i < 5; i++) await Promise.
   assert.ok(betaLimitationsDocument.sections.some(s => s.heading === 'O que o Aldus não faz, de propósito'));
   // The catalog is in the app (18/11): listed under "Seus livros", on every device; "Em construção" is gone (everything listed was delivered).
   const section = heading => betaLimitationsDocument.sections.find(s => s.heading === heading).bullets.join('\n');
-  assert.match(section('Seus livros'), /Buscar qualquer livro[\s\S]*em todos os seus aparelhos/);
+  // 19/11: the catalog moved to the Descobrir tab, with Google Books (owner-approved wording).
+  assert.match(section('Seus livros'), /aba Descobrir você busca qualquer livro[\s\S]*em todos os seus aparelhos[\s\S]*Google Books e do Open Library/);
   assert.doesNotMatch(JSON.stringify(betaLimitationsDocument), /ficam só no aparelho/);
   assert.ok(!betaLimitationsDocument.sections.some(s => s.heading === 'Em construção'), 'nothing listed as planned that is already delivered');
   assert.ok(RELEASE_NOTES.items.some(item => item.startsWith('Buscar qualquer livro') && /todos os seus aparelhos/.test(item)));

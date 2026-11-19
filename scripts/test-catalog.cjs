@@ -118,6 +118,8 @@ const noWait = () => new RequestSpacer(0);
   assert.equal(percy.sourceUrl, 'https://books.google.com/books?id=abcDEF123456');
   assert.match(percy.description, /^Percy descobre que é filho de um deus & parte numa missão.$/, 'description without HTML');
   assert.equal(found[1].coverUrl, null, 'no thumbnail: no cover invented'); assert.equal(found[1].editionYear, null);
+  const ordered = await new GoogleBooksSource(async () => json({ items: [{ id: 'enEN11111111', volumeInfo: { title: 'English', language: 'en' } }, { id: 'ptBR22222222', volumeInfo: { title: 'Português', language: 'pt-BR' } }, { id: 'esES33333333', volumeInfo: { title: 'Español', language: 'es' } }] }), 'K').search('x y');
+  assert.deepEqual(ordered.map(book => book.title), ['Português', 'English', 'Español'], 'Portuguese editions first, Google order kept otherwise');
   const gbParams = new URL(gbUrls[0]).searchParams;
   assert.equal(gbParams.get('q'), 'percy jackson'); assert.equal(gbParams.get('key'), 'PUBLIC-KEY'); assert.equal(gbParams.get('printType'), 'books');
   await gb.search('85-359-0277-5'); assert.equal(new URL(gbUrls[1]).searchParams.get('q'), 'isbn:9788535902778', 'ISBN search by isbn:');

@@ -16,8 +16,8 @@ export const betaLimitationsDocument: LegalDocument = {
       "Alguns recursos dependem do sistema do aparelho e podem se comportar de forma diferente de um modelo para outro.",
     ] },
     { heading: "Seus livros", bullets: [
-      "O Aldus abre EPUB e PDF que você já tem: do seu aparelho, do seu Google Drive ou de catálogos de domínio público.",
-      "Catálogo: em Biblioteca → Adicionar → Buscar qualquer livro, você navega por categorias, vê sugestões “Para você” calculadas no seu aparelho e guarda livros na sua estante mesmo sem o arquivo (livro físico, de outra loja ou audiolivro), em todos os seus aparelhos. As informações vêm do Open Library: edições brasileiras recentes podem faltar ou vir incompletas, e muitas não têm capa; nesses casos o Aldus desenha uma capa própria.",
+      "O Aldus abre EPUB e PDF que você já tem: do seu aparelho, do seu Google Drive, de bibliotecas que você cadastrar ou do acervo de domínio público que vem com o app.",
+      "Catálogo: na aba Descobrir você busca qualquer livro, navega por categorias, sorteia uma indicação, vê sugestões “Para você” calculadas no seu aparelho e guarda livros na estante mesmo sem o arquivo (físico, de outra loja ou audiolivro), em todos os seus aparelhos. As informações vêm do Google Books e do Open Library; alguns livros podem vir incompletos ou sem capa, e aí o Aldus desenha uma capa própria.",
       "Livros com proteção de loja (DRM) podem não abrir. É o caso da maioria dos livros comprados para Kindle e de algumas lojas de e-book. Isso não é um defeito que vamos corrigir: o Aldus não remove proteções.",
       "O Aldus não vende, não empresta e não envia arquivos de livros a outras pessoas. O que você compartilha são trechos em imagem, com limite de tamanho.",
       "PDF grande na Leitura Livre (o modo que transforma o PDF em texto corrido) pode levar alguns minutos para ficar pronto na primeira vez, principalmente em livros com centenas de páginas.",

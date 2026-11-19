@@ -31,7 +31,9 @@ assert.match(authForm, /\/legal\/privacy/);
 
 const content = read("src/legal/legalContent.ts");
 const publicLegalText = content + read("src/legal/legalConfig.ts");
-for (const expected of ["Supabase", "Google", "Gutendex", "Project Gutenberg", "BibliON", "MEC Livros", "armazenamento local", "Lei nº 13.709/2018", "Lei nº 12.965/2014", "Lei nº 9.610/1998", "c. 1450–1515", "formato octavo", "revisão profissional pendente"]) {
+// 19/11/2026: Gutendex/Gutenberg/BibliON/MEC saíram do app; o catálogo usa Google Books e Open Library (redação aprovada pelo dono).
+assert.doesNotMatch(publicLegalText, /Gutendex|Project Gutenberg|BibliON|MEC Livros/, "fontes removidas não são mais citadas");
+for (const expected of ["Supabase", "Google", "Google Books", "Open Library", "nunca o conteúdo nem links de download", "armazenamento local", "Lei nº 13.709/2018", "Lei nº 12.965/2014", "Lei nº 9.610/1998", "c. 1450–1515", "formato octavo", "revisão profissional pendente"]) {
   assert.match(publicLegalText, new RegExp(expected.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")), `conteúdo esperado ausente: ${expected}`);
 }
 assert.doesNotMatch(publicLegalText, /flashcard|batalha|deck/i, "dados de Flashcards preparados, mas fora desta implantação funcional, não devem ser anunciados publicamente");

@@ -112,7 +112,9 @@ export class GoogleBooksSource implements MetadataSource {
       });
       if (book) books.push(book);
     }
-    return books;
+    // Edições em português primeiro (o Aldus é pt-BR); a ordem do Google vale dentro de cada grupo.
+    return books.map((book, index) => ({ book, index, pt: book.languages.some(code => /^pt/i.test(code)) }))
+      .sort((a, b) => Number(b.pt) - Number(a.pt) || a.index - b.index).map(item => item.book);
   }
 }
 
