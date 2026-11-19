@@ -4,7 +4,7 @@ const assert = require('node:assert/strict');
 const { loader } = require('./library-test-utils.cjs');
 const load = loader();
 const { normalizeIsbn, parseCatalogBook, mergeCatalogBooks, categoriesFor, ALDUS_CATEGORIES } = load('src/domain/catalog/catalogBook.ts');
-const { OpenLibrarySource, WikidataGenres, RequestSpacer, CatalogUnavailableError } = load('src/data/catalog/catalogSources.ts');
+const { OpenLibrarySource, GoogleBooksSource, WikidataGenres, RequestSpacer, CatalogUnavailableError } = load('src/data/catalog/catalogSources.ts');
 const { CatalogService, catalogCacheKey } = load('src/data/catalog/CatalogService.ts');
 const { LibraryAccountScope } = load('src/data/library/LibraryAccountScope.ts');
 const json = (data, status = 200) => ({ ok: status >= 200 && status < 300, status, json: async () => data });
@@ -96,5 +96,39 @@ const noWait = () => new RequestSpacer(0);
   let release; const slow = new CatalogService([{ name: 'slow', search: () => new Promise(r => { release = () => r([]); }) }], storage, scope, () => now);
   const pending = slow.search('Helena'); await new Promise(r => setImmediate(r)); scope.set('user-c'); release();
   await assert.rejects(pending, /A conta mudou/, 'result from the previous account is discarded');
-  console.log('PASS catalog phase 1: ISBN-10/13 with check digits, pt-BR Aldus categories never forced, invalid or hostile metadata emptied (never invented), merge of repeated works; Open Library search with cover by cover id, ISBN path, 1 request/s spacing, errors and limits explained without provider text, cancel; Wikidata genres by ISBN; per-account 7-day cache, unreadable cache ignored, account switch discards late results. Real network NOT TESTED.');
+  // Google Books (19/11, dono: "Google Books + Open Library"): edições brasileiras, capa pelo id, ano da edição, sinopse sem HTML.
+  const gbUrls = [];
+  const gbBody = { items: [
+    { id: 'abcDEF123456', volumeInfo: { title: 'Percy Jackson e o Ladrão de Raios', authors: ['Rick Riordan'], publishedDate: '2008-07-01', language: 'pt-BR',
+      industryIdentifiers: [{ type: 'ISBN_13', identifier: '9788580575392' }, { type: 'OTHER', identifier: 'UOM:39015' }], pageCount: 400,
+      categories: ['Juvenile Fiction / Fantasy & Magic'], imageLinks: { thumbnail: 'http://books.google.com/books/content?id=abcDEF123456&zoom=1' },
+      description: '<p>Percy descobre que é <b>filho</b> de um deus &amp; parte numa missão.</p>' } },
+    { id: 'no cover!', volumeInfo: { title: 'Id inválido' } },
+    { id: 'zzzZZZ999999', volumeInfo: { title: 'Sem capa', authors: ['Autora'], publishedDate: 'sem data' } },
+  ] };
+  const gb = new GoogleBooksSource(async (url, init) => { gbUrls.push(url); assert.ok(!('Authorization' in (init.headers ?? {})), 'no credentials'); return json(gbBody); }, 'PUBLIC-KEY');
+  const found = await gb.search('percy jackson');
+  assert.equal(found.length, 2, 'invalid volume id skipped');
+  const percy = found[0];
+  assert.equal(percy.id, 'gb:abcDEF123456'); assert.equal(percy.source, 'googlebooks');
+  assert.equal(percy.firstPublishYear, null, 'Google gives the edition date, never shown as first publication'); assert.equal(percy.editionYear, 2008);
+  assert.deepEqual(percy.isbns, ['9788580575392']); assert.equal(percy.pages, 400); assert.deepEqual(percy.languages, ['pt-BR']);
+  assert.ok(percy.categories.includes('infantojuvenil') && percy.categories.includes('fantasia'), 'Google categories map to Aldus categories');
+  assert.equal(percy.coverUrl, 'https://books.google.com/books/content?id=abcDEF123456&printsec=frontcover&img=1&zoom=1&source=gbs_api', 'cover rebuilt from the id over https');
+  assert.equal(percy.sourceUrl, 'https://books.google.com/books?id=abcDEF123456');
+  assert.match(percy.description, /^Percy descobre que é filho de um deus & parte numa missão.$/, 'description without HTML');
+  assert.equal(found[1].coverUrl, null, 'no thumbnail: no cover invented'); assert.equal(found[1].editionYear, null);
+  const gbParams = new URL(gbUrls[0]).searchParams;
+  assert.equal(gbParams.get('q'), 'percy jackson'); assert.equal(gbParams.get('key'), 'PUBLIC-KEY'); assert.equal(gbParams.get('printType'), 'books');
+  await gb.search('85-359-0277-5'); assert.equal(new URL(gbUrls[1]).searchParams.get('q'), 'isbn:9788535902778', 'ISBN search by isbn:');
+  await assert.rejects(new GoogleBooksSource(async () => json({}, 429), 'K').search('x y'), e => /muitas buscas/.test(e.message));
+  assert.equal(parseCatalogBook({ ...percy, coverUrl: 'https://books.google.com/books/content?id=abc&evil=1' }).coverUrl, null, 'only the rebuilt Google cover is accepted');
+  // Google first, Open Library second: the same work in both is merged, keeping the Brazilian edition's data.
+  const both = new CatalogService([gb, new OpenLibrarySource(async () => json({ docs: [{ key: '/works/OL1W', title: 'Percy Jackson e o Ladrão de Raios', author_name: ['Rick Riordan'], first_publish_year: 2005, cover_i: 7 }] }), noWait())],
+    { getItem: async () => null, setItem: async () => undefined }, new LibraryAccountScope());
+  const bothFound = await both.search('percy jackson ladrao');
+  const percyMerged = bothFound.find(book => book.title === 'Percy Jackson e o Ladrão de Raios');
+  assert.equal(percyMerged.id, 'gb:abcDEF123456'); assert.equal(percyMerged.firstPublishYear, 2005, 'first publication comes from Open Library'); assert.equal(percyMerged.editionYear, 2008);
+
+  console.log('PASS catalog phase 1: ISBN-10/13 with check digits, pt-BR Aldus categories never forced, invalid or hostile metadata emptied (never invented), merge of repeated works; Google Books (pt-BR edition, cover by volume id, edition year, plain description, isbn: path, merge with Open Library); Open Library search with cover by cover id, ISBN path, 1 request/s spacing, errors and limits explained without provider text, cancel; Wikidata genres by ISBN; per-account 7-day cache, unreadable cache ignored, account switch discards late results. Real network NOT TESTED.');
 })().catch(error => { console.error(error); process.exitCode = 1; });

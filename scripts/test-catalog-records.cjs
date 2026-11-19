@@ -196,6 +196,16 @@ const dom = { id: 'ol:OL45883W', source: 'openlibrary', title: 'Dom Casmurro', s
   await act(async () => tree.unmount());
   await act(async () => { tree = create(h(CatalogScreen)); }); await flush();
   assert.equal(tree.root.findAll(n => n.type === 'YourSources').length, 0, 'the /catalog route keeps its own layout');
+  // Busca enquanto digita (19/11): a busca sai sozinha depois de uma pausa, uma vez por texto, e não com menos de 3 letras.
+  searches.length = 0; fail = null;
+  await act(async () => field().props.onChangeText('ma'));
+  await act(async () => { await new Promise(resolve => setTimeout(resolve, 700)); }); assert.equal(searches.length, 0, 'two letters do not search');
+  await act(async () => field().props.onChangeText('machado'));
+  await act(async () => field().props.onChangeText('machado de assis'));
+  await act(async () => { await new Promise(resolve => setTimeout(resolve, 700)); }); await flush();
+  assert.deepEqual(searches, ['machado de assis'], 'only the text after the pause is searched');
+  await act(async () => resolveSearch()); await flush();
+  await act(async () => field().props.onSubmit()); assert.equal(searches.length, 1, 'submitting the same text does not repeat the request');
   await act(async () => tree.unmount());
 
   // 5. A5 domain and data: pair a fileB with a kept record, merge on request, carry the link through Sync.

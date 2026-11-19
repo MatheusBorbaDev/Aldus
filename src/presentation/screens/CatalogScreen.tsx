@@ -3,7 +3,7 @@ import { Linking, Modal, Pressable, ScrollView, StyleSheet, View } from "react-n
 import { AppText, Button, Chip, EmptyState, Screen, ScreenHeader, SearchField } from "@/src/ui";
 import { useAppTheme } from "@/src/presentation/contexts/AppThemeContext";
 import { appDependencies, libraryOrganization } from "@/src/presentation/services/dependencies";
-import { catalog } from "@/src/data/catalog/catalogDependencies";
+import { catalog, catalogSourcesLabel } from "@/src/data/catalog/catalogDependencies";
 import { CatalogUnavailableError } from "@/src/data/catalog/catalogSources";
 import { ALDUS_CATEGORIES, AldusCategory, CatalogBook } from "@/src/domain/catalog/catalogBook";
 import { CATEGORY_QUERIES, INITIAL_SHELVES, libraryAffinity, pickSurprise } from "@/src/domain/catalog/catalogShelves";
@@ -55,7 +55,19 @@ export function CatalogScreen({ tab = false }: { tab?: boolean } = {}) {
       .catch(failure => { if (request.current === controller && !controller.signal.aborted) setError(failure instanceof CatalogUnavailableError ? failure.message : "Não foi possível buscar agora. Tente de novo."); })
       .finally(() => { if (request.current === controller) { request.current = null; setLoading(false); } });
   };
-  const search = () => { const text = query.trim(); if (text.length >= 2 && !loading) run(text, null); };
+  const search = () => {
+    const text = query.trim();
+    const shown = last.current?.text === text && last.current.heading === null && results !== null && !error;
+    if (text.length >= 2 && !loading && !shown) run(text, null);
+  };
+  // Busca enquanto digita (19/11, como no Papel Amassado): espera a pessoa parar de digitar; cada busca nova cancela a anterior.
+  useEffect(() => {
+    const text = query.trim();
+    if (text.length < 3 || (last.current?.text === text && last.current.heading === null)) return;
+    const timer = setTimeout(() => { if (last.current?.text !== text || last.current.heading !== null) run(text, null); }, 600);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [query]);
   const browse = (category: AldusCategory) => { setQuery(""); run(CATEGORY_QUERIES[category], ALDUS_CATEGORIES[category]); };
   const backToShelves = () => { request.current?.abort(); request.current = null; setLoading(false); setResults(null); setError(null); setHeading(null); };
   const browsing = results !== null || loading || error !== null;
@@ -93,7 +105,7 @@ export function CatalogScreen({ tab = false }: { tab?: boolean } = {}) {
         <View style={{ flex: 1 }}><SearchField value={query} onChangeText={setQuery} placeholder="Título, autor ou ISBN" label="Buscar no catálogo" onSubmit={search} /></View>
         <Button label="Buscar" variant="primary" onPress={search} disabled={query.trim().length < 2 || loading} loading={loading} />
       </View>
-      <AppText variant="caption" tone="secondary">Informações do Open Library. Só o texto buscado ou a categoria escolhida sai do aparelho.</AppText>
+      <AppText variant="caption" tone="secondary">{`Informações do ${catalogSourcesLabel ?? "Open Library"}. Só o texto buscado ou a categoria escolhida sai do aparelho.`}</AppText>
       {!browsing ? <View style={styles.surprise}>
         <Button label="Sortear um livro" icon="shuffle" onPress={() => void surprise()} loading={surprising} disabled={surprising}
           accessibilityHint="Abre a ficha de um livro sorteado entre as prateleiras e o Para você" />
@@ -160,9 +172,10 @@ function CatalogBookSheet({ book, inLibrary, onClose, onAdded, linkTarget, onLin
     } catch (failure) { setMessage(failure instanceof Error ? failure.message : "Não foi possível guardar o livro."); }
     finally { setBusy(false); }
   };
+  const google = book.source === "googlebooks", sourceName = google ? "Google Books" : "Open Library";
   const facts = [
-    book.firstPublishYear ? `Primeira publicação: ${book.firstPublishYear}` : null,
-    book.pages ? `${book.pages} páginas (média das edições)` : null,
+    book.firstPublishYear ? `Primeira publicação: ${book.firstPublishYear}` : book.editionYear ? `Edição de ${book.editionYear}` : null,
+    book.pages ? (google ? `${book.pages} páginas` : `${book.pages} páginas (média das edições)`) : null,
     book.isbns[0] ? `ISBN ${book.isbns[0]}` : null,
   ].filter(Boolean) as string[];
   return (
@@ -195,8 +208,12 @@ function CatalogBookSheet({ book, inLibrary, onClose, onAdded, linkTarget, onLin
             {facts.length ? <View style={{ gap: 2 }}>{facts.map(fact => <AppText key={fact} variant="bodySmall" tone="secondary">{fact}</AppText>)}</View> : null}
             {book.categories.length ? <View style={styles.chips}>{book.categories.map(c => <View key={c} style={[styles.tag, { borderColor: palette.border }]}><AppText variant="caption">{ALDUS_CATEGORIES[c]}</AppText></View>)}</View> : null}
             {book.subjects.length ? <AppText variant="caption" tone="secondary" numberOfLines={3}>{`Assuntos: ${book.subjects.slice(0, 8).join(" · ")}`}</AppText> : null}
-            {book.sourceUrl ? <Pressable accessibilityRole="link" accessibilityLabel="Ver a fonte destas informações no Open Library" onPress={() => void Linking.openURL(book.sourceUrl!)} style={styles.credit}>
-              <AppText variant="caption" tone="accent">Informações: Open Library</AppText>
+            {book.description ? <View style={{ gap: 4 }}>
+              <AppText variant="label" accessibilityRole="header">Sinopse</AppText>
+              <AppText variant="bodySmall" tone="secondary">{book.description}</AppText>
+            </View> : null}
+            {book.sourceUrl ? <Pressable accessibilityRole="link" accessibilityLabel={`Ver a fonte destas informações no ${sourceName}`} onPress={() => void Linking.openURL(book.sourceUrl!)} style={styles.credit}>
+              <AppText variant="caption" tone="accent">{`Informações: ${sourceName}`}</AppText>
             </Pressable> : null}
             <Button label="Fechar" variant="ghost" block onPress={onClose} />
           </ScrollView>

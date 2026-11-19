@@ -3,7 +3,7 @@
  * uma obra: nunca traz conteúdo, arquivo nem link de download. Campo ausente na fonte fica vazio (null ou lista vazia);
  * nenhum número é inventado.
  */
-export type CatalogSourceName = "openlibrary" | "wikidata" | "file";
+export type CatalogSourceName = "openlibrary" | "googlebooks" | "wikidata" | "file";
 
 export const ALDUS_CATEGORIES = {
   romance: "Romance",
@@ -38,6 +38,10 @@ export interface CatalogBook {
   subtitle: string | null;
   authors: string[];
   firstPublishYear: number | null;
+  /** Ano desta edição (o Google Books informa a edição, não a primeira publicação). */
+  editionYear?: number | null;
+  /** Sinopse como a fonte informa (Google Books), em texto simples. */
+  description?: string | null;
   /** Códigos de idioma como a fonte informa (ex.: `por`, `eng`). */
   languages: string[];
   /** ISBN-13 válidos (dígito verificador conferido). */
@@ -78,25 +82,26 @@ function isbn13Check(twelve: string): string {
   return String((10 - (sum % 10)) % 10);
 }
 
-const COVER_URL = /^https:\/\/covers\.openlibrary\.org\/b\/id\/\d{1,12}-[SML]\.jpg$/;
-/** Capa pública do catálogo (Open Library por número de capa); qualquer outro endereço não é aceito como capa de catálogo. */
+const COVER_URL = /^https:\/\/(?:covers\.openlibrary\.org\/b\/id\/\d{1,12}-[SML]\.jpg|books\.google\.com\/books\/content\?id=[\w-]{6,20}&printsec=frontcover&img=1&zoom=1&source=gbs_api)$/;
+/** Capa pública do catálogo (Open Library por número de capa, Google Books pelo id do volume); nenhum outro endereço é aceito. */
 export function isCatalogCoverUrl(value: unknown): value is string { return typeof value === "string" && COVER_URL.test(value); }
-const SOURCE_URL = /^https:\/\/(?:openlibrary\.org\/works\/OL\d+W|www\.wikidata\.org\/wiki\/Q\d+)$/;
+const SOURCE_URL = /^https:\/\/(?:openlibrary\.org\/works\/OL\d+W|books\.google\.com\/books\?id=[\w-]{6,20}|www\.wikidata\.org\/wiki\/Q\d+)$/;
 
 /** Valida um item vindo de fora (rede ou cache). Inválido = null; nunca completa campo com valor inventado. */
 export function parseCatalogBook(value: unknown): CatalogBook | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;
   const item = value as Record<string, unknown>;
   const id = clean(item.id, 80), title = clean(item.title);
-  const source = item.source === "openlibrary" || item.source === "wikidata" || item.source === "file" ? item.source : null;
-  if (!id || !/^(?:ol|wd|file):[\w.-]{1,70}$/.test(id) || !title || !source) return null;
-  const year = typeof item.firstPublishYear === "number" && Number.isInteger(item.firstPublishYear) && item.firstPublishYear > 0 && item.firstPublishYear <= 2100 ? item.firstPublishYear : null;
+  const source = item.source === "openlibrary" || item.source === "googlebooks" || item.source === "wikidata" || item.source === "file" ? item.source : null;
+  if (!id || !/^(?:ol|gb|wd|file):[\w.-]{1,70}$/.test(id) || !title || !source) return null;
+  const validYear = (value: unknown) => typeof value === "number" && Number.isInteger(value) && value > 0 && value <= 2100 ? value : null;
+  const year = validYear(item.firstPublishYear), editionYear = validYear(item.editionYear);
   const pages = typeof item.pages === "number" && Number.isInteger(item.pages) && item.pages > 0 && item.pages < 100000 ? item.pages : null;
   const coverUrl = typeof item.coverUrl === "string" && COVER_URL.test(item.coverUrl) ? item.coverUrl : null;
   const sourceUrl = typeof item.sourceUrl === "string" && SOURCE_URL.test(item.sourceUrl) ? item.sourceUrl : null;
   const subjects = list(item.subjects, 30, 120);
   return {
-    id, source, title, subtitle: clean(item.subtitle), authors: list(item.authors, 10), firstPublishYear: year,
+    id, source, title, subtitle: clean(item.subtitle), authors: list(item.authors, 10), firstPublishYear: year, editionYear, description: clean(item.description, 2000),
     languages: list(item.languages, 10, 12), isbns: list(item.isbns, 20, 20).map(normalizeIsbn).filter((isbn): isbn is string => !!isbn),
     pages, subjects, categories: categoriesFor(subjects), coverUrl, sourceUrl,
   };
@@ -118,6 +123,8 @@ export function mergeCatalogBooks(books: CatalogBook[]): CatalogBook[] {
       ...previous,
       subtitle: previous.subtitle ?? book.subtitle,
       firstPublishYear: previous.firstPublishYear ?? book.firstPublishYear,
+      editionYear: previous.editionYear ?? book.editionYear ?? null,
+      description: previous.description ?? book.description ?? null,
       pages: previous.pages ?? book.pages,
       coverUrl: previous.coverUrl ?? book.coverUrl,
       isbns: [...new Set([...previous.isbns, ...book.isbns])].slice(0, 20),

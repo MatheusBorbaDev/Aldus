@@ -10,7 +10,7 @@ import { isAldusCategory } from "./catalogShelves";
  */
 export interface CatalogLinkFields { catalogId: string; catalogCategories: string[]; catalogPages: number | null }
 
-const CATALOG_ID = /^(?:ol|wd|file|gr|isbn):[\w.-]{1,70}$/;
+const CATALOG_ID = /^(?:ol|gb|wd|file|gr|isbn):[\w.-]{1,70}$/;
 
 export function catalogLinkFields(book: CatalogBook): CatalogLinkFields {
   return { catalogId: book.id, catalogCategories: [...book.categories], catalogPages: book.pages };

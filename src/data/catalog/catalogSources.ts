@@ -75,6 +75,47 @@ export class OpenLibrarySource implements MetadataSource {
   }
 }
 
+const GB_FIELDS = "items(id,volumeInfo(title,subtitle,authors,publishedDate,language,industryIdentifiers,pageCount,categories,imageLinks/thumbnail,description))";
+const stripHtml = (value: unknown) => typeof value === "string" ? value.replace(/<[^>]*>/g, " ").replace(/&nbsp;/g, " ").replace(/&amp;/g, "&").replace(/&quot;/g, "\"").replace(/&#39;/g, "'") : value;
+
+/**
+ * Google Books (decisão do dono em 19/11/2026: "Google Books + Open Library", para ter as edições brasileiras). Só o texto buscado ou
+ * o ISBN vão ao Google, com a chave pública do app; nenhum dado da conta. A capa vem do próprio Google pelo id do volume; o ano é o
+ * desta edição (o Google não informa a primeira publicação).
+ */
+export class GoogleBooksSource implements MetadataSource {
+  readonly name = "googlebooks";
+  constructor(private readonly fetcher: Fetch, private readonly apiKey: string, private readonly headers: Record<string, string> = { Accept: "application/json" }) {}
+  async search(query: string, signal?: AbortSignal): Promise<CatalogBook[]> {
+    const isbn = normalizeIsbn(query);
+    const params = new URLSearchParams({ q: isbn ? `isbn:${isbn}` : query, maxResults: "20", printType: "books", fields: GB_FIELDS, key: this.apiKey });
+    const body = await getJson(this.fetcher, `https://www.googleapis.com/books/v1/volumes?${params}`, signal, this.headers, 15000) as { items?: unknown };
+    const items = Array.isArray(body?.items) ? body.items : [];
+    const books: CatalogBook[] = [];
+    for (const raw of items.slice(0, 20)) {
+      const item = raw as { id?: unknown; volumeInfo?: Record<string, unknown> };
+      const id = typeof item.id === "string" && /^[\w-]{6,20}$/.test(item.id) ? item.id : null;
+      const info = item.volumeInfo;
+      if (!id || !info) continue;
+      const year = typeof info.publishedDate === "string" ? Number(/^(\d{4})/.exec(info.publishedDate)?.[1]) : NaN;
+      const identifiers = Array.isArray(info.industryIdentifiers) ? info.industryIdentifiers as Array<{ identifier?: unknown }> : [];
+      const categories = Array.isArray(info.categories) ? info.categories.flatMap(value => typeof value === "string" ? value.split(/\s*\/\s*/) : []) : [];
+      const thumbnail = (info.imageLinks as { thumbnail?: unknown } | undefined)?.thumbnail;
+      const book = parseCatalogBook({
+        id: `gb:${id}`, source: "googlebooks", title: info.title, subtitle: info.subtitle, authors: info.authors,
+        firstPublishYear: null, editionYear: Number.isFinite(year) ? year : null,
+        languages: typeof info.language === "string" ? [info.language] : [],
+        isbns: identifiers.map(entry => entry?.identifier).filter((value): value is string => typeof value === "string"),
+        pages: info.pageCount, subjects: categories.slice(0, 30), description: stripHtml(info.description),
+        coverUrl: typeof thumbnail === "string" ? `https://books.google.com/books/content?id=${id}&printsec=frontcover&img=1&zoom=1&source=gbs_api` : null,
+        sourceUrl: `https://books.google.com/books?id=${id}`,
+      });
+      if (book) books.push(book);
+    }
+    return books;
+  }
+}
+
 /**
  * Wikidata (CC0): gêneros de uma obra pelo ISBN, para enriquecer categorias e recomendações na ficha do livro. Não entra na busca
  * por texto, para não multiplicar chamadas.
