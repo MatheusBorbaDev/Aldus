@@ -528,6 +528,16 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
 - Dono criou o Upstash e pediu "faz ai oq precisa" (Chrome "Browser 1"): segredos cadastrados e `username-login` publicada no Supabase,
   tudo conferido por hash sem expor valores (detalhes em BUGS_ATUAIS BUG 09). O texto colado antes (MCP/CLI do Upstash, `.env`,
   `@upstash/redis` e `lib/redis.ts`) NÃO foi seguido: o token ficaria no app/PC, contra a decisão de 17/11. NÃO TESTADO: login real.
+- Dono: "de uma geral no site, atualize pra ultima versão, deixe tudo funcionando corretamente na vercel". Inventário: projeto Vercel
+  `kindle-reader` (Hobby, sem Git ligado); produção = deploy de 06/10 ("Kindle Reader", só `/` responde, rotas 404); variáveis só em Preview
+  (`EXPO_PUBLIC_SUPABASE_URL`/`KEY`), nenhuma em Production. Export do HEAD `0727fc6` limpo: `verify --dist` 55, `test-web-build --exported`.
+  Chromium: auth, epub, pdf, reflow, settings, highlight, saas PASS; `library:web` e `admin:web` falhavam por teste desatualizado (mensagem
+  da busca vazia de hoje; frase da tela de tema trocada em `986f099`) → `04618a4`, PASS; `marketing:web` PASS com `CINEMATIC_CHROME_ANGLE=d3d11`
+  (SwiftShader falha neste PC, já registrado); `legal:browser` PASS num Chrome próprio (porta 9333 ocupada pelo HopToDesk). `test:critical`
+  143/143. Autorizações do dono: CLI da Vercel (66.2.0, `npx`) com login neste PC; redirecionamentos do Auth. Feito: `https://kindle-reader-two
+  .vercel.app/auth/callback` e `…?next=reset-password` na lista do Supabase (6→8, Site URL intacta). PENDENTE: login da CLI (a Vercel pediu o
+  código do autenticador; o pedido expirou), nome do controlador para `EXPO_PUBLIC_LEGAL_CONTROLLER_NAME` (o guard de produção exige),
+  variáveis de Production na Vercel, deploy e conferência pós-deploy. Drive na Web segue sem `EXPO_PUBLIC_GOOGLE_DRIVE_WEB_CLIENT_ID`.
 
 ### 17/11/2026 — Revisão para as betas públicas: dependências, banco, hospedagem (Claude)
 - Pedido do dono: ajustar dependências e configurações (banco, hospedagem etc.) e revisar o necessário para iniciar o plano das betas públicas.
