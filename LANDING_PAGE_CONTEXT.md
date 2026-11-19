@@ -194,5 +194,9 @@ As duas rodadas de comparação usam 240 frames de ida/volta, sem builds nem out
   `/library`, `/legal/privacy`, `/auth/callback` 200, `/app.html` 308; o pedaço `BookScene-b1e009d8….js` baixado da produção tem
   `uOpacity`, `reader-ui`, "TEMA PAPEL" e as três perguntas, e não tem mais `uDissolve`; o bundle de entrada tem `bookPresence` e
   `story-ink`. NÃO TESTADO: a animação 3D vista no site real (este PC tem animações reduzidas e mostra a versão estática) e em celular.
+- Dono: "Pode acelerar um pouco animação? precisa ficar scrollando muito tempo" → `e1eab14`: `bookStoryViewports` 12 → 9 (25% menos
+  rolagem; histórico 6,1 apressado → 13 → 10,5 → 12). Cenas, curvas e poses iguais; cada virada ainda ocupa mais de 1,2 tela. Teste
+  `test-cinematic-book` exige 8–9 telas. `test:marketing`, typecheck, `test:critical` 143/143, `export:web`, `test:marketing:web` (d3d11)
+  PASS na 2ª execução (1ª: falha intermitente do passo 0,36). Não publicado na Vercel.
 - `test:marketing:web` (d3d11) falhou 3 vezes seguidas no passo de DPR ("Missing settled actual scroll pose 0.36": rolagem parada em
   0,142), também no código anterior à correção, e passou na 4ª execução: intermitente, não investigado.
