@@ -14,7 +14,7 @@ const ids = FEATURES.map(feature => feature.id);
 for (const required of ['community-tab', 'community-people', 'community-server', 'reader-focus', 'reader-milestones', 'reader-legible-font', 'import-duplicate', 'import-reattach', 'reader-security', 'legal-antipiracy'])
   assert.ok(ids.includes(required), required);
 assert.equal(new Set(ids).size, ids.length, 'ids únicos');
-for (const feature of FEATURES) assert.ok(feature.pedido && feature.markers.length, feature.id);
+for (const feature of FEATURES) assert.ok(feature.pedido && (feature.markers.length || feature.androidMarkers?.length), feature.id);
 
 // 3. Um pacote sem um recurso é recusado; texto acentuado é reconhecido nas codificações do Hermes e do JS minificado.
 const everything = FEATURES.flatMap(feature => [...feature.markers, ...(feature.androidMarkers ?? []), ...(feature.routes ?? []).map(route => `./${route}.tsx`)]);
@@ -25,6 +25,9 @@ assert.match(checkBundle(withoutPeople, 'teste', true).join('\n'), /community-pe
 const withoutTab = Buffer.from(everything.filter(marker => marker !== './(tabs)/community.tsx').join('\n'), 'utf8');
 assert.match(checkBundle(withoutTab, 'teste', true).join('\n'), /community-tab .*rota \(tabs\)\/community/);
 assert.deepEqual(checkBundle(Buffer.from(everything.filter(marker => marker !== 'isEvalSupported').join('\n'), 'utf8'), 'teste', false), [], 'marcador só do Android não é exigido no site');
+const withoutNativeHash = Buffer.from(everything.filter(marker => marker !== 'AldusFileHash').join('\n'), 'utf8');
+assert.deepEqual(checkBundle(withoutNativeHash, 'teste', false), [], 'item só do Android (módulo nativo) não é exigido no site');
+assert.match(checkBundle(withoutNativeHash, 'teste', true).join('\n'), /native-file-hash/, 'mas é exigido no APK');
 assert.ok(has(Buffer.from('Pedidos para seguir voc\\xea', 'utf8'), 'Pedidos para seguir você'), 'JS minificado com \\x');
 assert.ok(has(Buffer.from('Pedidos para seguir voc\\u00ea', 'utf8'), 'Pedidos para seguir você'), 'JS minificado com \\u');
 assert.ok(has(Buffer.from('Pedidos para seguir você', 'utf16le'), 'Pedidos para seguir você'), 'Hermes em UTF-16');

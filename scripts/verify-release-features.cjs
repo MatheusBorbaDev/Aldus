@@ -110,7 +110,8 @@ function checkSource() {
   const ids = new Set();
   for (const feature of FEATURES) {
     if (ids.has(feature.id)) missing.push(`${feature.id}: id repetido`); ids.add(feature.id);
-    if (!feature.markers.length) missing.push(`${feature.id}: sem marcador`);
+    // Only-Android items (a native module) carry androidMarkers alone: checked in the APK, never required in the site.
+    if (!feature.markers.length && !feature.androidMarkers?.length) missing.push(`${feature.id}: sem marcador`);
     for (const marker of [...feature.markers, ...(feature.androidMarkers ?? [])]) if (!has(corpus, marker)) missing.push(`${feature.id} (${feature.pedido}): texto "${marker}" não está no código`);
     for (const route of feature.routes ?? []) if (!fs.existsSync(path.join(root, 'app', `${route}.tsx`))) missing.push(`${feature.id}: rota app/${route}.tsx não existe`);
   }
