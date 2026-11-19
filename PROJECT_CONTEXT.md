@@ -509,7 +509,9 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
   `test-reader-screen`. `94f0a73`/`d65f317`: a lista de entrega exigia no site o módulo nativo de hash (só Android); agora é marcador só do
   APK. VALIDADO no PC: typecheck, `test:critical` 143/143, `test:reader:reflow:web`, `export:web` + `verify --dist` (51), `git diff --check`.
   `d44a911`: versionCode 9; APK `artifacts/apk/Aldus-d44a911-device-rehearsal.apk`, 157.183.919 bytes, SHA-256 `55ba0e56…9a7886cd`, revisão
-  `d44a911` sem sujeira, assinatura e versionCode 9 conferidos, checagem PASS (51 recursos). Não instalado (celular fora do cabo). NÃO TESTADO no aparelho: prévia, retomada pelo texto e o ganho dos itens 1 e 2.
+  `d44a911` sem sujeira, assinatura e versionCode 9 conferidos, checagem PASS (51 recursos). 19/11 (dono: "vc consegue instalar o app e deixar o arquivo apk em uma pasta"): instalado no Redmi por
+  `adb install -r`, versionCode 9, `base.apk` com o mesmo SHA-256, firstInstallTime 11/10 preservado; cópia para compartilhar em
+  `Desktop\Aldus APK\Aldus-v9-d44a911.apk` (mesmo hash). NÃO TESTADO no aparelho: prévia, retomada pelo texto e o ganho dos itens 1 e 2.
 
 ### 17/11/2026 — Revisão para as betas públicas: dependências, banco, hospedagem (Claude)
 - Pedido do dono: ajustar dependências e configurações (banco, hospedagem etc.) e revisar o necessário para iniciar o plano das betas públicas.
