@@ -437,6 +437,12 @@ e 7f50a90^:DIAGNOSTICO_BUGS_APK.md. Não restaurar esses arquivos como contexto.
 ## BUG 03 — Drive real preso em conectar/indexar
 
 - Prioridade: ALTA. Status: IMPLEMENTADO / VALIDAÇÃO ANDROID PENDENTE.
+- 19/11/2026: dono relata no APK assinado com a chave própria (v10) "Não foi possível concluir a consulta ao Drive. A causa não foi
+  identificada" (código `api`). Causa provável CONFIRMADA na configuração, não no aparelho: `GOOGLE_AUTH_DRIVE_DEPLOYMENT.md` registra o
+  client Android com SHA-1 `5E:8F:16:06:…:F6:25` (debug.keystore público), e o APK agora é assinado com a chave do dono, SHA-1
+  `C8:DE:59:A3:E7:20:A6:F9:85:5B:6D:3D:D1:F5:FF:5F:80:D6:E2:78`. A autorização do Google para Android confere pacote + SHA-1, então o
+  APK novo não casa com o client registrado. Correção: acrescentar client Android (`com.aldus.reader` + SHA-1 novo) no Google Cloud —
+  operação remota, só com autorização do dono. Sem log do aparelho na mesma tentativa: ligação sintoma↔causa INCONCLUSIVA.
 - 18/11/2026: reconexão a toda hora corrigida no código (`67457a5`, renovação silenciosa; ver `docs/context/sources-drive.md` §8.x).
   NÃO TESTADO no aparelho.
 - Sintoma/reprodução: cadastrar/atualizar ROOT 1PwrGP2UiCNGhyhvhDUpszZZwFjfkjaw4 pode manter
