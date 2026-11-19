@@ -64,6 +64,7 @@ O projeto Cloud efetivo não pode ser identificado por um Client ID público ou 
 | Variant | `release`, `debuggable=false` |
 | Origem da chave | `android/app/debug.keystore`, `signingConfigs.debug` usado pelo release local atual |
 | SHA-1 do certificado do APK | `5E:8F:16:06:2E:A3:CD:2C:4A:0D:54:78:76:BA:A6:F3:8C:AB:F6:25` |
+| SHA-1 da chave do dono (APKs desde 19/11/2026) | `C8:DE:59:A3:E7:20:A6:F9:85:5B:6D:3D:D1:F5:FF:5F:80:D6:E2:78` — client Android "Aldus Reader - chave do dono (2026-11)" criado em 19/11/2026; app publicado "Em produção" sem verificação (limite vitalício de 100 usuários para o escopo restrito) |
 
 Fingerprint confirmado por `apksigner verify --print-certs` no APK `Aldus-eab97ee.apk`; repetir no novo APK. Não é prova da chave EAS, upload ou Play App Signing. Para esses canais, obter o certificado do artefato real/Play Console → App integrity e registrar Android clients correspondentes. Nenhuma senha de keystore deve constar no relatório.
 

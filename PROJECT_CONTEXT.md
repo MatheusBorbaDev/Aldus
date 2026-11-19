@@ -595,6 +595,22 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
   1ª tentativa `INSTALL_FAILED_USER_RESTRICTED` (confirmação na tela não aceita); 2ª `Success`: `com.aldus.reader` versionCode 10,
   assinatura `b4d3d601` = hash Java do certificado `A8:EE:8E…0F:4A`. VALIDADO só a instalação; app não aberto/testado por mim. Falha do
   download pelo navegador sem causa: ver BUGS_ATUAIS "INSTALAÇÃO 01".
+- Dono pediu voltar ao topo ao tocar na aba Biblioteca: `357ad9a` (`useScrollToTop` do expo-router na FlatList; teste e item na lista
+  de entrega). NÃO FUNCIONA no Redmi: log de diagnóstico mostrou `tabPress` com tela em foco e ref da lista com `scrollToOffset`, mas a
+  lista não sobe. Diagnóstico 2 (rolagem direta) gerado, não lido. PENDENTE com aparelho. Achado nos testes gerais: conteúdo das abas
+  Biblioteca e Conta passa por baixo da barra de status ao rolar (não corrigido).
+- Dono: "troca essa aba descobrir pelo catalogo estilo netflix ... randomizer de indicação e remove ... gutendex biblion e mec livros".
+  `0f63171`: aba Descobrir = vitrine do catálogo (`CatalogScreen tab`), "Sortear um livro" (`pickSurprise`: só livros já baixados no
+  aparelho, nunca um que a pessoa tem, evita repetir, metade do "Para você" quando há afinidade; sem candidatos carrega uma fileira fixa),
+  "Suas fontes" no fim; Gutendex/Gutenberg/BNDigital/BibliON/MEC saíram da aba, do menu Adicionar e da Conta (rotas antigas ficam no
+  código). critical 144/144, export, `--dist` 57. APK gerado, NÃO instalado. Política de privacidade §4 ainda cita Gutendex/BibliON/MEC:
+  atualizar (texto legal → mostrar ao dono).
+- Drive "consulta não identificada": client Android estava com SHA-1 da chave de debug. Com "faz essas coisas" do dono: criado client
+  Android "Aldus Reader - chave do dono (2026-11)" (`com.aldus.reader`, SHA-1 `C8:DE:59…E2:78`) no projeto `coral-antonym-393317`; os
+  clients antigos (`BC:6B:12…61:96` "Beta - assinatura privada" e o debug) mantidos. App estava "Testando" (3 usuários de teste); com
+  "Pode publicar": branding salvo (nome "Aldus Reader", página inicial, `/legal/privacy`, `/legal/terms`, domínios `supabase.co` do
+  projeto e `kindle-reader-two.vercel.app`, sem logotipo) e app enviado para "Em produção" sem verificação: tela de app não verificado
+  no Drive e limite vitalício de 100 usuários (3 usados). NÃO TESTADO: Drive e login Google com conta fora da lista no aparelho.
 
 ### 17/11/2026 — Revisão para as betas públicas: dependências, banco, hospedagem (Claude)
 - Pedido do dono: ajustar dependências e configurações (banco, hospedagem etc.) e revisar o necessário para iniciar o plano das betas públicas.
