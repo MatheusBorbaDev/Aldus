@@ -122,7 +122,21 @@ const noWait = () => new RequestSpacer(0);
   assert.deepEqual(ordered.map(book => book.title), ['Português', 'English', 'Español'], 'Portuguese editions first, Google order kept otherwise');
   const gbParams = new URL(gbUrls[0]).searchParams;
   assert.equal(gbParams.get('q'), 'percy jackson'); assert.equal(gbParams.get('key'), 'PUBLIC-KEY'); assert.equal(gbParams.get('printType'), 'books');
-  await gb.search('85-359-0277-5'); assert.equal(new URL(gbUrls[1]).searchParams.get('q'), 'isbn:9788535902778', 'ISBN search by isbn:');
+  assert.equal(gbParams.get('langRestrict'), 'pt', 'Portuguese editions are asked first');
+  assert.equal(gbUrls.length, 2, 'few Portuguese results: a second, unrestricted request completes the list'); assert.equal(new URL(gbUrls[1]).searchParams.get('langRestrict'), null);
+  assert.equal(found.filter(book => book.id === 'gb:abcDEF123456').length, 1, 'the same volume from both requests appears once');
+  await gb.search('85-359-0277-5'); assert.equal(gbUrls.length, 3, 'ISBN: one request, no language filter'); assert.equal(new URL(gbUrls[2]).searchParams.get('q'), 'isbn:9788535902778', 'ISBN search by isbn:'); assert.equal(new URL(gbUrls[2]).searchParams.get('langRestrict'), null);
+  const manyPt = { items: Array.from({ length: 8 }, (_, i) => ({ id: 'ptPT0000000' + i, volumeInfo: { title: 'Livro ' + i, language: 'pt-BR' } })) }; const ptUrls = [];
+  await new GoogleBooksSource(async url => { ptUrls.push(url); return json(manyPt); }, 'K').search('livro'); assert.equal(ptUrls.length, 1, 'enough Portuguese editions: no second request (saves quota)');
+  // Título digitado em inglês: nada em português nas duas buscas → procura os livros em português do mesmo autor (a edição brasileira).
+  const enOnly = { items: [{ id: 'enFAULT00001', volumeInfo: { title: 'The Fault in Our Stars', authors: ['John Green'], language: 'en' } }] };
+  const byAuthor = { items: [{ id: 'ptCULPA00001', volumeInfo: { title: 'A Culpa é das Estrelas', authors: ['John Green'], language: 'pt-BR', description: 'Hazel foi diagnosticada com câncer aos treze anos.' } }, { id: 'enOTHER00001', volumeInfo: { title: 'Paper Towns', authors: ['John Green'], language: 'en' } }] };
+  const authorUrls = [];
+  const fault = await new GoogleBooksSource(async url => { authorUrls.push(url); return json(new URL(url).searchParams.get('q').startsWith('inauthor:') ? byAuthor : enOnly); }, 'K').search('the fault in our stars');
+  assert.equal(new URL(authorUrls.at(-1)).searchParams.get('q'), 'inauthor:"John Green"', 'author of the top result'); assert.equal(new URL(authorUrls.at(-1)).searchParams.get('langRestrict'), 'pt');
+  assert.deepEqual(fault.map(book => book.title), ['A Culpa é das Estrelas', 'The Fault in Our Stars'], 'Brazilian edition first; English books from the author search are not added');
+  const ptFound = []; await new GoogleBooksSource(async url => { ptFound.push(url); return json(byAuthor); }, 'K').search('a culpa');
+  assert.ok(ptFound.every(url => !new URL(url).searchParams.get('q').startsWith('inauthor:')), 'with a Portuguese result, no author search');
   await assert.rejects(new GoogleBooksSource(async () => json({}, 429), 'K').search('x y'), e => /muitas buscas/.test(e.message));
   assert.equal(parseCatalogBook({ ...percy, coverUrl: 'https://books.google.com/books/content?id=abc&evil=1' }).coverUrl, null, 'only the rebuilt Google cover is accepted');
   // Google first, Open Library second: the same work in both is merged, keeping the Brazilian edition's data.

@@ -212,7 +212,8 @@ function CatalogBookSheet({ book, inLibrary, onClose, onAdded, linkTarget, onLin
             {message ? <AppText variant="bodySmall" accessibilityRole="alert">{message}</AppText> : null}
             {facts.length ? <View style={{ gap: 2 }}>{facts.map(fact => <AppText key={fact} variant="bodySmall" tone="secondary">{fact}</AppText>)}</View> : null}
             {book.categories.length ? <View style={styles.chips}>{book.categories.map(c => <View key={c} style={[styles.tag, { borderColor: palette.border }]}><AppText variant="caption">{ALDUS_CATEGORIES[c]}</AppText></View>)}</View> : null}
-            {book.subjects.length ? <AppText variant="caption" tone="secondary" numberOfLines={3}>{`Assuntos: ${book.subjects.slice(0, 8).join(" · ")}`}</AppText> : null}
+            {/* Os assuntos vêm em inglês das fontes; com categorias do Aldus (em português) já na ficha, eles não aparecem (19/11). */}
+            {book.subjects.length && !book.categories.length ? <AppText variant="caption" tone="secondary" numberOfLines={3}>{`Assuntos: ${book.subjects.slice(0, 8).join(" · ")}`}</AppText> : null}
             {book.description ? <View style={{ gap: 4 }}>
               <AppText variant="label" accessibilityRole="header">Sinopse</AppText>
               <AppText variant="bodySmall" tone="secondary">{book.description}</AppText>

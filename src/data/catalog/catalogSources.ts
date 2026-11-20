@@ -88,11 +88,27 @@ export class GoogleBooksSource implements MetadataSource {
   constructor(private readonly fetcher: Fetch, private readonly apiKey: string, private readonly headers: Record<string, string> = { Accept: "application/json" }) {}
   async search(query: string, signal?: AbortSignal): Promise<CatalogBook[]> {
     const isbn = normalizeIsbn(query);
-    const params = new URLSearchParams({ q: isbn ? `isbn:${isbn}` : query, maxResults: "20", printType: "books", fields: GB_FIELDS, key: this.apiKey });
-    const body = await getJson(this.fetcher, `https://www.googleapis.com/books/v1/volumes?${params}`, signal, this.headers, 15000) as { items?: unknown };
-    const items = Array.isArray(body?.items) ? body.items : [];
+    const request = async (portuguese: boolean, q = isbn ? `isbn:${isbn}` : query) => {
+      const params = new URLSearchParams({ q, maxResults: "20", printType: "books", fields: GB_FIELDS, key: this.apiKey, ...(portuguese ? { langRestrict: "pt" } : {}) });
+      const body = await getJson(this.fetcher, `https://www.googleapis.com/books/v1/volumes?${params}`, signal, this.headers, 15000) as { items?: unknown };
+      return Array.isArray(body?.items) ? body.items : [];
+    };
+    const idOf = (item: unknown) => (item as { id?: unknown }).id;
+    const infoOf = (item: unknown) => (item as { volumeInfo?: { language?: unknown; authors?: unknown } }).volumeInfo;
+    const add = (list: unknown[], more: unknown[]) => { const seen = new Set(list.map(idOf)); return [...list, ...more.filter(item => !seen.has(idOf(item)))]; };
+    // 19/11 (dono: "ta em ingreis, tem que traduzir"; escolheu "achar a edição brasileira"): primeiro as edições em português; com
+    // poucas, a busca sem restrição completa a lista. Se mesmo assim nada vier em português (título digitado em inglês), procura os
+    // livros em português do mesmo autor, onde costuma estar a edição brasileira ("A culpa é das estrelas"). Só o nome do autor,
+    // vindo do próprio resultado, vai nessa busca extra.
+    let items = isbn ? [] : await request(true);
+    if (items.length < 8) items = add(items, await request(false));
+    const portuguese = (item: unknown) => { const language = infoOf(item)?.language; return typeof language === "string" && /^pt/i.test(language); };
+    const author = Array.isArray(infoOf(items[0])?.authors) ? (infoOf(items[0])!.authors as unknown[])[0] : null;
+    if (!isbn && items.length && !items.some(portuguese) && typeof author === "string" && author.trim() && !/["\\]/.test(author)) {
+      items = add(items, (await request(true, `inauthor:"${author.trim().slice(0, 80)}"`)).filter(portuguese));
+    }
     const books: CatalogBook[] = [];
-    for (const raw of items.slice(0, 20)) {
+    for (const raw of items.slice(0, 30)) {
       const item = raw as { id?: unknown; volumeInfo?: Record<string, unknown> };
       const id = typeof item.id === "string" && /^[\w-]{6,20}$/.test(item.id) ? item.id : null;
       const info = item.volumeInfo;
