@@ -640,6 +640,15 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
   incluída (não confirmada). Entrega padrão v12: `afc3ea8`, APK `Aldus-afc3ea8.apk` (SHA-256 `649432437765853b…`, chave do dono,
   `verify --apk` 62) em `G:\Meu Drive\Aldus APK\Aldus-1.0.0-beta.2-12-afc3ea8.apk`; push `ea82975..afc3ea8`; Vercel READY, bundle no
   ar com as frases e a busca da edição brasileira. critical 144/144 antes do bump. NÃO TESTADO em aparelho.
+- 20/11, relatos do dono no celular: (1) busca no livro "apenas diz que o trecho foi encontrado, mas não leva até ele" → `239a298`:
+  achou, o painel fecha (o documento já tem o livro inteiro e `window.find` vira a página; o painel cobria) e repetir a busca vai à
+  próxima ocorrência (contador até os leitores nativo e Web); teste `reader-search` na matriz (145). (2) "ficou muito escondido o
+  drive" → `36979f0`: Suas fontes antes das fileiras. (3) "não está puxando livros que estão fora de subpastas" → livros soltos na raiz
+  já entravam (teste `root-book`); causa provável = os arquivos são atalhos (livros compartilhados), que eram ignorados (limitação do
+  BUG 03). `1869411`: atalho para PDF/EPUB entra como o livro de destino na pasta do atalho; o download confere que o atalho continua
+  na pasta e aponta para o arquivo. Causa NÃO confirmada no Drive do dono. Entrega v13: `98fcec0`, APK `Aldus-98fcec0.apk` (SHA-256
+  `147ef553304d845c…`, chave do dono, `verify --apk` 64) em `G:\Meu Drive\Aldus APK\Aldus-1.0.0-beta.2-13-98fcec0.apk`; push
+  `5b3408f..98fcec0`; Vercel READY. NÃO TESTADO em aparelho.
 
 ### 17/11/2026 — Revisão para as betas públicas: dependências, banco, hospedagem (Claude)
 - Pedido do dono: ajustar dependências e configurações (banco, hospedagem etc.) e revisar o necessário para iniciar o plano das betas públicas.
