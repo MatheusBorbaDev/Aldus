@@ -631,6 +631,15 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
   `EXPO_PUBLIC_GOOGLE_BOOKS_API_KEY` (Production, config) adicionada pela CLI com o valor vindo do `.env.local` (dono: "2", liberou o
   comando); deploy de produção READY, rotas `/`, `/legal/privacy`, `/catalog` 200; bundle no ar com Google Books, sorteio, calendário
   e textos 0.12. NÃO TESTADO: v11 em aparelho e o catálogo com Google Books no site por uma pessoa logada.
+- Dono (print da ficha em inglês de "The Fault in Our Stars"): "ta em ingreis, tem que traduzir" e mais frases de abertura sorteadas.
+  Escolheu "achar a edição brasileira" (sem tradução automática). `914d45c`: Google Books pede `langRestrict=pt` primeiro, completa sem
+  restrição se vierem menos de 8, e, se nada vier em português, busca `inauthor:"<autor do 1º resultado>"` em português (busca real:
+  traz "A Culpa é das Estrelas"); "Assuntos" (em inglês) somem quando há categoria em português. Limite: livro sem edição brasileira
+  continua em inglês. `2150e32`: 8 frases de autores em domínio público (Castro Alves ×2, Machado, Pessoa ×2, Bilac, Gonçalves Dias,
+  Camões), uma sorteada por abertura; a 2ª estrofe de Castro Alves conferida no PDF de Espumas Flutuantes; frase de Pessoa sobre ler NÃO
+  incluída (não confirmada). Entrega padrão v12: `afc3ea8`, APK `Aldus-afc3ea8.apk` (SHA-256 `649432437765853b…`, chave do dono,
+  `verify --apk` 62) em `G:\Meu Drive\Aldus APK\Aldus-1.0.0-beta.2-12-afc3ea8.apk`; push `ea82975..afc3ea8`; Vercel READY, bundle no
+  ar com as frases e a busca da edição brasileira. critical 144/144 antes do bump. NÃO TESTADO em aparelho.
 
 ### 17/11/2026 — Revisão para as betas públicas: dependências, banco, hospedagem (Claude)
 - Pedido do dono: ajustar dependências e configurações (banco, hospedagem etc.) e revisar o necessário para iniciar o plano das betas públicas.
