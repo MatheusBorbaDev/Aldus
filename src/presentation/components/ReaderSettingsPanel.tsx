@@ -221,7 +221,7 @@ export function ReaderSettingsPanel({
                 <ActionButton label="Buscar" onPress={() => onSearch?.()} palette={palette} />
               </View>
               {searchResult !== null && searchResult !== undefined ? (
-                <Text style={[styles.hint, { color: palette.secondaryText }]}>{searchResult ? "Trecho encontrado" : "Nenhum resultado"}</Text>
+                <Text style={[styles.hint, { color: palette.secondaryText }]}>{searchResult ? "Trecho encontrado. Busque de novo para ir ao próximo." : "Nenhum resultado"}</Text>
               ) : null}
             </>
           ) : null}

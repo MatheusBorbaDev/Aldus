@@ -2,7 +2,7 @@
 const { spawnSync } = require('node:child_process');
 const tests = [
   'bundled-catalog', 'legacy-reattach',
-  'app-design', 'ui-primitives', 'discover-ui', 'error-boundary', 'source-presentation', 'preference-persistence', 'book-display', 'study-review', 'highlight-flashcard', 'reading-shelves', 'reader-theme-auto', 'review-history', 'first-steps', 'release-notes', 'native-brightness', 'reader-last-page', 'epub-language', 'reading-pace', 'read-aloud', 'review-reminder', 'open-with', 'pdfjs-lazy',
+  'app-design', 'ui-primitives', 'discover-ui', 'reader-search', 'error-boundary', 'source-presentation', 'preference-persistence', 'book-display', 'study-review', 'highlight-flashcard', 'reading-shelves', 'reader-theme-auto', 'review-history', 'first-steps', 'release-notes', 'native-brightness', 'reader-last-page', 'epub-language', 'reading-pace', 'read-aloud', 'review-reminder', 'open-with', 'pdfjs-lazy',
   'library-bulk',
   'beta-preparation', 'signing-key', 'metro-test-isolation', 'pt-br', 'marketing', 'cinematic-book', 'book-scroll-controller', 'admin-security', 'admin-client', 'admin-presentation', 'admin-layout',
   'saas-quotas', 'saas-quota-client', 'saas-quota-driver',

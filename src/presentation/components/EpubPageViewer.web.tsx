@@ -21,6 +21,7 @@ function EpubPageViewerComponent({
   alignment,
   allowTextSelection,
   searchTerm,
+  searchNonce,
   onSearchResult,
   textColor,
   backgroundColor,
@@ -196,7 +197,7 @@ function EpubPageViewerComponent({
       console.log(`[FORENSIC:EpubPageViewer:postMessage] t=${performance.timeOrigin + performance.now()} effect -> iframe search`);
       frame.current?.contentWindow?.postMessage({ type: "search", query: searchTerm }, "*");
     }
-  }, [searchTerm]);
+  }, [searchTerm, searchNonce]);
 
   // Update typography dynamically without reloading iframe
   useEffect(() => {

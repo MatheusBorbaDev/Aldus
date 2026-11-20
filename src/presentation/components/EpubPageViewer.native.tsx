@@ -22,6 +22,7 @@ export function EpubPageViewer({
   alignment,
   allowTextSelection,
   searchTerm,
+  searchNonce,
   onSearchResult,
   textColor,
   backgroundColor,
@@ -112,7 +113,7 @@ export function EpubPageViewer({
     if (loaded && searchTerm) {
       webView.current?.injectJavaScript(`window.searchText && window.searchText(${JSON.stringify(searchTerm)}); true;`);
     }
-  }, [loaded, searchTerm]);
+  }, [loaded, searchTerm, searchNonce]);
 
   // Update typography dynamically without reloading WebView
   useEffect(() => {

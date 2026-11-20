@@ -44,6 +44,8 @@ export interface EpubPageViewerProps {
   alignment?: "left" | "justify";
   allowTextSelection?: boolean;
   searchTerm?: string;
+  /** Muda a cada pedido de busca: buscar o mesmo termo de novo vai para a ocorrência seguinte (19/11/2026). */
+  searchNonce?: number;
   onSearchResult?: (found: boolean) => void;
   textColor: string;
   backgroundColor: string;

@@ -234,7 +234,7 @@ export function ReaderScreen({ bookId }: Props) {
   const [epubChapterIndex, setEpubChapterIndex] = useState(0);
   const [chapterLocations, setChapterLocations] = useState<NonNullable<EpubPageInfo["chapterLocations"]>>([]);
   const [bookSearchText, setBookSearchText] = useState("");
-  const [bookSearchTerm, setBookSearchTerm] = useState("");
+  const [bookSearchTerm, setBookSearchTerm] = useState(""), [bookSearchNonce, setBookSearchNonce] = useState(0);
   const [bookSearchResult, setBookSearchResult] = useState<boolean | null>(null);
   const [bookError, setBookError] = useState<string | null>(null);
   const initialPdfProgress = useRef(0);
@@ -990,11 +990,15 @@ export function ReaderScreen({ bookId }: Props) {
     if (!term) return;
     setBookSearchResult(null);
     setBookSearchTerm(term);
+    setBookSearchNonce(value => value + 1);
   }, [bookSearchText]);
 
+  // 19/11/2026 (dono: "apenas diz que o trecho foi encontrado, mas não leva até ele"): achou → fecha o painel e mostra a página com o
+  // trecho selecionado; buscar de novo o mesmo termo leva à ocorrência seguinte.
   const handleBookSearchResult = useCallback((found: boolean) => {
     setBookSearchResult(found);
-  }, []);
+    if (found) { setReaderPanel(null); setControlsVisible(false); }
+  }, [setControlsVisible]);
 
   const navigateToReaderChapter = (chapterIndex: number) => {
     const location = chapterLocations.find((item) => item.chapterIndex === chapterIndex);
@@ -1100,6 +1104,7 @@ export function ReaderScreen({ bookId }: Props) {
         pdfReadingMode={pdfReadingMode}
         pdfReflowChapters={pdfReflowChapters}
         searchTerm={isEpub || isReflowPdf ? bookSearchTerm : ""}
+        searchNonce={bookSearchNonce}
         onSearchResult={handleBookSearchResult}
         epubPage={epubPage}
         initialRestorePending={(isEpub || isReflowPdf) && reflowRestoreState !== "inactive"}

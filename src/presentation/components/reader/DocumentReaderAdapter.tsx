@@ -27,6 +27,7 @@ export interface DocumentReaderAdapterProps {
   pdfReadingMode: PdfReadingMode;
   pdfReflowChapters: StoredChapter[];
   searchTerm: string;
+  searchNonce?: number;
   onSearchResult: (found: boolean) => void;
   epubPage: number;
   initialRestorePending?: boolean;
@@ -84,6 +85,7 @@ export function DocumentReaderAdapter({
   pdfReadingMode,
   pdfReflowChapters,
   searchTerm,
+  searchNonce,
   onSearchResult,
   epubPage,
   initialRestorePending,
@@ -192,6 +194,7 @@ export function DocumentReaderAdapter({
             alignment={settings.alignment}
             allowTextSelection={settings.allowTextSelection}
             searchTerm={searchTerm}
+            searchNonce={searchNonce}
             onSearchResult={onSearchResult}
             textColor={settings.palette.text}
             backgroundColor={settings.palette.background}
