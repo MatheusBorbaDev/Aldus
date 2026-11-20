@@ -20,6 +20,7 @@ const rootId = 'root_123456789', source = { id: 'tree-source', name: 'Teste', ki
 const folder = (id, name) => ({ id, name, mimeType: FOLDER, modifiedTime: '2026-10-12T12:00:00Z' });
 const book = (id, name) => ({ id, name, mimeType: name.endsWith('.pdf') ? 'application/pdf' : 'application/epub+zip', size: '1234', capabilities: { canDownload: true } });
 const shortcut = (id, name, targetId, targetResourceKey) => ({ id, name, mimeType: SHORTCUT, shortcutDetails: { targetId, targetMimeType: FOLDER, targetResourceKey } });
+const fileShortcut = (id, name, targetId, targetMimeType, targetResourceKey) => ({ id, name, mimeType: SHORTCUT, modifiedTime: '2026-01-30T12:00:00Z', shortcutDetails: { targetId, targetMimeType, targetResourceKey } });
 const response = body => new Response(JSON.stringify(body), { headers: { 'Content-Type': 'application/json' } });
 (async () => {
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'aldus-drive-tree-')), databaseFile = path.join(directory, 'tree.sqlite');
@@ -32,14 +33,15 @@ const response = body => new Response(JSON.stringify(body), { headers: { 'Conten
     const { SourceCatalogService, querySourceCatalog } = load('src/data/sources/SourceCatalogService.ts');
     const { sourceFolderTrail, sourceFolderContents, enterSourceFolder, sourceFolderRoute, sourceTreeIndex } = load('src/domain/sources/sourceTree.ts');
     let tree = {
-      [rootId]: [folder('a', 'Pasta A'), folder('c', 'Pasta C'), book('root-book', 'Livro Root.epub'), folder('same1', 'Mesmo nome'), folder('same2', 'Mesmo nome'), shortcut('alias1', 'Biblioteca emprestada', 'external', 'target_key'), shortcut('alias2', 'Outro atalho', 'external', 'target_key')],
+      [rootId]: [folder('a', 'Pasta A'), folder('c', 'Pasta C'), book('root-book', 'Livro Root.epub'), folder('same1', 'Mesmo nome'), folder('same2', 'Mesmo nome'), shortcut('alias1', 'Biblioteca emprestada', 'external', 'target_key'), shortcut('alias2', 'Outro atalho', 'external', 'target_key'),
+        fileShortcut('sc-pdf', 'Quarta Asa - Rebecca Yarros.pdf', 'shared-pdf', 'application/pdf', 'pdf_key'), fileShortcut('sc-doc', 'Anotações', 'shared-doc', 'application/vnd.google-apps.document'), fileShortcut('sc-bad', 'Atalho quebrado.pdf', '../x', 'application/pdf')],
       a: [folder('b', 'Pasta B'), book('a-book', 'Livro A.pdf')],
       b: [book('dom', 'Dom Casmurro.epub'), shortcut('cycle', 'Voltar à raiz', rootId)],
       c: [book('sociedade', 'Sociedade do Espetáculo.pdf')],
       same1: [book('brascubas', 'Memórias Póstumas de Brás Cubas.epub')], same2: [],
       external: [book('revolucao', 'A Revolução dos Bichos.epub'), shortcut('alias-b', 'Clássicos emprestados', 'b')],
     };
-    let failFolder = null, movedOutside = false;
+    let failFolder = null, movedOutside = false, shortcutMoved = false;
     const calls = [], metadataVisits = new Map();
     const auth = new DriveAuthorization({ authorize: async () => ({ accessToken: 'fixture-only', expiresAt: Date.now() + 3600000 }) });
     await auth.connect(source.id);
@@ -47,6 +49,8 @@ const response = body => new Response(JSON.stringify(body), { headers: { 'Conten
       const url = new URL(raw); calls.push(url); assert.equal(options.headers.Authorization, 'Bearer fixture-only');
       assert.equal(url.searchParams.get('alt'), null, 'Indexing/acquisition resolver does not download media');
       if (url.pathname.endsWith('/dom')) return response({ id: 'dom', capabilities: { canDownload: true }, parents: [movedOutside ? 'outside-unreachable' : 'b'] });
+      if (url.pathname.endsWith('/shared-pdf')) { assert.equal(options.headers['X-Goog-Drive-Resource-Keys'], 'shared-pdf/pdf_key'); return response({ id: 'shared-pdf', capabilities: { canDownload: true }, parents: ['someone-elses-folder'] }); }
+      if (url.pathname.endsWith('/sc-pdf')) return response({ id: 'sc-pdf', parents: [shortcutMoved ? 'elsewhere' : rootId], shortcutDetails: { targetId: 'shared-pdf' } });
       if (!url.searchParams.has('q')) {
         const id = decodeURIComponent(url.pathname.split('/').at(-1)); assert.ok(id in tree, 'Never visit an unreached area or root ancestor: ' + id);
         metadataVisits.set(id, (metadataVisits.get(id) ?? 0) + 1);
@@ -65,13 +69,23 @@ const response = body => new Response(JSON.stringify(body), { headers: { 'Conten
     const adapter = { list: (source, signal) => drive.list(source, signal, true), catalog: (source, signal) => drive.listCatalog(source, signal, true), authorizationRequired: () => !auth.connected(source.id) };
     let catalogs = new SourceCatalogService(repository, adapter, async () => source);
     await catalogs.refresh(source); let snapshot = catalogs.view(source.id).catalog;
-    assert.ok(snapshot); assert.equal(snapshot.schemaVersion, 2); assert.equal(snapshot.rootFolderId, rootId); assert.equal(snapshot.items.length, 6);
+    assert.ok(snapshot); assert.equal(snapshot.schemaVersion, 2); assert.equal(snapshot.rootFolderId, rootId); assert.equal(snapshot.items.length, 7);
+    // 20/11 (dono: "não está puxando livros que estão fora de subpastas"): atalho para PDF/EPUB compartilhado entra como o livro de
+    // destino, na pasta onde está o atalho; atalho para documento do Google ou com destino inválido fica de fora sem derrubar a indexação.
+    const linked = snapshot.items.find(item => item.remoteBookId === 'shared-pdf');
+    assert.ok(linked, 'file shortcut to a PDF is indexed'); assert.equal(linked.parentFolderId, rootId); assert.equal(linked.relativeFolderPath, '');
+    assert.equal(linked.drive.fileId, 'shared-pdf'); assert.equal(linked.drive.resourceKey, 'pdf_key'); assert.equal(linked.format, 'pdf'); assert.equal(linked.title, 'Quarta Asa - Rebecca Yarros.pdf');
+    assert.equal(linked.estimatedSize, null, 'no size invented for a shortcut'); assert.equal(linked.availability, 'available');
+    assert.ok(!snapshot.items.some(item => ['shared-doc', 'sc-doc', 'sc-bad', '../x'].includes(item.remoteBookId)), 'Google Docs and invalid targets are skipped');
+    const viaShortcut = await drive.downloadRequest(source, 'shared-pdf');
+    assert.ok(viaShortcut.url.endsWith('/shared-pdf?alt=media'), 'downloads the target file'); assert.equal(viaShortcut.headers['X-Goog-Drive-Resource-Keys'], 'shared-pdf/pdf_key');
+    shortcutMoved = true; await assert.rejects(drive.downloadRequest(source, 'shared-pdf'), error => error.code === 'not-found', 'shortcut no longer in the folder: refused'); shortcutMoved = false;
     assert.equal(snapshot.items.find(item => item.remoteBookId === 'dom').relativeFolderPath, 'Pasta A › Pasta B');
     assert.equal(snapshot.items.find(item => item.remoteBookId === 'dom').normalizedTitle, 'dom casmurro');
     assert.equal(snapshot.folders.filter(item => item.name === 'Mesmo nome').length, 2, 'Names are never identity');
     assert.ok([...metadataVisits.values()].every(count => count === 1), 'Visited actual folder IDs deduplicate aliases/cycles');
     let trail = sourceFolderTrail(snapshot, []), contents = sourceFolderContents(snapshot, trail.at(-1).remoteFolderId);
-    assert.deepEqual(contents.books.map(item => item.remoteBookId), ['root-book']); assert.ok(contents.folders.some(item => item.id === 'a')); assert.ok(contents.folders.some(item => item.id === 'c'));
+    assert.deepEqual(contents.books.map(item => item.remoteBookId), ['root-book', 'shared-pdf'], 'books loose in the chosen folder, including shortcuts, show at the root'); assert.ok(contents.folders.some(item => item.id === 'a')); assert.ok(contents.folders.some(item => item.id === 'c'));
     trail = sourceFolderTrail(snapshot, enterSourceFolder(trail, contents.folders.find(item => item.id === 'a')));
     contents = sourceFolderContents(snapshot, trail.at(-1).remoteFolderId); assert.deepEqual(contents.books.map(item => item.remoteBookId), ['a-book']); assert.equal(contents.folders[0].id, 'b');
     trail = sourceFolderTrail(snapshot, enterSourceFolder(trail, contents.folders[0]));
@@ -88,7 +102,7 @@ const response = body => new Response(JSON.stringify(body), { headers: { 'Conten
     assert.equal(querySourceCatalog(snapshot.items, 'Dom Casmuro', 'az')[0].remoteBookId, 'dom', 'Search also works while C is the current folder');
     assert.equal(sourceFolderTrail(snapshot, ['c']).at(-1).id, 'c'); assert.equal(calls.length, requestsBeforeSearch);
     assert.strictEqual(sourceTreeIndex(snapshot), index); assert.equal(index.searchFolders('emprestada')[0].id, 'alias1');
-    console.log('PASS ROOT/A/B navigation/back, source-wide fuzzy search/path, same-name IDs, external shortcuts/keys/shared Drive, alias and cycle deduplication; metadata only');
+    console.log('PASS root books and file shortcuts to PDF/EPUB; ROOT/A/B navigation/back, source-wide fuzzy search/path, same-name IDs, external shortcuts/keys/shared Drive, alias and cycle deduplication; metadata only');
     await catalogs.recordImport(source.id, 'dom', 'already-imported');
     const request = await drive.downloadRequest(source, 'dom'); assert.match(request.url, /dom\?alt=media/); assert.equal(request.headers.Authorization, 'Bearer fixture-only');
     movedOutside = true; await assert.rejects(drive.downloadRequest(source, 'dom'), error => error.code === 'not-found'); movedOutside = false;

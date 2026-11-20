@@ -4,7 +4,8 @@ export interface ScrapedLink {
   sourceId?: string;
   parentFolderId?: string;
   relativeFolderPath?: string;
-  drive?: { fileId: string; resourceKey?: string; modifiedTime?: string; canDownload?: boolean };
+  /** `shortcutId`: o livro entrou por um atalho de arquivo nesta pasta (só no índice em memória; o download confere o atalho). */
+  drive?: { fileId: string; resourceKey?: string; modifiedTime?: string; canDownload?: boolean; shortcutId?: string };
 	url: string;
 	title: string;
 	author?: string;

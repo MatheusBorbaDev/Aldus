@@ -231,15 +231,22 @@ export class GoogleDriveService {
             }
             continue;
           }
-          if (file.mimeType.startsWith("application/vnd.google-apps.")) continue;
-          const format = file.mimeType === "application/pdf" ? "pdf" : file.mimeType === "application/epub+zip" || file.mimeType === "application/epub" ? "epub" : /\.pdf$/i.test(file.name) ? "pdf" : /\.epub$/i.test(file.name) ? "epub" : null;
-          if (!format || books.has(file.id)) continue;
+          // 20/11/2026 (dono: "o Aldus não está puxando livros que estão fora de subpastas"): atalho para um arquivo EPUB/PDF (comum
+          // em livros compartilhados) entra como o livro de destino; o download usa o id e a chave do destino. Outros atalhos de
+          // arquivo e atalhos com destino inválido continuam fora, sem derrubar a indexação.
+          const linked = file.mimeType === SHORTCUT_MIME ? file.shortcutDetails : undefined;
+          const linkedBook = linked && /^application\/(?:pdf|epub\+zip|epub)$/.test(linked.targetMimeType ?? "") && /^[\w-]+$/.test(linked.targetId ?? "") ? linked : undefined;
+          if (file.mimeType === SHORTCUT_MIME && !linkedBook) continue;
+          if (!linkedBook && file.mimeType.startsWith("application/vnd.google-apps.")) continue;
+          const bookId = linkedBook ? linkedBook.targetId! : file.id, mimeType = linkedBook ? linkedBook.targetMimeType! : file.mimeType;
+          const format = mimeType === "application/pdf" ? "pdf" : mimeType === "application/epub+zip" || mimeType === "application/epub" ? "epub" : /\.pdf$/i.test(file.name) ? "pdf" : /\.epub$/i.test(file.name) ? "epub" : null;
+          if (!format || books.has(bookId)) continue;
           if (books.size >= 200000) throw new DriveError("api");
           const size = Number(file.size);
-          books.set(file.id, { url: `${API}/${encodeURIComponent(file.id)}?alt=media`, title: file.name,
-            format, estimatedSize: Number.isFinite(size) && size > 0 ? size : null, sourceSite: source.name,
+          books.set(bookId, { url: `${API}/${encodeURIComponent(bookId)}?alt=media`, title: file.name,
+            format, estimatedSize: !linkedBook && Number.isFinite(size) && size > 0 ? size : null, sourceSite: source.name,
             sourceId: source.id, parentFolderId: current.id, relativeFolderPath: current.relativePath,
-            drive: { fileId: file.id, resourceKey: file.resourceKey, modifiedTime: file.modifiedTime, canDownload: file.capabilities?.canDownload },
+            drive: { fileId: bookId, resourceKey: linkedBook ? linkedBook.targetResourceKey : file.resourceKey, modifiedTime: file.modifiedTime, canDownload: linkedBook ? undefined : file.capabilities?.canDownload, ...(linkedBook ? { shortcutId: file.id } : {}) },
           });
         }
         pageToken = page.nextPageToken;
@@ -266,7 +273,11 @@ export class GoogleDriveService {
     // Fresh metadata check distinguishes authorization/permission from an invalid book.
     const current = await this.json<DriveFile>(source.id, `${API}/${encodeURIComponent(fileId)}?fields=id,trashed,parents,capabilities(canDownload)&supportsAllDrives=true`, headers, signal);
     if (current.trashed) throw new DriveError("not-found");
-    if (current.parents && book.parentFolderId && !current.parents.includes(book.parentFolderId)) throw new DriveError("not-found");
+    if (book.drive.shortcutId) {
+      // Livro vindo de atalho: o destino mora fora da pasta; o que precisa continuar na pasta é o atalho, apontando para este arquivo.
+      const link = await this.json<DriveFile>(source.id, `${API}/${encodeURIComponent(book.drive.shortcutId)}?fields=id,trashed,parents,shortcutDetails(targetId)&supportsAllDrives=true`, resourceHeaders(book.drive.shortcutId), signal);
+      if (link.trashed || link.shortcutDetails?.targetId !== fileId || (link.parents && book.parentFolderId && !link.parents.includes(book.parentFolderId))) throw new DriveError("not-found");
+    } else if (current.parents && book.parentFolderId && !current.parents.includes(book.parentFolderId)) throw new DriveError("not-found");
     if (current.capabilities?.canDownload === false) throw new DriveError("permission");
     return { url: book.url, headers: { ...headers, Authorization: `Bearer ${this.authorization.token(source.id)}` } };
   }
