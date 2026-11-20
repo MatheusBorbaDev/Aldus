@@ -121,8 +121,9 @@ export function CatalogScreen({ tab = false }: { tab?: boolean } = {}) {
       </View> : null}
       {error ? <EmptyState icon="cloud-offline-outline" title="Catálogo indisponível" description={error}><Button label="Tentar de novo" onPress={() => last.current && run(last.current.text, last.current.heading)} /></EmptyState> : null}
       {!error && results && results.length === 0 ? <EmptyState icon="search-outline" title="Nenhum livro encontrado" description="Tente outro título, o sobrenome do autor ou o ISBN. Edições brasileiras recentes podem faltar nesta base." /> : null}
-      {!browsing ? <CatalogShelves library={library} organization={organization} onOpen={setSelected} onBrowse={browse} /> : null}
+      {/* 19/11 (dono: "ficou muito escondido o drive e só abre depois do catálogo carregado"): Suas fontes antes das fileiras. */}
       {tab && !browsing ? <YourSources /> : null}
+      {!browsing ? <CatalogShelves library={library} organization={organization} onOpen={setSelected} onBrowse={browse} /> : null}
       <View style={styles.list}>
         {(results ?? []).map(book => <CatalogRow key={book.id} book={book} inLibrary={libraryMatchesForCatalog(library, book.id).length > 0} onPress={() => setSelected(book)} />)}
       </View>

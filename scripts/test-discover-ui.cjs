@@ -83,6 +83,9 @@ const text = node => typeof node === 'string' ? node : (node.children ?? []).map
   assert.doesNotMatch(tabSource, /Gutendex|Gutenberg|BibliON|MEC|BNDigital|searchStore|downloadStore/, 'old catalogs and digital libraries removed from the tab');
   const settings = require('node:fs').readFileSync('src/presentation/screens/SettingsScreen.tsx', 'utf8');
   assert.doesNotMatch(settings, /BibliON e MEC Livros/, 'Conta no longer links to BibliON/MEC');
+  // 19/11 (dono: "ficou muito escondido o drive"): Suas fontes vêm antes das fileiras do catálogo, sem esperar que carreguem.
+  const catalogScreen = require('node:fs').readFileSync('src/presentation/screens/CatalogScreen.tsx', 'utf8');
+  assert.ok(catalogScreen.indexOf('<YourSources />') > 0 && catalogScreen.indexOf('<YourSources />') < catalogScreen.indexOf('<CatalogShelves'), 'Suas fontes before the shelves');
   await act(async () => view.unmount());
 
   // Suas fontes: only this account's sources, disabled ones say so, and every row/button goes where it should.

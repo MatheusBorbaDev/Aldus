@@ -41,6 +41,8 @@ const FEATURES = [
   { id: 'diary-calendar', pedido: '19/11: calendário de leitura com a capa no dia lido (privado, sem contadores)', markers: ['A capa aparece no dia em que você leu', 'Mostrar todos os dias', 'Mês anterior'] },
   { id: 'loading-quotes', pedido: '19/11: mais frases de domínio público, sorteadas a cada abertura do app', markers: ['Mar Português', 'Canção do Exílio', 'Língua Portuguesa'] },
   { id: 'catalog-portuguese-edition', pedido: '19/11: catálogo procura a edição brasileira (português primeiro, livros do mesmo autor em português)', markers: ['langRestrict', 'inauthor:'] },
+  { id: 'reader-search-goto', pedido: '20/11: a busca no livro leva até o trecho (painel fecha) e repetir vai ao próximo', markers: ['Busque de novo para ir ao próximo'] },
+  { id: 'drive-file-shortcuts', pedido: '20/11: livros do Drive que são atalhos (compartilhados) entram na fonte e baixam pelo destino', markers: ['shortcutId'] },
   { id: 'discover-catalog-tab', pedido: '19/11: aba Descobrir vira o catalogo (vitrine, Sortear um livro, Suas fontes); sem Gutendex/BibliON/MEC', markers: ['Sortear um livro', 'abrir seus arquivos por aqui', 'Calculado neste aparelho'] },
   { id: 'library-tab-scroll-top', pedido: '19/11: tocar na aba Biblioteca, já nela, volta ao início da lista', markers: ['library-book-list'] },
   { id: 'library-first-steps', pedido: 'Onda A5: primeiros passos', markers: ['Primeiros passos'] },
