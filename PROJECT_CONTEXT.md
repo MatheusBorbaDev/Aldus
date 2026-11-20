@@ -623,6 +623,14 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
   Observação para o dono: no vídeo, o Papel Amassado ligou `marx_biografia.pdf` (José Paulo Netto) a outro livro (Óscar René Cruz).
   Pendentes de decisão: Skoob (sem exportação oficial; só raspagem da estante pública) e leitor de ISBN pela câmera (dependência nativa,
   permissão CAMERA e texto de privacidade novos).
+- Dono: "3, ja sobe o app novo pra o drive, atualiza os commits para o github e o deploy no vercel, mantenha isso como padrão".
+  `b0ce4c2` versionCode 11 (critical 144/144). APK `artifacts/apk/Aldus-b0ce4c2.apk` (157.151.259 bytes, SHA-256 `3d3356e9f5699181…`),
+  `apksigner` chave do dono `a8ee8ec1…`, versionCode 11, `verify --apk` PASS (60), Google Books embutido; copiado para
+  `G:\Meu Drive\Aldus APK\Aldus-1.0.0-beta.2-11-b0ce4c2.apk` (hash igual). Push `7a8486e..b0ce4c2` em `matheusbitlab/Aldus` depois de
+  varrer segredos (o push comum trava na janela `git-credential-helper-selector`; enviado com o `gh` como credencial). Vercel: variável
+  `EXPO_PUBLIC_GOOGLE_BOOKS_API_KEY` (Production, config) adicionada pela CLI com o valor vindo do `.env.local` (dono: "2", liberou o
+  comando); deploy de produção READY, rotas `/`, `/legal/privacy`, `/catalog` 200; bundle no ar com Google Books, sorteio, calendário
+  e textos 0.12. NÃO TESTADO: v11 em aparelho e o catálogo com Google Books no site por uma pessoa logada.
 
 ### 17/11/2026 — Revisão para as betas públicas: dependências, banco, hospedagem (Claude)
 - Pedido do dono: ajustar dependências e configurações (banco, hospedagem etc.) e revisar o necessário para iniciar o plano das betas públicas.
