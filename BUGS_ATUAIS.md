@@ -444,7 +444,8 @@ e 7f50a90^:DIAGNOSTICO_BUGS_APK.md. Não restaurar esses arquivos como contexto.
 - Prioridade: ALTA. Status: IMPLEMENTADO / VALIDAÇÃO ANDROID PENDENTE.
 - 20/11/2026: dono relata livros soltos na pasta da fonte que não aparecem. Atalhos para arquivos deixaram de ser limitação: `1869411`
   indexa atalho para PDF/EPUB como o livro de destino (download confere o atalho). Se os livros da raiz NÃO forem atalhos, a causa segue
-  aberta (o teste com livro solto na raiz passa) e precisa do log do aparelho.
+  aberta (o teste com livro solto na raiz passa) e precisa do log do aparelho. Mesmo dia: o dono confirmou que os livros soltos NÃO têm a
+  seta de atalho, então a causa segue ABERTA e não é atalho.
 - 19/11/2026: dono relata no APK assinado com a chave própria (v10) "Não foi possível concluir a consulta ao Drive. A causa não foi
   identificada" (código `api`). Causa provável CONFIRMADA na configuração, não no aparelho: `GOOGLE_AUTH_DRIVE_DEPLOYMENT.md` registra o
   client Android com SHA-1 `5E:8F:16:06:…:F6:25` (debug.keystore público), e o APK agora é assinado com a chave do dono, SHA-1

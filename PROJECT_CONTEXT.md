@@ -649,6 +649,16 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
   na pasta e aponta para o arquivo. Causa NÃO confirmada no Drive do dono. Entrega v13: `98fcec0`, APK `Aldus-98fcec0.apk` (SHA-256
   `147ef553304d845c…`, chave do dono, `verify --apk` 64) em `G:\Meu Drive\Aldus APK\Aldus-1.0.0-beta.2-13-98fcec0.apk`; push
   `5b3408f..98fcec0`; Vercel READY. NÃO TESTADO em aparelho.
+- 20/11, Note 14 no cabo (v10 instalada): "não consigo grifar" "Diante" (1ª linha) nem nada no topo/rodapé em Virar páginas. Evidência
+  (screenrecord + `getevent` do touchscreen; `input` é bloqueado por INJECT_EVENTS no Xiaomi): toque longo em (146,350)/2400 sem
+  nenhuma reação; "febre" no meio da tela grifava. Causa conferida no código: `ReadingTouchZones` cobre só 20%–80% da altura e é o
+  único que reconhecia o toque longo em Virar páginas; fora da faixa o toque chega ao documento, cujo `pointerdown` só tratava a
+  rolagem. `bde5db4`: o documento envia `longPress` nos dois modos (toque simples segue só na rolagem); `test-reader-browser` falha
+  com a linha antiga e passa com a nova; recurso `reader-paged-longpress-edges` (65). critical 145/145. v14 `38c9cfb` instalada no
+  Note 14 por USB; o dono relatou "deu certo, está funcionando" (VALIDADO pelo dono no Note 14; lateral sem evidência própria minha).
+  Entrega: APK `G:\Meu Drive\Aldus APK\Aldus-1.0.0-beta.2-14-38c9cfb.apk` (SHA-256 `f59ad9b87fbbc7d3…`, chave do dono, `verify --apk`
+  65); push `a6aab63..38c9cfb`; Vercel READY com o marcador no bundle. Drive: o dono confirmou que os livros soltos NÃO são atalhos,
+  então a causa de "não puxa livros fora de subpastas" segue ABERTA (precisa de log no aparelho).
 
 ### 17/11/2026 — Revisão para as betas públicas: dependências, banco, hospedagem (Claude)
 - Pedido do dono: ajustar dependências e configurações (banco, hospedagem etc.) e revisar o necessário para iniciar o plano das betas públicas.
