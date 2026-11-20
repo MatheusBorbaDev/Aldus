@@ -17,7 +17,7 @@ const load = require('./community-test-loader.cjs')({
 const { ReleaseNotesModal } = load('src/presentation/components/ReleaseNotesModal.tsx');
 const { RELEASE_NOTES, RELEASE_NOTES_SEEN_KEY, shouldShowReleaseNotes } = load('src/domain/brand/releaseNotes.ts');
 const { betaLimitationsDocument } = load('src/legal/betaLimitations.ts');
-const { AppLoadingScreen, LOADING_QUOTE } = load('src/presentation/components/AppLoadingScreen.tsx');
+const { AppLoadingScreen, LOADING_QUOTE, LOADING_QUOTES, pickLoadingQuote } = load('src/presentation/components/AppLoadingScreen.tsx');
 const text = node => typeof node === 'string' ? node : (node.children ?? []).map(text).join('');
 const flush = () => act(async () => { for (let i = 0; i < 5; i++) await Promise.resolve(); });
 
@@ -61,7 +61,13 @@ const flush = () => act(async () => { for (let i = 0; i < 5; i++) await Promise.
   await act(async () => { tree = create(React.createElement(AppLoadingScreen)); });
   const loading = text(tree.root);
   for (const line of LOADING_QUOTE.lines) assert.ok(loading.includes(line));
-  assert.ok(loading.includes('Castro Alves · O livro e a América'));
+  assert.ok(loading.includes(`${LOADING_QUOTE.author} · ${LOADING_QUOTE.source}`), 'the drawn quote is credited');
+  // 19/11 (dono: "busca mais algumas, pra ir randomizando"): várias frases, todas com autor e obra, sorteadas uma vez por abertura.
+  assert.ok(LOADING_QUOTES.length >= 6, 'several quotes'); assert.ok(LOADING_QUOTES.includes(LOADING_QUOTE), 'the shown quote comes from the list');
+  for (const quote of LOADING_QUOTES) { assert.ok(quote.lines.length >= 2 && quote.lines.every(line => line.trim().length > 0 && line.length <= 60), quote.source); assert.ok(quote.author && quote.source); }
+  assert.equal(new Set(LOADING_QUOTES.map(quote => quote.lines.join('|'))).size, LOADING_QUOTES.length, 'no repeated quote');
+  assert.equal(pickLoadingQuote(() => 0), LOADING_QUOTES[0]); assert.equal(pickLoadingQuote(() => 0.999999), LOADING_QUOTES.at(-1));
+  assert.ok(LOADING_QUOTES.some(quote => quote.author === 'Castro Alves' && quote.lines[0] === "O livro caindo n'alma"), 'the owner-approved quote stays');
   assert.equal(tree.root.findAllByType('Spinner').length, 1, 'loading: spinner'); assert.ok(!loading.includes('Continuar'));
   await act(async () => tree.unmount());
   // Owner (18/11): the quote vanished too fast. When the app is ready the spinner becomes "Continuar" and waits for the tap.
