@@ -937,9 +937,11 @@ export function createEpubReaderDocument(chapters: StoredChapter[], options: Rea
     }, 200);
   }, { passive: true });
   // Na rolagem não há zonas de toque por cima: toque sem arrastar mostra os controles; pressionar e segurar abre o grifo.
+  // Em "Virar páginas" as zonas de toque do app cobrem só a faixa de 20% a 80% da altura; o toque acima ou abaixo chega aqui.
+  // Pressionar e segurar vale também nessas faixas (20/11/2026: "Diante", na primeira linha da página, não grifava no Note 14).
   var pressStart = null, pressTimer = 0;
   viewport.addEventListener("pointerdown", function(event) {
-    if (!isScrollFlow()) return;
+    if (!isScrollFlow() && isAnimating) return;
     pressStart = { x: event.clientX, y: event.clientY, top: viewport.scrollTop, long: false };
     clearTimeout(pressTimer);
     pressTimer = setTimeout(function() {

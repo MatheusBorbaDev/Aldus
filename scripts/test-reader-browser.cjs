@@ -168,9 +168,13 @@ function load(file){if(cache.has(file))return cache.get(file);const exports={};c
    fire('pointerdown');fire('pointerup');const tap=messages.slice(n).filter(m=>m.type==='tap').length;
    fire('pointerdown');await sleep(650);fire('pointerup');const long=messages.slice(n).filter(m=>m.type==='longPress').at(-1);const tapsAfterLong=messages.slice(n).filter(m=>m.type==='tap').length;
    window.updateFlow({flow:'paged'});await sleep(500);const back=pages().at(-1),c=capture(45);
+   // Virar páginas: the app's touch zones cover 20%-80% of the height; a long press on the first line reaches the document.
+   n=messages.length;const topY=r.top+r.height*0.1,firePaged=(t)=>v.dispatchEvent(new PointerEvent(t,{bubbles:true,clientX:x,clientY:topY}));
+   firePaged('pointerdown');await sleep(650);firePaged('pointerup');const pagedLong=messages.slice(n).filter(m=>m.type==='longPress').at(-1);
+   firePaged('pointerdown');firePaged('pointerup');const pagedTaps=messages.slice(n).filter(m=>m.type==='tap').length;
    return {a0,entered:{origin:entered.origin,anchor:entered.readingAnchor&&entered.readingAnchor.start,total:entered.totalPages},top:top.start,
     scrolled:scrolled.map(m=>({origin:m.origin,page:m.pageNumber,anchor:m.readingAnchor&&m.readingAnchor.start})),scrollTop:v.scrollTop,H:v.clientHeight,step,stepOrigin:stepPage.origin,
-    b0:b0.start,b1:b1.start,b2:b2.start,tap,long:long&&{x:Math.round(long.x),y:Math.round(long.y)},x:Math.round(x),y:Math.round(y),tapsAfterLong,back:{origin:back.origin,anchor:back.readingAnchor&&back.readingAnchor.start},c:c.start,transform:document.getElementById('reader-content').style.transform};})()`);
+    b0:b0.start,b1:b1.start,b2:b2.start,tap,long:long&&{x:Math.round(long.x),y:Math.round(long.y)},x:Math.round(x),y:Math.round(y),tapsAfterLong,pagedLong:pagedLong&&{x:Math.round(pagedLong.x),y:Math.round(pagedLong.y)},topY:Math.round(topY),pagedTaps,back:{origin:back.origin,anchor:back.readingAnchor&&back.readingAnchor.start},c:c.start,transform:document.getElementById('reader-content').style.transform};})()`);
   assert.equal(flow.entered.origin,'SETTINGS_LAYOUT');assert.equal(flow.entered.anchor,flow.a0.start,'Páginas → Rolagem keeps the saved trecho');
   assert.ok(Math.abs(flow.top-flow.a0.start)<120,'the trecho is at the top of the screen: '+JSON.stringify({top:flow.top,a0:flow.a0.start}));
   assert.equal(flow.scrolled.length,1,'one report when the reader stops scrolling: '+JSON.stringify(flow.scrolled));assert.equal(flow.scrolled[0].origin,'SCROLL');
@@ -178,6 +182,8 @@ function load(file){if(cache.has(file))return cache.get(file);const exports={};c
   assert.ok(flow.step>flow.H*0.8&&flow.step<=flow.H,'next moves about one screen: '+flow.step);assert.equal(flow.stepOrigin,'NEXT_PAGE');
   assert.ok(Math.abs(flow.b1-flow.b0)<120&&Math.abs(flow.b2-flow.b0)<120,'typography keeps the top trecho: '+JSON.stringify([flow.b0,flow.b1,flow.b2]));
   assert.equal(flow.tap,1,'tap from the document');assert.deepEqual(flow.long,{x:flow.x,y:flow.y},'long press from the document');assert.equal(flow.tapsAfterLong,1,'a long press is not a tap');
+  assert.deepEqual(flow.pagedLong,{x:flow.x,y:flow.topY},'Virar páginas: long press on the first line, outside the touch zones, comes from the document');
+  assert.equal(flow.pagedTaps,0,'Virar páginas: a tap outside the zones still does not toggle the controls from the document');
   assert.equal(flow.back.origin,'SETTINGS_LAYOUT');assert.ok(flow.c<=flow.b2&&flow.b2-flow.c<3000,'Rolagem → Páginas shows the same trecho: '+JSON.stringify({c:flow.c,b2:flow.b2}));
   console.log('PASS continuous scroll on the actual document: same trecho both ways, one report per reader scroll, next = one screen, typography keeps the trecho, tap and long press from the document',JSON.stringify({a0:flow.a0.start,top:flow.top,scrolled:flow.scrolled,step:flow.step,b:[flow.b0,flow.b1,flow.b2],c:flow.c}));
   // Back to the trecho the typography check expects. By the trecho, not the page number: the scroll pass loaded images that were
