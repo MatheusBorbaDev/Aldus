@@ -49,6 +49,7 @@ const FEATURES = [
   { id: 'desktop-library', pedido: '23/11: Biblioteca do PC: painel de detalhes, clique duplo abre, Ctrl/Shift selecionam, soltar EPUB/PDF importa', markers: ['Detalhes do livro', 'Solte para importar', 'Fechar painel'] },
   { id: 'desktop-reader-spread', pedido: '23/11: leitor do PC com duas paginas lado a lado (janela >= 1100, modo pagina) e atalhos Espaco/Page Up/Page Down', markers: ['reader-spread', 'PageDown'] },
   { id: 'desktop-reader-side-panels', pedido: '23/11: no PC, sumario a esquerda e ajustes, busca e marcacoes a direita em altura inteira, sem mudar a pagina', markers: ['desktopSheetStyles'] },
+  { id: 'desktop-periodic-sync', pedido: '23/11: no site aberto e visivel, a biblioteca busca mudancas a cada 90 s (sem aba oculta ou offline)', markers: ['busca mudanças sozinha a cada 90 segundos'] },
   { id: 'discover-catalog-tab', pedido: '19/11: aba Descobrir vira o catalogo (vitrine, Sortear um livro, Suas fontes); sem Gutendex/BibliON/MEC', markers: ['Sortear um livro', 'abrir seus arquivos por aqui', 'Calculado neste aparelho'] },
   { id: 'library-tab-scroll-top', pedido: '19/11: tocar na aba Biblioteca, já nela, volta ao início da lista', markers: ['library-book-list'] },
   { id: 'library-first-steps', pedido: 'Onda A5: primeiros passos', markers: ['Primeiros passos'] },

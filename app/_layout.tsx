@@ -17,6 +17,7 @@ import { AppLoadingScreen } from "@/src/presentation/components/AppLoadingScreen
 import { opensWithoutQuote } from "@/src/presentation/services/publicWebRoutes";
 import { ReleaseNotesModal } from "@/src/presentation/components/ReleaseNotesModal";
 import { nativeAuthCallbacks } from '@/src/data/remote/nativeAuthCallback';
+import { startWebPeriodicSync } from "@/src/presentation/services/webPeriodicSync";
 
 /**
  * Fronteira de erro da raiz (BUG 14): uma exceção de renderização em qualquer tela mostra uma
@@ -78,7 +79,9 @@ function AppShell() {
     const sync=appDependencies.librarySync;sync.start();
     const foreground=AppState.addEventListener('change',state=>{if(state==='active')sync.schedule(0);});
     const network=addNetworkStateListener(state=>{if(state.isConnected && state.isInternetReachable!==false)sync.schedule();});
-    return()=>{foreground.remove();network.remove();sync.stop();};
+    // Web: com o site aberto e visível, busca mudanças a cada 90 s (ex.: leitura feita no celular).
+    const stopPeriodic=Platform.OS==='web'?startWebPeriodicSync(()=>sync.schedule(0)):()=>undefined;
+    return()=>{foreground.remove();network.remove();stopPeriodic();sync.stop();};
   },[appReady,publicLanding,session?.user.id]);
   useEffect(() => {
     authDiagnostic("AUTH_GUARD_DECISION", { operationId: correlatedAuthDiagnostic(session?.user.id), correlation: "candidate", guard: "shell", decision: appReady ? "allowed" : "blocked",

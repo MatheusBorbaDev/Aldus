@@ -71,6 +71,18 @@ const load = require('./community-test-loader.cjs')({
   assert.deepEqual([right.panel.width, right.panel.height, right.panel.borderRadius], [DESKTOP_SHEET_WIDTH, '100%', 0]);
   assert.equal(left.panel.borderRightWidth, 1);assert.equal(right.panel.borderLeftWidth, 1);
 
+  // Fase 4: com o site aberto, a biblioteca busca mudanças a cada 90 s, só com a aba visível e online; parar cancela o relógio.
+  const { startWebPeriodicSync, WEB_SYNC_INTERVAL_MS } = load('src/presentation/services/webPeriodicSync.ts');
+  const ticks = [];let cleared = null;let runs = 0;
+  const env = { setInterval: (fn, ms) => { ticks.push([fn, ms]); return 'timer'; }, clearInterval: id => { cleared = id; }, document: { visibilityState: 'visible' }, navigator: { onLine: true } };
+  const stop = startWebPeriodicSync(() => runs++, env);
+  assert.equal(WEB_SYNC_INTERVAL_MS, 90000);assert.equal(ticks[0][1], 90000);
+  ticks[0][0]();assert.equal(runs, 1, 'visible and online: fetches changes');
+  env.document.visibilityState = 'hidden';ticks[0][0]();assert.equal(runs, 1, 'hidden tab: nothing');
+  env.document.visibilityState = 'visible';env.navigator.onLine = false;ticks[0][0]();assert.equal(runs, 1, 'offline: nothing');
+  stop();assert.equal(cleared, 'timer');
+  assert.equal(typeof startWebPeriodicSync(() => runs++, { setInterval() { throw Error('no timer without a page'); }, clearInterval() {} })(), 'undefined', 'no document (native): no timer');
+
   const { DesktopSidebar, sidebarSyncLabel, DESKTOP_SIDEBAR_WIDTH } = load('src/presentation/components/desktop/DesktopSidebar.tsx');
   assert.equal(sidebarSyncLabel({ running: true, pending: 3, lastSync: 1, error: null }), 'Sincronizando…');
   assert.equal(sidebarSyncLabel({ running: false, pending: 0, lastSync: 1, error: 'x' }), 'Sincronização com erro');
@@ -100,7 +112,8 @@ const load = require('./community-test-loader.cjs')({
   assert.deepEqual(pushed.at(-1), { pathname: '/catalog', params: { q: 'Dom Casmurro' } });
   const syncButton = tree.root.findAllByType('Pressable').find(p => p.props.accessibilityRole === 'button');
   assert.equal(syncButton.props.accessibilityLabel, 'Ainda não sincronizada. Abrir sincronização na Conta');
+  assert.equal(syncButton.props.accessibilityHint, 'Com o site aberto, a biblioteca busca mudanças sozinha a cada 90 segundos.');
   await act(async () => syncButton.props.onPress());assert.equal(pushed.at(-1), '/settings');
   await act(async () => tree.unmount());
-  console.log('PASS desktop layout: reader side sheets (contents left, others right, full height); reader keys (Space/PageDown/Shift+Space/PageUp, not while typing); Ctrl/Shift selection (range both ways, stale anchor), double click window, Cmd as Ctrl; PC only for Web + window >= 1024 + mouse (narrow PC window, touch tablet, phone site and Android keep the touch layout); sidebar with labelled sections, hidden Estudo, search to the catalog, honest sync status. Component test, not a browser capture.');
+  console.log('PASS desktop layout: periodic web sync (90 s, visible and online only, stops); reader side sheets (contents left, others right, full height); reader keys (Space/PageDown/Shift+Space/PageUp, not while typing); Ctrl/Shift selection (range both ways, stale anchor), double click window, Cmd as Ctrl; PC only for Web + window >= 1024 + mouse (narrow PC window, touch tablet, phone site and Android keep the touch layout); sidebar with labelled sections, hidden Estudo, search to the catalog, honest sync status. Component test, not a browser capture.');
 })().catch(error => { console.error(error); process.exitCode = 1; });

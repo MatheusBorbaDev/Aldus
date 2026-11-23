@@ -9,6 +9,8 @@ import { radius, space, typography } from "@/src/ui";
 
 /** Largura fixa da barra lateral do PC: rótulos inteiros, sem ícone sozinho. */
 export const DESKTOP_SIDEBAR_WIDTH = 248;
+/** O mesmo intervalo de `WEB_SYNC_INTERVAL_MS` (90 s), dito a quem usa. */
+export const PERIODIC_SYNC_HINT = "Com o site aberto, a biblioteca busca mudanças sozinha a cada 90 segundos.";
 
 type IconName = React.ComponentProps<typeof Ionicons>["name"];
 
@@ -129,6 +131,7 @@ function SidebarSyncStatus() {
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={`${label}. Abrir sincronização na Conta`}
+      accessibilityHint={PERIODIC_SYNC_HINT}
       onPress={() => router.push("/settings")}
       style={({ hovered }: { hovered?: boolean }) => [styles.sync, { borderTopColor: palette.border }, hovered ? { backgroundColor: palette.surfaceSecondary } : null]}
     >
