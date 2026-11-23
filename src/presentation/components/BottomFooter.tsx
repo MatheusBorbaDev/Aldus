@@ -20,7 +20,7 @@ interface Props {
   operationId?: number;
   controlsVisible?: boolean;
   hideReadingCounts?: boolean;
-  /** Tempo restante no capítulo, só quando há ritmo medido (ver useChapterTimeLeft). */
+  /** Ritmo por página e tempo para terminar o livro, só quando há ritmo medido (ver useReadingTimeLeft). */
   timeLeftLabel?: string | null;
 }
 
@@ -109,10 +109,11 @@ export function BottomFooter({
         aria-hidden={hideReadingCounts}
         style={[styles.meta, hideReadingCounts && { opacity: 0 }]}
       >
-        <Text style={[styles.label, { color: secondaryText }]}>
+        {/* O ritmo (por página e no livro) pode quebrar linha em telas estreitas; "Página X de Y" fica sempre inteira à direita. */}
+        <Text style={[styles.label, styles.progressLabel, { color: secondaryText }]}>
           {Math.round(shownProgress * 100)}% lido{timeLeftLabel && preview === null && requestedPage == null ? ` · ${timeLeftLabel}` : ""}
         </Text>
-        <Text style={[styles.label, { color: secondaryText }]}>
+        <Text style={[styles.label, styles.pageLabel, { color: secondaryText }]}>
           {totalPages > 0 ? `${preview !== null ? "Prévia" : requestedPage != null ? "Destino" : "Página"} ${previewPage} de ${totalPages}` : "Calculando páginas..."}
         </Text>
       </View>
@@ -169,4 +170,6 @@ const styles = StyleSheet.create({
     lineHeight: 16,
     fontWeight: "500",
   },
+  progressLabel: { flexShrink: 1 },
+  pageLabel: { flexShrink: 0, textAlign: "right" },
 });

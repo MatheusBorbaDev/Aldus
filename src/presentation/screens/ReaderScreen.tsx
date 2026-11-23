@@ -7,7 +7,7 @@ import { Highlight } from "@/src/domain/repositories/HighlightRepository";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { latestWriteTracker } from "@/src/core/utils/latestWrite";
 import { useNativeReaderBrightness } from "@/src/presentation/hooks/useNativeReaderBrightness";
-import { useChapterTimeLeft } from "@/src/presentation/hooks/useChapterTimeLeft";
+import { useReadingTimeLeft } from "@/src/presentation/hooks/useChapterTimeLeft";
 import { openSystemDoNotDisturb, useReadingSession } from "@/src/presentation/hooks/useReadingSession";
 import { ReadingMilestonesModal } from "@/src/presentation/components/reader/ReadingMilestonesModal";
 import { FocusCardModal } from "@/src/presentation/components/reader/FocusCardModal";
@@ -738,8 +738,8 @@ export function ReaderScreen({ bookId }: Props) {
     ? epubPage
     : estimatePageNumber(progress * totalCharacters, totalCharacters, totalPages);
 
-  // Tempo restante no capítulo (EPUB e Leitura Livre, que têm capítulos medidos). Só exibição; não toca posição nem documento.
-  const timeLeftLabel = useChapterTimeLeft({ enabled: bookStatus === "ready" && (isEpub || isReflowPdf) && !studySelecting, page: epubPage, totalPages: epubTotalPages, chapterIndex: epubChapterIndex, chapterLocations });
+  // Ritmo por página e tempo para terminar o livro (EPUB e Leitura Livre, que têm páginas medidas). Só exibição; não toca posição nem documento.
+  const timeLeftLabel = useReadingTimeLeft({ enabled: bookStatus === "ready" && (isEpub || isReflowPdf) && !studySelecting, page: epubPage, totalPages: epubTotalPages });
   // Sessão de leitura medida e "Ler em foco por X min" (Fase 2). Só mede; não toca posição, documento nem progresso.
   const readingSession = useReadingSession({ bookId, format: isReflowPdf ? "reflow" : isPdf ? "pdf" : "epub", ready: bookStatus === "ready", page: pageNumber });
   const focusLabel = readingSession.focusLeft !== null ? `foco: ${readingSession.focusLeft} min` : null;

@@ -28,7 +28,7 @@ const FEATURES = [
   { id: 'reader-panel', pedido: 'Redesenho 10/11: painel de ajustes reorganizado', markers: ['Ajustes de leitura', 'Mais ajustes: '] },
   { id: 'reader-theme-auto', pedido: 'Onda A3: tema automático', markers: ['Tema automático: seguir claro e escuro do app'] },
   { id: 'reader-justify', pedido: 'Onda B3: texto justificado', markers: ['Justificado'] },
-  { id: 'reader-time-left', pedido: 'Onda B4: tempo restante no capítulo', markers: [' neste capítulo'] },
+  { id: 'reader-time-left', pedido: 'Onda B4 (23/11: por pagina e no livro, nao por capitulo): tempo de leitura pelo ritmo medido', markers: [' por página · ', ' no livro'] },
   { id: 'reader-read-aloud', pedido: 'Onda C1: ouvir em voz alta', markers: ['Ouvir a partir desta página'] },
   { id: 'reader-legible-font', pedido: 'FASE 1: fonte Alta legibilidade', markers: ['Alta legibilidade (Verdana)'] },
   { id: 'reader-focus', pedido: 'FASE 2: Ler em foco, resumo e Não perturbe', markers: ['Ler em foco por', 'Mostrar resumo ao terminar o foco', 'Abrir Não perturbe do Android'] },

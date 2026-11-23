@@ -1,5 +1,5 @@
 /**
- * Tempo restante no capítulo (onda B4), a partir do ritmo medido do próprio leitor neste aparelho.
+ * Tempo de leitura (onda B4; por página e no livro desde 23/11/2026), a partir do ritmo medido do próprio leitor neste aparelho.
  * Amostra = segundos entre duas páginas vizinhas lidas para a frente. Intervalos muito curtos (folheando) ou muito longos (pausa)
  * não contam. Sem amostras suficientes não há estimativa (null): nunca um valor padrão inventado.
  */
@@ -30,17 +30,10 @@ export function secondsPerPage(samples: number[]): number | null {
   return valid.length % 2 ? valid[middle] : (valid[middle - 1] + valid[middle]) / 2;
 }
 
-/**
- * Páginas que faltam até o próximo capítulo começar (incluindo a atual), a partir das páginas de início medidas pelo documento.
- * null quando o capítulo atual não está nas posições conhecidas.
- */
-export function pagesLeftInChapter(locations: Array<{ chapterIndex: number; pageNumber: number }>, chapterIndex: number, page: number, totalPages: number): number | null {
-  if (!locations.length || totalPages < 1 || page < 1) return null;
-  const sorted = [...locations].sort((a, b) => a.pageNumber - b.pageNumber);
-  const current = sorted.findIndex(item => item.chapterIndex === chapterIndex);
-  if (current < 0) return null;
-  const nextStart = sorted.slice(current + 1).find(item => item.pageNumber > page)?.pageNumber ?? totalPages + 1;
-  return Math.max(0, nextStart - page);
+/** Páginas que faltam até o fim do livro, incluindo a atual; null sem posição. */
+export function pagesLeftInBook(page: number, totalPages: number): number | null {
+  if (totalPages < 1 || page < 1) return null;
+  return Math.max(0, totalPages - page + 1);
 }
 
 /** Texto curto: "menos de 1 min", "≈ 6 min", "≈ 1 h 5 min". */
@@ -52,9 +45,17 @@ export function formatTimeLeft(seconds: number): string {
   return rest ? `≈ ${hours} h ${rest} min` : `≈ ${hours} h`;
 }
 
-/** Rótulo do rodapé ou null quando falta ritmo medido ou posição do capítulo. */
-export function chapterTimeLeftLabel(samples: number[], locations: Array<{ chapterIndex: number; pageNumber: number }>, chapterIndex: number, page: number, totalPages: number): string | null {
-  const pace = secondsPerPage(samples), pages = pagesLeftInChapter(locations, chapterIndex, page, totalPages);
+/** Ritmo por página: "≈ 40 s" abaixo de um minuto, "≈ 2 min" acima. */
+export function formatSecondsPerPage(seconds: number): string {
+  return seconds < 59.5 ? `≈ ${Math.max(1, Math.round(seconds))} s` : `≈ ${Math.round(seconds / 60)} min`;
+}
+
+/**
+ * Rótulo do rodapé (23/11/2026, pedido do dono: o tempo por capítulo dependia da divisão de capítulos do livro, que nem sempre é
+ * correta): o ritmo por página e o tempo para terminar o livro. null sem ritmo medido ou sem posição; nunca um valor inventado.
+ */
+export function bookTimeLeftLabel(samples: number[], page: number, totalPages: number): string | null {
+  const pace = secondsPerPage(samples), pages = pagesLeftInBook(page, totalPages);
   if (pace === null || pages === null || pages < 1) return null;
-  return `${formatTimeLeft(pace * pages)} neste capítulo`;
+  return `${formatSecondsPerPage(pace)} por página · ${formatTimeLeft(pace * pages)} no livro`;
 }

@@ -1,17 +1,16 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { addPaceSample, chapterTimeLeftLabel, PageTurn, paceSample } from "@/src/domain/reader/readingPace";
+import { addPaceSample, bookTimeLeftLabel, PageTurn, paceSample } from "@/src/domain/reader/readingPace";
 
 /** Ritmo deste aparelho (segundos por página, últimas amostras). Prefixo legado `@kindle/` preservado. */
 export const READING_PACE_KEY = "@kindle/reading-pace.v1";
 
 /**
- * Tempo restante no capítulo atual (onda B4). Mede o ritmo nas viradas de página para a frente enquanto o livro está aberto e
+ * Ritmo por página e tempo para terminar o livro (onda B4; até 23/11/2026 era o tempo no capítulo, que dependia da divisão de
+ * capítulos do livro). Mede o ritmo nas viradas de página para a frente enquanto o livro está aberto e
  * guarda as amostras neste aparelho. Não muda posição, documento nem progresso; só produz um rótulo (ou null).
  */
-export function useChapterTimeLeft({ enabled, page, totalPages, chapterIndex, chapterLocations }: {
-  enabled: boolean; page: number; totalPages: number; chapterIndex: number; chapterLocations: Array<{ chapterIndex: number; pageNumber: number }>;
-}): string | null {
+export function useReadingTimeLeft({ enabled, page, totalPages }: { enabled: boolean; page: number; totalPages: number }): string | null {
   const [samples, setSamples] = useState<number[]>([]);
   const loaded = useRef(false);
   const lastTurn = useRef<PageTurn | null>(null);
@@ -37,6 +36,5 @@ export function useChapterTimeLeft({ enabled, page, totalPages, chapterIndex, ch
       return next;
     });
   }, [enabled, page]);
-  return useMemo(() => enabled ? chapterTimeLeftLabel(samples, chapterLocations, chapterIndex, page, totalPages) : null,
-    [enabled, samples, chapterLocations, chapterIndex, page, totalPages]);
+  return useMemo(() => enabled ? bookTimeLeftLabel(samples, page, totalPages) : null, [enabled, samples, page, totalPages]);
 }
