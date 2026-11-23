@@ -946,20 +946,39 @@ export function createEpubReaderDocument(chapters: StoredChapter[], options: Rea
     clearTimeout(pressTimer);
     pressTimer = setTimeout(function() {
       if (!pressStart || Math.abs(viewport.scrollTop - pressStart.top) > 8) return;
-      pressStart.long = true; postReader({ type: "longPress", x: pressStart.x, y: pressStart.y });
+      pressStart.long = true; if (window.studyDragBegin) window.studyDragBegin();
+      postReader({ type: "longPress", x: pressStart.x, y: pressStart.y });
     }, 500);
   });
+  // Depois do toque longo, arrastar estende o trecho até a palavra sob o dedo (a página não rola enquanto isso).
   viewport.addEventListener("pointermove", function(event) {
-    if (pressStart && Math.abs(event.clientX - pressStart.x) + Math.abs(event.clientY - pressStart.y) > 10) clearTimeout(pressTimer);
+    if (!pressStart) return;
+    var distance = Math.abs(event.clientX - pressStart.x) + Math.abs(event.clientY - pressStart.y);
+    if (pressStart.long) {
+      if (distance > 10) pressStart.dragged = true;
+      pressStart.lastX = event.clientX; pressStart.lastY = event.clientY;
+      if (pressStart.dragged && window.studyDragTo) window.studyDragTo(event.clientX, event.clientY, false);
+      return;
+    }
+    if (distance > 10) clearTimeout(pressTimer);
   });
+  viewport.addEventListener("touchmove", function(event) {
+    if (pressStart && pressStart.long && event.cancelable) event.preventDefault();
+  }, { passive: false });
   viewport.addEventListener("pointerup", function(event) {
     clearTimeout(pressTimer);
+    if (pressStart && pressStart.long && pressStart.dragged && window.studyDragTo) window.studyDragTo(event.clientX, event.clientY, true);
     if (!pressStart || !isScrollFlow()) { pressStart = null; return; }
     var moved = Math.abs(event.clientX - pressStart.x) + Math.abs(event.clientY - pressStart.y) + Math.abs(viewport.scrollTop - pressStart.top), wasLong = pressStart.long;
     pressStart = null;
     if (!wasLong && moved < 10 && !window.__studySelectionRequest) postReader({ type: "tap" });
   });
-  viewport.addEventListener("pointercancel", function() { clearTimeout(pressTimer); pressStart = null; });
+  viewport.addEventListener("pointercancel", function() {
+    clearTimeout(pressTimer);
+    // Arraste interrompido pelo sistema: fica o trecho mostrado por último.
+    if (pressStart && pressStart.long && pressStart.dragged && pressStart.lastX !== undefined && window.studyDragTo) window.studyDragTo(pressStart.lastX, pressStart.lastY, true);
+    pressStart = null;
+  });
 
   function handleMessage(event) {
     var data = event.data;

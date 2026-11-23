@@ -130,6 +130,37 @@ function load(file){if(cache.has(file))return cache.get(file);const exports={};c
   assert.equal(selection.pageMessages,0,'selection never moves the page');assert.equal(selection.extra,2,'programmatic selections do not echo extra captures');
   console.log('PASS highlight selection on the actual document: settled selection captured without pointerup, press-and-hold word, grow/shrink/sentence, outside text refused, no page move',JSON.stringify({word:selection.word,grown:selection.grown,sentence:selection.sentence.slice(0,60)}));
   }
+  // Drag after press-and-hold (23/11/2026, owner: "não dá mais pra ir arrastando e selecionando outras palavras"). Document path:
+  // the finger moves before the app's select request arrives, and the trecho still goes from the pressed word to the word under
+  // the finger. Touch-zone path: the app forwards the finger; dragging back toward an earlier word also works.
+  const drag=await evaluate(`(async()=>{const start=messages.length,study=id=>messages.slice(start).filter(m=>m.type==='study'&&m.id===id);const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+   const v=document.getElementById('reader-viewport'),width=v.getBoundingClientRect().width,words=[];
+   const walker=document.createTreeWalker(document.getElementById('reader-content'),NodeFilter.SHOW_TEXT);let n;
+   while((n=walker.nextNode())&&words.length<400){const re=/[A-Za-zÀ-ÿ]{4,}/g;let m;while((m=re.exec(n.textContent))){const r=document.createRange();r.setStart(n,m.index);r.setEnd(n,m.index+m[0].length);const b=r.getBoundingClientRect();if(b.width>0&&b.left>8&&b.right<width-8&&b.top>40&&b.bottom<700)words.push({word:m[0],x:b.left+b.width/2,y:b.top+b.height/2});}}
+   const a=words[0],b=words.find(w=>w.y>a.y+40);if(!a||!b)return {skipped:true};
+   const fire=(t,p)=>v.dispatchEvent(new PointerEvent(t,{bubbles:true,clientX:p.x,clientY:p.y}));
+   fire('pointerdown',a);await sleep(650);const long=messages.slice(start).filter(m=>m.type==='longPress').length;
+   fire('pointermove',{x:(a.x+b.x)/2,y:(a.y+b.y)/2});fire('pointermove',b);fire('pointerup',b);
+   window.readerStudy({type:'studySelectAt',id:30,x:a.x,y:a.y});const doc=study(30),docShown=window.getSelection().toString().trim();
+   window.readerStudy({type:'studySelection',id:31,enabled:false});
+   window.readerStudy({type:'studySelectAt',id:32,x:b.x,y:b.y});
+   window.readerStudy({type:'studyDragTo',id:32,x:a.x,y:a.y,final:false});const live=window.getSelection().toString().trim(),liveReplies=study(32).length;
+   window.readerStudy({type:'studyDragTo',id:32,x:a.x,y:a.y,final:true});const zone=study(32);
+   window.readerStudy({type:'studySelection',id:33,enabled:false});
+   return {a:a.word,b:b.word,long,doc:doc.map(m=>m.status+':'+(m.anchor&&m.anchor.quote)),docShown,live,liveReplies,zone:zone.map(m=>m.status+':'+(m.anchor&&m.anchor.quote)),pageMessages:messages.slice(start).filter(m=>m.type==='page').length};})()`);
+  if(drag.skipped)console.log('SKIP drag selection: no two visible lines of words');
+  else {
+  const quoteOf=entry=>entry.slice(entry.indexOf(':')+1);
+  assert.equal(drag.long,1,'the press posts one long press');
+  assert.equal(drag.doc.length,2,'word first, then the dragged trecho: '+JSON.stringify(drag.doc));
+  const docQuote=quoteOf(drag.doc[1]);assert.ok(drag.doc[1].startsWith('captured:')&&docQuote.startsWith(drag.a)&&docQuote.endsWith(drag.b)&&docQuote.length>drag.a.length+drag.b.length,'document drag goes from the pressed word to the word under the finger: '+JSON.stringify(drag));
+  assert.equal(drag.docShown,docQuote,'the dragged trecho is shown selected');
+  assert.equal(drag.liveReplies,1,'moving the finger only updates the visible selection (no reply until release)');
+  assert.ok(drag.live.startsWith(drag.a)&&drag.live.endsWith(drag.b),'dragging back to an earlier word selects from it to the pressed word: '+drag.live);
+  assert.equal(drag.zone.length,2);assert.equal(quoteOf(drag.zone[1]),drag.live,'release replies with the trecho shown');
+  assert.equal(drag.pageMessages,0,'dragging never moves the page');
+  console.log('PASS drag after press-and-hold on the actual document: forward from the document, backward from the touch zones, one reply on release',JSON.stringify({a:drag.a,b:drag.b,quote:quoteOf(drag.doc[1]).slice(0,80)}));
+  }
   // Page turn (phase D, 16/11/2026): none is immediate, flip rotates the viewport and confirms the page only at the end, rapid
   // taps add up in every mode, reduce motion (app flag or system media) forces none, and nothing is left rotated afterwards.
   // The system preference is emulated explicitly: this PC has Windows animations off, which Chrome reports as reduce.

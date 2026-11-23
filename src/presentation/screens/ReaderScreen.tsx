@@ -118,6 +118,8 @@ export function ReaderScreen({ bookId }: Props) {
   const [studySelectionCaptured, setStudySelectionCaptured] = useState(false);
   // Pop-up do grifo (Fase B): aberto por pressionar e segurar ou ao terminar a seleção arrastando. Enquanto aberto, a seleção do
   // documento continua armada (as alças recapturam) e os toques de página ficam suspensos.
+  // Toque longo nas zonas de toque ainda com o dedo na tela: as zonas seguem montadas para o arraste chegar ao documento.
+  const [textGesture, setTextGesture] = useState(false);
   const [selectionPopup, setSelectionPopup] = useState<{ anchor: TextReadingAnchor | null; error: string | null; busy: boolean } | null>(null);
   const [selectionNotice, setSelectionNotice] = useState<string | null>(null);
   const [quoteCard, setQuoteCard] = useState<string | null>(null);
@@ -1057,7 +1059,7 @@ export function ReaderScreen({ bookId }: Props) {
   }
 
   const closeSelectionPopup = () => {
-    popupIntent.current = false; setSelectionPopup(null);
+    popupIntent.current = false; setSelectionPopup(null); setTextGesture(false);
     setStudyRequest({ id: ++studySequence.current, type: "studySelection", enabled: false });
   };
   const selectTextAt = textReader ? (x: number, y: number) => {
@@ -1065,6 +1067,17 @@ export function ReaderScreen({ bookId }: Props) {
     popupIntent.current = true; studySelectionIntent.current = false; setStudyFeedback(null);
     setSelectionPopup({ anchor: null, error: null, busy: true });
     setStudyRequest({ id: ++studySequence.current, type: "studySelectAt", x, y });
+  } : undefined;
+  const selectTextFromZone = selectTextAt ? (x: number, y: number) => {
+    if (studyVisible || readerPanel || selectionPopup) return;
+    setTextGesture(true); selectTextAt(x, y);
+  } : undefined;
+  // Arrastar depois do toque longo estende o trecho; ao soltar, o documento responde ao mesmo pedido com o trecho final.
+  const dragTextTo = textReader ? (x: number, y: number, final: boolean, moved: boolean) => {
+    if (final) setTextGesture(false);
+    if (!popupIntent.current || !moved) return;
+    setStudyRequest({ id: studySequence.current, type: "studyDragTo", x, y, final });
+    if (final) setSelectionPopup(current => current ? { ...current, busy: true, error: null } : current);
   } : undefined;
   const adjustSelection = (op: ReaderStudyAdjust) => {
     const anchor = selectionPopup?.anchor; if (!anchor || selectionPopup?.busy) return;
@@ -1123,6 +1136,9 @@ export function ReaderScreen({ bookId }: Props) {
         studySelecting={studySelecting}
         panelOpen={readerPanel !== null || studyVisible || selectionPopup !== null}
         onLongPressText={selectTextAt}
+        onZoneLongPressText={selectTextFromZone}
+        onDragText={dragTextTo}
+        textGesture={textGesture}
         studyHighlights={modeHighlights}
       /> : null}
     </View>

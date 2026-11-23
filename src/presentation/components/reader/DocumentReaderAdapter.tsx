@@ -63,6 +63,10 @@ export interface DocumentReaderAdapterProps {
   panelOpen?: boolean;
   /** Pressionar e segurar sobre o texto (só EPUB): abre o pop-up de grifo com a palavra. */
   onLongPressText?: (x: number, y: number) => void;
+  /** Arrastar depois do toque longo na faixa das zonas de toque; enquanto o gesto dura as zonas continuam montadas. */
+  onDragText?: (x: number, y: number, final: boolean, moved: boolean) => void;
+  textGesture?: boolean;
+  onZoneLongPressText?: (x: number, y: number) => void;
 }
 
 /**
@@ -105,6 +109,9 @@ export function DocumentReaderAdapter({
   studySelecting,
   panelOpen,
   onLongPressText,
+  onDragText,
+  textGesture,
+  onZoneLongPressText,
 }: DocumentReaderAdapterProps) {
   const renderCount = useRef(0);
   const previousEpubProps = useRef<{
@@ -217,11 +224,12 @@ export function DocumentReaderAdapter({
       )}
 
       {/* Unified touch zones overlay: Left 30% prev, Center 40% toggle, Right 30% next */}
-      {!studySelecting && !panelOpen && !(isPdf && pdfReadingMode === "original" && pdfFlow === "scroll") && !((isEpub || (isPdf && pdfReadingMode === "reflow")) && settings.readingFlow === "scroll") ? <ReadingTouchZones
+      {!studySelecting && (!panelOpen || textGesture) && !(isPdf && pdfReadingMode === "original" && pdfFlow === "scroll") && !((isEpub || (isPdf && pdfReadingMode === "reflow")) && settings.readingFlow === "scroll") ? <ReadingTouchZones
         onPreviousPage={onPreviousPage}
         onNextPage={onNextPage}
         onToggleControls={onToggleControls}
-        onLongPressText={onLongPressText}
+        onLongPressText={onZoneLongPressText ?? onLongPressText}
+        onDragText={onDragText}
       /> : null}
     </View>
   );

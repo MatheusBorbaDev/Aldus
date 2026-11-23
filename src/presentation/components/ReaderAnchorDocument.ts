@@ -93,11 +93,18 @@ export function readerAnchorDocumentScript(): string {
     try {
       if(request.type==='studySelection') {
         window.__studySelectionRequest=request.enabled?request:null;window.__studyLastCapture=null;clearTimeout(studySettleTimer);
+        if(!request.enabled){studyPress=null;studyDragPending=null;}
         studySelectionStyle(!!request.enabled);
         if(!request.enabled){var current=window.getSelection();if(current)current.removeAllRanges();}
         return;
       }
-      if(request.type==='studySelectAt'){studyReplySelection(request,studySelectAt(request));return;}
+      if(request.type==='studySelectAt'){
+        var pick=studySelectAt(request);studyPress={request:request,pick:pick,last:pick};studyReplySelection(request,pick);
+        var pending=studyDragPending;studyDragPending=null;
+        if(pending && Date.now()-studyGestureAt<5000)studyDragTo(pending.x,pending.y,pending.final);
+        return;
+      }
+      if(request.type==='studyDragTo'){studyDragTo(Number(request.x),Number(request.y),!!request.final);return;}
       if(request.type==='studyAdjust'){studyReplySelection(request,studyAdjust(request));return;}
       if(request.type==='studyRenderHighlights') {
         if(!window.CSS || !CSS.highlights || !window.Highlight){studyReply(request,{status:'unsupported',message:'Este motor não exibe grifos sobre o texto. Seus grifos e notas continuam disponíveis no painel.'});return;}
@@ -280,6 +287,31 @@ export function readerAnchorDocumentScript(): string {
     } else throw new Error('Ajuste desconhecido.');
     return {section:section,model:model,start:start,end:end};
   }
+  // Arrastar depois de pressionar e segurar (23/11/2026, pedido do dono: "não dá mais pra ir arrastando e selecionando outras
+  // palavras"). A palavra do toque fica como âncora; o trecho vai até a palavra sob o dedo, nos dois sentidos, dentro do capítulo.
+  // Enquanto o dedo se move só a seleção visível muda; ao soltar, o trecho final responde ao mesmo pedido do toque longo.
+  var studyPress=null,studyDragPending=null,studyGestureAt=0;
+  window.studyDragBegin=function(){studyPress=null;studyDragPending=null;studyGestureAt=Date.now();};
+  function studyDragPick(x,y){
+    var pick=studyPress.pick,position=studyPointPosition(x,y);if(!position)return null;
+    var node=position.node,section=node.parentElement.closest('.epub-chapter');if(section!==pick.section)return null;
+    var model=pick.model,entry=model.nodes.find(function(e){return e.node===node;});if(!entry)return null;
+    var text=model.text,at=entry.start+Math.min(position.offset,Math.max(0,node.length-1));
+    if(!studyIsWord(text[at]) && studyIsWord(text[at-1]) && !studyBreaks(model)[at])at--;
+    if(!studyIsWord(text[at]))return null;
+    var word=studyWordAround(model,at);
+    return {section:section,model:model,start:Math.min(pick.start,word[0]),end:Math.max(pick.end,word[1])};
+  }
+  function studyDragTo(x,y,final){
+    if(!isFinite(x)||!isFinite(y))return;
+    if(!studyPress){studyDragPending={x:x,y:y,final:final};return;}
+    var picked=studyDragPick(x,y)||studyPress.last;studyPress.last=picked;
+    if(final){studyReplySelection(studyPress.request,picked);return;}
+    var result=studyAnchorFor(picked.section,picked.model,picked.start,picked.end);studySelectionStyle(true);studyShowSelection(result.range);
+  }
+  window.studyDragTo=function(x,y,final){
+    try{studyDragTo(x,y,final);}catch(error){if(final && studyPress)studyReply(studyPress.request,{status:'error',message:error.message});}
+  };
   function studyReplySelection(request,picked){
     var result=studyAnchorFor(picked.section,picked.model,picked.start,picked.end);
     window.__studySelectionRequest=request;window.__studyLastCapture=result.anchor.chapterId+':'+result.anchor.start+':'+result.anchor.end;

@@ -72,6 +72,22 @@ const anchor = { version: 1, kind: 'epub-text', chapterId: 'c1', start: 10, end:
   await act(async () => zones[1].props.onLongPress({ nativeEvent: { locationX: 50, locationY: 100 } }));
   await act(async () => zones[2].props.onLongPress({ nativeEvent: { locationX: 10, locationY: 5 } }));
   assert.deepEqual(points, [[20, 190], [170, 260], [290, 165]]);
+  // 3b. Drag after the press (23/11/2026): the finger is followed in page coordinates even when it leaves the zone; small jitter is
+  // not a drag; the end always closes the gesture and says whether there was a drag.
+  const drags = [];
+  await act(async () => tree.update(React.createElement(ReadingTouchZones, { onPreviousPage() {}, onNextPage() {}, onToggleControls() {}, onLongPressText: (x, y) => points.push([x, y]), onDragText: (x, y, final, moved) => drags.push([x, y, final, moved]) })));
+  const dragZones = tree.root.findAllByType('Pressable');
+  await act(async () => dragZones[1].props.onLongPress({ nativeEvent: { locationX: 50, locationY: 100, pageX: 210, pageY: 300 } }));
+  await act(async () => dragZones[1].props.onTouchMove({ nativeEvent: { pageX: 214, pageY: 303 } }));
+  assert.equal(drags.length, 0, 'jitter under 10 px is not a drag');
+  await act(async () => dragZones[1].props.onTouchMove({ nativeEvent: { pageX: 350, pageY: 420 } }));
+  await act(async () => dragZones[1].props.onTouchEnd({ nativeEvent: { pageX: 360, pageY: 430 } }));
+  assert.deepEqual(drags, [[310, 380, false, true], [320, 390, true, true]], 'page offset kept from the press: '+JSON.stringify(drags));
+  await act(async () => dragZones[0].props.onLongPress({ nativeEvent: { locationX: 20, locationY: 30, pageX: 20, pageY: 190 } }));
+  await act(async () => dragZones[0].props.onTouchEnd({ nativeEvent: { pageX: 20, pageY: 190 } }));
+  assert.deepEqual(drags.at(-1), [20, 190, true, false], 'a press without drag still ends the gesture');
+  await act(async () => dragZones[2].props.onTouchEnd({ nativeEvent: { pageX: 5, pageY: 5 } }));
+  assert.equal(drags.length, 3, 'a plain tap (no long press) is not a gesture end');
   await act(async () => tree.update(React.createElement(ReadingTouchZones, { onPreviousPage() {}, onNextPage() {}, onToggleControls() {} })));
   assert.ok(tree.root.findAllByType('Pressable').every(z => z.props.onLongPress === undefined), 'no long press when the reader does not support highlights');
   await act(async () => tree.unmount());

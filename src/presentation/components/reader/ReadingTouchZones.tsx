@@ -8,15 +8,41 @@ interface Props {
   onToggleControls: () => void;
   /** Pressionar e segurar (Fase B): ponto em coordenadas da página do livro (mesmo contêiner da WebView). */
   onLongPressText?: (x: number, y: number) => void;
+  /** Arrastar depois do toque longo (23/11/2026): ponto do dedo nas mesmas coordenadas; `final` ao soltar, `moved` se houve arraste. */
+  onDragText?: (x: number, y: number, final: boolean, moved: boolean) => void;
 }
 
-export function ReadingTouchZones({ onPreviousPage, onNextPage, onToggleControls, onLongPressText }: Props) {
+interface TextDrag { offsetX: number; offsetY: number; startX: number; startY: number; moved: boolean; sentAt: number }
+
+export function ReadingTouchZones({ onPreviousPage, onNextPage, onToggleControls, onLongPressText, onDragText }: Props) {
   const layout = useRef<LayoutRectangle | null>(null);
+  const drag = useRef<TextDrag | null>(null);
   // Cada zona começa numa fração da largura (30% · 40% · 30%); o ponto vai para o contêiner somando a posição da faixa.
   const longPress = (zoneStart: number) => onLongPressText ? (event: GestureResponderEvent) => {
     const area = layout.current; if (!area) return;
-    onLongPressText(area.x + area.width * zoneStart + event.nativeEvent.locationX, area.y + event.nativeEvent.locationY);
+    const { locationX, locationY, pageX, pageY } = event.nativeEvent;
+    const x = area.x + area.width * zoneStart + locationX, y = area.y + locationY;
+    // O arraste usa a posição na tela (pageX/pageY) com o mesmo deslocamento: o dedo pode sair da zona onde começou.
+    drag.current = { offsetX: x - pageX, offsetY: y - pageY, startX: pageX, startY: pageY, moved: false, sentAt: 0 };
+    onLongPressText(x, y);
   } : undefined;
+  const dragMove = (event: GestureResponderEvent) => {
+    const current = drag.current; if (!current || !onDragText) return;
+    const { pageX, pageY } = event.nativeEvent;
+    if (!current.moved && Math.abs(pageX - current.startX) + Math.abs(pageY - current.startY) <= 10) return;
+    current.moved = true;
+    const now = Date.now(); if (now - current.sentAt < 50) return;
+    current.sentAt = now;
+    onDragText(pageX + current.offsetX, pageY + current.offsetY, false, true);
+  };
+  const dragEnd = (event: GestureResponderEvent) => {
+    const current = drag.current; drag.current = null;
+    if (!current || !onDragText) return;
+    const { pageX, pageY } = event.nativeEvent;
+    // Sem arraste o toque longo já selecionou a palavra; o fim só encerra o gesto.
+    onDragText(pageX + current.offsetX, pageY + current.offsetY, true, current.moved);
+  };
+  const dragProps = onDragText ? { onTouchMove: dragMove, onTouchEnd: dragEnd, onTouchCancel: dragEnd } : {};
   useEffect(() => {
     if (Platform.OS !== "web" || typeof window === "undefined") return;
 
@@ -53,12 +79,14 @@ export function ReadingTouchZones({ onPreviousPage, onNextPage, onToggleControls
         style={styles.leftZone}
         onPress={onPreviousPage}
         onLongPress={longPress(0)}
+        {...dragProps}
       />
       <Pressable
         accessibilityRole="button"
         accessibilityLabel="Alternar menus e controles de leitura"
         style={styles.centerZone}
         onLongPress={longPress(0.3)}
+        {...dragProps}
         onPress={() => {
           console.log(`[FORENSIC:center-click] t=${performance.timeOrigin + performance.now()} center Pressable onPress`);
           onToggleControls();
@@ -70,6 +98,7 @@ export function ReadingTouchZones({ onPreviousPage, onNextPage, onToggleControls
         style={styles.rightZone}
         onPress={onNextPage}
         onLongPress={longPress(0.7)}
+        {...dragProps}
       />
     </View>
   );

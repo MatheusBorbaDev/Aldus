@@ -113,6 +113,20 @@ const flushTimers=async()=>act(async()=>{const due=[...timers.values()];timers.c
  await act(async()=>getDoc().props.onLongPressText(120,300));request=getDoc().props.studyRequest;assert.deepEqual([request.type,request.x,request.y],['studySelectAt',120,300]);assert.equal(popup().props.busy,true);
  await act(async()=>getDoc().props.onStudyResult({id:request.id,status:'error',message:'Pressione sobre uma palavra do texto.'}));assert.equal(popup().props.quote,null);assert.match(popup().props.error,/Pressione sobre uma palavra/);
  await act(async()=>popup().props.onCancel());assert.equal(renderer.root.findAllByType('HighlightSelectionPopup').length,0);
+ // Drag after press-and-hold from the touch zones (23/11/2026): the zones stay mounted while the finger is down, the finger is
+ // forwarded with the press request id, and release asks for the final trecho; a press without drag sends nothing more.
+ await act(async()=>getDoc().props.onZoneLongPressText(150,320));const press=getDoc().props.studyRequest;assert.equal(press.type,'studySelectAt');
+ assert.equal(getDoc().props.textGesture,true,'touch zones stay while the finger is down');assert.equal(getDoc().props.panelOpen,true);
+ await act(async()=>getDoc().props.onDragText(200,400,false,true));request=getDoc().props.studyRequest;
+ assert.deepEqual([request.type,request.id,request.x,request.y,request.final],['studyDragTo',press.id,200,400,false]);
+ await act(async()=>getDoc().props.onStudyResult({id:press.id,status:'captured',anchor:{...anchor,end:anchor.start+3,quote:anchor.quote.slice(0,3)}}));assert.equal(popup().props.quote,anchor.quote.slice(0,3));
+ await act(async()=>getDoc().props.onDragText(220,420,true,true));request=getDoc().props.studyRequest;
+ assert.deepEqual([request.type,request.id,request.final],['studyDragTo',press.id,true]);assert.equal(popup().props.busy,true);assert.equal(getDoc().props.textGesture,false,'release ends the gesture');
+ await act(async()=>getDoc().props.onStudyResult({id:press.id,status:'captured',anchor}));assert.equal(popup().props.quote,anchor.quote,'the dragged trecho replaces the word');assert.equal(popup().props.busy,false);
+ await act(async()=>popup().props.onCancel());
+ await act(async()=>getDoc().props.onZoneLongPressText(150,320));const still=getDoc().props.studyRequest;
+ await act(async()=>getDoc().props.onDragText(150,320,true,false));assert.equal(getDoc().props.studyRequest,still,'a press without drag sends nothing more');assert.equal(getDoc().props.textGesture,false);
+ await act(async()=>popup().props.onCancel());
  await act(async()=>getDoc().props.onLongPressText(150,320));request=getDoc().props.studyRequest;
  const word={...anchor,end:anchor.start+3,quote:anchor.quote.slice(0,3)};
  await act(async()=>getDoc().props.onStudyResult({id:request.id,status:'captured',anchor:word}));assert.equal(popup().props.quote,word.quote);
