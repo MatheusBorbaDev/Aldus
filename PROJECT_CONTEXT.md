@@ -659,6 +659,16 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
   Entrega: APK `G:\Meu Drive\Aldus APK\Aldus-1.0.0-beta.2-14-38c9cfb.apk` (SHA-256 `f59ad9b87fbbc7d3…`, chave do dono, `verify --apk`
   65); push `a6aab63..38c9cfb`; Vercel READY com o marcador no bundle. Drive: o dono confirmou que os livros soltos NÃO são atalhos,
   então a causa de "não puxa livros fora de subpastas" segue ABERTA (precisa de log no aparelho).
+- 23/11, dono: "não dá mais pra ir arrastando e selecionando outras palavras ... tem que ir clicando no botão". O toque longo
+  (`ee53a66`) sempre selecionou só uma palavra; o arraste existia só no "Grifar um trecho" do painel. `5d236c5`: depois do toque longo,
+  arrastar estende o trecho da palavra tocada até a palavra sob o dedo (nos dois sentidos, no capítulo); a seleção acompanha o dedo e
+  ao soltar o documento responde ao mesmo pedido (`studyDragTo`). Caminho do documento (rolagem; topo/rodapé em Virar páginas): a página
+  não rola durante o arraste; arraste que termina antes do pedido do app é aplicado quando ele chega. Caminho das zonas (meio, Virar
+  páginas): as zonas ficam montadas até o dedo sair (`textGesture`) e repassam o dedo. Testes: browser (arraste para frente pelo
+  documento e para trás pelas zonas, no documento real), highlight-popup, reader-screen; critical 145/145; highlight:web PASS; 66
+  recursos. Entrega v15 `47f0812`: APK (SHA-256 `ec75ed684db9fd13…`, chave do dono, `verify --apk` 66) em
+  `G:\Meu Drive\Aldus APK\Aldus-1.0.0-beta.2-15-47f0812.apk`; push `4b50639..47f0812`; Vercel READY com o marcador no bundle.
+  NÃO TESTADO em aparelho (Note 14 desconectado na hora da instalação).
 
 ### 17/11/2026 — Revisão para as betas públicas: dependências, banco, hospedagem (Claude)
 - Pedido do dono: ajustar dependências e configurações (banco, hospedagem etc.) e revisar o necessário para iniciar o plano das betas públicas.
