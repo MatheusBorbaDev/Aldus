@@ -699,6 +699,16 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
   chave do dono, `verify --apk` 72) em `G:\Meu Drive\Aldus APK\Aldus-1.0.0-beta.2-16-89af431.apk`; push até `89af431`. Vercel da
   fase 5 aprovada e publicada (bundle conferido). Plano do módulo PC concluído e no ar; pendente: encaixe lateral que estreita a página (exige
   redimensionamento que preserve a posição) e conferência logada no site.
+- 23/11, dono: "faça tudo já". (1) `1cba202`: mudar a largura do leitor (janela, rotação, painel) volta ao trecho do topo (âncora
+  lógica) e não ao número da página — antes, em 600 px o trecho da pág. 12 ia para a 17 e a tela mostrava a 12; teste 1280→600→1280
+  em `test:reader:browser` falha no código antigo e passa agora; epub/reflow/highlight web passam. (2) `9b8df96`: no PC o leitor abre
+  espaço para o painel (sumário à esquerda; busca/ajustes/marcações à direita, 400 px), sem escurecer; duas páginas só se ainda
+  sobram ≥ 1100 px. (3) `524adc5`: `StatusBarScrim` (faixa da cor do fundo na altura da barra de status, Android de ponta a ponta)
+  em `Screen` e na Biblioteca — o conteúdo não passa mais sob o relógio. Critical 146/146; 73 recursos. Entrega v17 `19b9359`: APK
+  (SHA-256 `887a24d3498f343d…`, chave do dono, `verify --apk` 73) em `G:\Meu Drive\Aldus APK\Aldus-1.0.0-beta.2-17-19b9359.apk`;
+  push até `19b9359`; Vercel READY com o código novo. NÃO TESTADO em aparelho (sem celular no cabo) nem logado no site.
+  Seguem dependendo do dono: Drive com livros fora de subpastas (não são atalhos; precisa de log no aparelho), toque na aba
+  Biblioteca voltar ao topo no Android (aparelho), importação do Skoob e leitor de ISBN pela câmera (decisões de produto).
 
 ### 17/11/2026 — Revisão para as betas públicas: dependências, banco, hospedagem (Claude)
 - Pedido do dono: ajustar dependências e configurações (banco, hospedagem etc.) e revisar o necessário para iniciar o plano das betas públicas.
