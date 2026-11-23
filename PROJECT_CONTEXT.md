@@ -709,6 +709,12 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
   push até `19b9359`; Vercel READY com o código novo. NÃO TESTADO em aparelho (sem celular no cabo) nem logado no site.
   Seguem dependendo do dono: Drive com livros fora de subpastas (não são atalhos; precisa de log no aparelho), toque na aba
   Biblioteca voltar ao topo no Android (aparelho), importação do Skoob e leitor de ISBN pela câmera (decisões de produto).
+- 23/11, dono: tempo "contabilizado por capítulo, coloca por página e geral do livro, pq a separação de capítulos nem sempre fica
+  correto". `a77d5a2`: rodapé mostra o ritmo por página e o tempo para terminar o livro ("≈ 40 s por página · ≈ 2 h 35 min no
+  livro"; mediana das viradas para a frente deste aparelho × páginas que faltam); estimativa por capítulo removida; sem ritmo ou
+  sem total, nada; some com "Ocultar porcentagem e páginas"; texto pode quebrar linha, "Página X de Y" fixo. `reading-pace`
+  (critical) atualizado. Entrega v18 `4a0cc73`: APK (SHA-256 `33a104a82aec3a4d…`, chave do dono, 73) em
+  `G:Meu DriveAldus APKAldus-1.0.0-beta.2-18-4a0cc73.apk`; push até `4a0cc73`; Vercel READY com o texto novo. NÃO TESTADO em aparelho.
 
 ### 17/11/2026 — Revisão para as betas públicas: dependências, banco, hospedagem (Claude)
 - Pedido do dono: ajustar dependências e configurações (banco, hospedagem etc.) e revisar o necessário para iniciar o plano das betas públicas.
