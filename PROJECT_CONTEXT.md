@@ -669,6 +669,16 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
   recursos. Entrega v15 `47f0812`: APK (SHA-256 `ec75ed684db9fd13…`, chave do dono, `verify --apk` 66) em
   `G:\Meu Drive\Aldus APK\Aldus-1.0.0-beta.2-15-47f0812.apk`; push `4b50639..47f0812`; Vercel READY com o marcador no bundle.
   NÃO TESTADO em aparelho (Note 14 desconectado na hora da instalação).
+- 23/11, pesquisa "Pesquisa rápida sobre leitura e aplicativos" (Forms do dono, 56 respostas, 30 e-mails para o beta, sem nomes
+  coletados) cruzada com o produto: bate em leitor, metas, grifos, card, voz, PDF; faltam PC de verdade, quadrinhos/outros formatos,
+  abas por ponto da leitura e troca de capa. Dono escolheu "Layout PC na web" (não app instalável). Plano em 5 fases: (1) base e
+  barra lateral; (2) biblioteca com painel de detalhes, Ctrl/Shift e arrastar arquivos; (3) leitor com duas páginas, sumário/notas
+  laterais e atalhos; (4) sincronismo sempre visível e atualização periódica com a aba aberta (hoje: login, mudança local e ao voltar
+  à aba); (5) estudo e comunidade em colunas. Fase 1 `af47fbf`: `src/presentation/layout/formFactor.ts` (PC = Web + janela ≥ 1024 +
+  `pointer: fine`; tablet de toque, site no celular e Android ficam no layout de toque) e `DesktopSidebar` (248 px, busca Ctrl+K →
+  catálogo, seções com rótulo, estado do sincronismo). `test-desktop-layout` (critical, 146) e `test:desktop:web` (Chromium, fixture
+  da Biblioteca real; capturas 1024/1280/1440 claro/escuro em `.expo/desktop-shell-web`). Fixture da biblioteca consertada (stubs e
+  UTF-8); `test-library-bulk-web` volta a passar. NÃO conferido logado no site exportado; Vercel aguardando aprovação da fase.
 
 ### 17/11/2026 — Revisão para as betas públicas: dependências, banco, hospedagem (Claude)
 - Pedido do dono: ajustar dependências e configurações (banco, hospedagem etc.) e revisar o necessário para iniciar o plano das betas públicas.
