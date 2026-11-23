@@ -691,6 +691,9 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
   direita como painéis laterais de altura inteira (`desktopSheet.ts`), por cima do livro, sem mudar a largura (encaixar estreitando a
   página exigiria antes um redimensionamento que preserve a posição: hoje `display()` refaz pela página, não pela âncora).
   `test:reader:settings:web` (125 layouts) espera o painel lateral no PC; fixtures e 2 suítes críticas resolvem os módulos novos.
+  Publicado. Fase 4 `923dd58`: `webPeriodicSync.ts` agenda `librarySync.schedule(0)` a cada 90 s só na Web, com a aba visível e
+  online (Android inalterado); a barra lateral diz isso no botão de sincronismo. NÃO testado com conta real em dois aparelhos.
+  Vercel da fase 4 aguardando aprovação; fase 5 (estudo e comunidade em colunas) pendente.
 
 ### 17/11/2026 — Revisão para as betas públicas: dependências, banco, hospedagem (Claude)
 - Pedido do dono: ajustar dependências e configurações (banco, hospedagem etc.) e revisar o necessário para iniciar o plano das betas públicas.
