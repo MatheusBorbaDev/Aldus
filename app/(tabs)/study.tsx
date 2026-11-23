@@ -41,6 +41,8 @@ import { FlashcardCreateModal } from "@/src/presentation/components/flashcards/F
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { BookCover } from '@/src/presentation/components/BookCover';
 import { ActionMenu, AppText, Button, EmptyState, ListGroup, ListRow, Screen, ScreenHeader } from '@/src/ui';
+import { DesktopSplit } from '@/src/presentation/components/desktop/DesktopColumns';
+import { useFormFactor } from '@/src/presentation/layout/useFormFactor';
 import { getBookCover } from '@/src/utils/coverHelper';
 
 export default function Study() {
@@ -63,6 +65,8 @@ function StudyContent() {
   const [selectedBookId, setSelectedBookId] = useState("");
   const [modal, setModal] = useState<"deck" | "generate" | null>(null);
   const [moreTools, setMoreTools] = useState(false);
+  // PC (23/11/2026): revisão e ferramentas à esquerda, decks numa coluna à direita.
+  const desktop = useFormFactor() === "desktop";
   const [showCreateCardModal, setShowCreateCardModal] = useState(false);
   const [title, setTitle] = useState("");
   const [category, setCategory] = useState("Leitura");
@@ -274,7 +278,8 @@ function StudyContent() {
   };
 
   return (
-    <Screen inTabs header={<ScreenHeader title="Estudo" subtitle="Revise o que você leu, no seu ritmo." large />}>
+    <Screen inTabs width={desktop ? "content" : "narrow"} header={<ScreenHeader title="Estudo" subtitle="Revise o que você leu, no seu ritmo." large />}>
+      <DesktopSplit desktop={desktop} main={<>
       {review && snapshot?.decks.length ? (
         <View accessibilityLabel="Para revisar hoje" style={[styles.review, { backgroundColor: palette.surface, borderColor: palette.border }]}>
           <AppText variant="overline" tone="secondary">Para revisar hoje</AppText>
@@ -383,6 +388,7 @@ function StudyContent() {
         </View>
       ) : null}
 
+      </>} aside={<>
       {/* Lista de Decks */}
       {!snapshot ? (
         <ActivityIndicator color={palette.accent} />
@@ -404,6 +410,7 @@ function StudyContent() {
       ) : (
         <EmptyState icon="albums-outline" title="Nenhum deck local ainda" description="Crie um deck ou gere uma prévia a partir de um livro importado." />
       )}
+      </>} />
 
       {/* Modal de Criação / Geração de Deck */}
       <Modal

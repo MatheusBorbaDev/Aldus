@@ -8,13 +8,16 @@ import { useAppTheme } from "@/src/presentation/contexts/AppThemeContext";
 import type { LiteraryProfile, ReadingActivity, ReadingStats } from "../domain/models";
 import { activityText } from "../domain/progression";
 import { useCommunity } from "./CommunityProvider";
+import { useFormFactor } from "@/src/presentation/layout/useFormFactor";
 import { noActivity } from "./content";
 
 /** `showBack` falso quando a página é uma aba da barra principal (não há para onde voltar). */
-export function CommunityPage({ title, children, showBack = true }: PropsWithChildren<{ title: string; showBack?: boolean }>) {
+export function CommunityPage({ title, children, showBack = true, wide = false }: PropsWithChildren<{ title: string; showBack?: boolean; wide?: boolean }>) {
   const { palette } = useAppTheme(), insets = useSafeAreaInsets();
+  // PC: só a página inicial (`wide`) alarga para os cartões em duas colunas; listas e conversas ficam na largura de leitura.
+  const desktop = useFormFactor() === "desktop" && wide;
   return <View style={{ flex: 1, backgroundColor: palette.background }}>
-    <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={[styles.page, { paddingTop: Math.max(insets.top, 16), paddingBottom: Math.max(insets.bottom, 24) }]}>
+    <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={[styles.page, { paddingTop: Math.max(insets.top, 16), paddingBottom: Math.max(insets.bottom, 24) }, desktop ? { maxWidth: 1120, paddingHorizontal: 32 } : null]}>
       <View style={styles.header}>
         {showBack ? <Pressable accessibilityRole="button" accessibilityLabel="Voltar" style={styles.back} onPress={() => router.canGoBack() ? router.back() : router.replace("/(tabs)/settings")}>
           <Ionicons name="arrow-back" size={22} color={palette.text} />

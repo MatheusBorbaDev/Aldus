@@ -15,7 +15,8 @@ module.exports = function makeLoader(overrides = {}) {
     const code = ts.transpileModule(fs.readFileSync(file, 'utf8'), { compilerOptions: {
       module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX, esModuleInterop: true,
     } }).outputText;
-    const resolve = name => Object.hasOwn(overrides, name) ? overrides[name] : name.startsWith('@/') ? load(name.slice(2)) : name.startsWith('.') ? load(path.resolve(path.dirname(file), name)) : require(name);
+    // Layout PC × celular (23/11/2026): suítes de componente rodam como celular, salvo override explícito.
+    const resolve = name => Object.hasOwn(overrides, name) ? overrides[name] : name === '@/src/presentation/layout/useFormFactor' ? { useFormFactor: () => 'phone' } : name.startsWith('@/') ? load(name.slice(2)) : name.startsWith('.') ? load(path.resolve(path.dirname(file), name)) : require(name);
     new Function('require', 'module', 'exports', code)(resolve, module, module.exports);
     return module.exports;
   }

@@ -15,6 +15,7 @@ const load = require('./community-test-loader.cjs')({
   '@/src/presentation/components/LibrarySyncControls': { useLibrarySync: () => sync },
   '@/src/presentation/i18n/ptBR': { numberLabel: n => String(n) },
   '@/src/utils/epubOpenMetrics': { epubDiagnosticConsole: { log() {} } },
+  '@/src/presentation/layout/useFormFactor': { useFormFactor: () => globalThis.__formFactor || 'phone' },
   '@/src/ui': { radius: { md: 10 }, space: { xxs: 2, sm: 8, md: 12, lg: 16, xl: 20 }, typography: { title: {}, label: {}, bodySmall: {}, caption: {} } },
 });
 
@@ -83,6 +84,25 @@ const load = require('./community-test-loader.cjs')({
   stop();assert.equal(cleared, 'timer');
   assert.equal(typeof startWebPeriodicSync(() => runs++, { setInterval() { throw Error('no timer without a page'); }, clearInterval() {} })(), 'undefined', 'no document (native): no timer');
 
+  // Fase 5: Estudo e Comunidade em colunas no PC; no celular, os mesmos filhos numa coluna, na mesma ordem.
+  const { DesktopGrid, DesktopSplit, DESKTOP_ASIDE_WIDTH } = load('src/presentation/components/desktop/DesktopColumns.tsx');
+  const card = name => React.createElement('Text', { key: name }, name);
+  let grid;
+  await act(async () => { grid = create(React.createElement(DesktopGrid, null, card('Pessoas'), null, card('Clubes'), false, card('Fóruns'))); });
+  assert.equal(grid.root.findAllByType('View').length, 0, 'phone: no extra wrappers');assert.deepEqual(grid.root.findAllByType('Text').map(t => t.props.children), ['Pessoas', 'Clubes', 'Fóruns']);
+  globalThis.__formFactor = 'desktop';
+  await act(async () => { grid.update(React.createElement(DesktopGrid, null, card('Pessoas'), null, card('Clubes'), false, card('Fóruns'))); });
+  const gridViews = grid.root.findAllByType('View');
+  assert.deepEqual([gridViews[0].props.style.flexDirection, gridViews[0].props.style.flexWrap], ['row', 'wrap']);assert.equal(gridViews.length, 4, 'PC: one cell per card, empty children take no cell');
+  let split;
+  await act(async () => { split = create(React.createElement(DesktopSplit, { main: card('Revisar'), aside: card('Seus decks') })); });
+  const splitViews = split.root.findAllByType('View');
+  assert.equal(splitViews[0].props.style.flexDirection, 'row');assert.equal(splitViews[2].props.style.width, DESKTOP_ASIDE_WIDTH);
+  globalThis.__formFactor = 'phone';
+  await act(async () => { split.update(React.createElement(DesktopSplit, { main: card('Revisar'), aside: card('Seus decks') })); });
+  assert.deepEqual(split.root.findAllByType('Text').map(t => t.props.children), ['Revisar', 'Seus decks'], 'phone: decks after the review, one column');assert.equal(split.root.findAllByType('View').length, 0);
+  delete globalThis.__formFactor;
+
   const { DesktopSidebar, sidebarSyncLabel, DESKTOP_SIDEBAR_WIDTH } = load('src/presentation/components/desktop/DesktopSidebar.tsx');
   assert.equal(sidebarSyncLabel({ running: true, pending: 3, lastSync: 1, error: null }), 'Sincronizando…');
   assert.equal(sidebarSyncLabel({ running: false, pending: 0, lastSync: 1, error: 'x' }), 'Sincronização com erro');
@@ -115,5 +135,5 @@ const load = require('./community-test-loader.cjs')({
   assert.equal(syncButton.props.accessibilityHint, 'Com o site aberto, a biblioteca busca mudanças sozinha a cada 90 segundos.');
   await act(async () => syncButton.props.onPress());assert.equal(pushed.at(-1), '/settings');
   await act(async () => tree.unmount());
-  console.log('PASS desktop layout: periodic web sync (90 s, visible and online only, stops); reader side sheets (contents left, others right, full height); reader keys (Space/PageDown/Shift+Space/PageUp, not while typing); Ctrl/Shift selection (range both ways, stale anchor), double click window, Cmd as Ctrl; PC only for Web + window >= 1024 + mouse (narrow PC window, touch tablet, phone site and Android keep the touch layout); sidebar with labelled sections, hidden Estudo, search to the catalog, honest sync status. Component test, not a browser capture.');
+  console.log('PASS desktop layout: Study/Community columns (grid skips empty children, split aside 420 px, phone keeps one column); periodic web sync (90 s, visible and online only, stops); reader side sheets (contents left, others right, full height); reader keys (Space/PageDown/Shift+Space/PageUp, not while typing); Ctrl/Shift selection (range both ways, stale anchor), double click window, Cmd as Ctrl; PC only for Web + window >= 1024 + mouse (narrow PC window, touch tablet, phone site and Android keep the touch layout); sidebar with labelled sections, hidden Estudo, search to the catalog, honest sync status. Component test, not a browser capture.');
 })().catch(error => { console.error(error); process.exitCode = 1; });

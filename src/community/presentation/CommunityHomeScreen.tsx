@@ -3,6 +3,7 @@ import { router, type Href } from "expo-router";
 import { useCommunity, useCommunityFocus } from "./CommunityProvider";
 import { Action, Card, CommunityGate, CommunityPage, Copy, Meter, ProfileIdentity, Stats, Timeline } from "./components";
 import { goalProgress } from "../domain/profile";
+import { DesktopGrid } from "@/src/presentation/components/desktop/DesktopColumns";
 import { achievements } from "../domain/progression";
 
 /** `asTab`: aberta pela aba Comunidade da barra principal (sem seta de voltar). */
@@ -18,8 +19,10 @@ export function CommunityHomeScreen({ asTab = false }: { asTab?: boolean } = {})
     finally { setBusy(false); }
   };
   const goal = view ? goalProgress(view.state.profile?.readingGoal ?? null, view.stats.booksByYear) : null;
-  return <CommunityPage title="Comunidade" showBack={!asTab}><CommunityGate>{view?.state.profile && <>
+  return <CommunityPage title="Comunidade" showBack={!asTab} wide><CommunityGate>{view?.state.profile && <>
     <Copy secondary>Uma jornada construída entre livros.</Copy>
+    {/* PC: cartões em duas colunas; no celular, a mesma ordem numa coluna. */}
+    <DesktopGrid>
     <Card title="Pessoas"><Copy secondary>Publique seu perfil, encontre leitores pelo @usuário e escolha quem acompanhar.</Copy>
       <Action label="Encontrar leitores" onPress={() => router.push("/community/people" as Href)} />
     </Card>
@@ -51,6 +54,7 @@ export function CommunityHomeScreen({ asTab = false }: { asTab?: boolean } = {})
       </>}
       <Action label="Atualizar leituras" disabled={busy} onPress={() => void refresh()} />
     </Card>
+    </DesktopGrid>
     <Timeline activities={view.state.activities} />
   </>}</CommunityGate></CommunityPage>;
 }
