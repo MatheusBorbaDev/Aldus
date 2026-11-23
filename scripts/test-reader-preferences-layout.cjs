@@ -5,6 +5,7 @@ const settings={palette:{panel:'#eee',text:'#222',secondaryText:'#777',accent:'#
 const exportsForPanel={},code=ts.transpileModule(fs.readFileSync('src/presentation/components/ReaderSettingsPanel.tsx','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.ReactJSX}}).outputText;
 new Function('require','exports',code)(name=>{
  if(name==='react')return React;if(name==='react/jsx-runtime')return require('../.expo/auth-test-tools/node_modules/react/jsx-runtime');
+ if(name.includes('layout/useFormFactor'))return {useFormFactor:()=>'phone'};if(name.includes('layout/desktopSheet'))return {desktopSheetStyles:()=>({backdrop:{},panel:{}})};
  if(name==='react-native')return {Modal:'Modal',View:'View',Pressable:'Pressable',ScrollView:'ScrollView',Switch:'Switch',Text:'Text',TextInput:'TextInput',Platform:{OS:'android'},StyleSheet:{create:x=>x,absoluteFill:{position:'absolute',top:0,left:0,right:0,bottom:0}}};
  if(name.includes('ReaderSettingsContext'))return {useReaderSettings:()=>settings};
  if(name==='react-native-safe-area-context')return {useSafeAreaInsets:()=>({top:24,bottom:24})};

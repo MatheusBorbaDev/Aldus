@@ -12,6 +12,8 @@ const themesMap = Object.fromEntries(['light', 'paper', 'sepia', 'dark', 'black'
 const output = {}; const source = fs.readFileSync('src/presentation/components/ReaderSettingsPanel.tsx', 'utf8');
 new Function('require', 'exports', ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX } }).outputText)(name => {
   if (name === 'react') return React; if (name === 'react/jsx-runtime') return require('../.expo/auth-test-tools/node_modules/react/jsx-runtime');
+  if (name.includes('layout/useFormFactor')) return { useFormFactor: () => 'phone' }; // the PC side panel is covered by test:reader:settings:web
+  if (name.includes('layout/desktopSheet')) return { desktopSheetStyles: () => ({ backdrop: {}, panel: {} }) };
   if (name === 'react-native') return { Modal: 'Modal', View: 'View', Text: 'Text', Pressable: 'Pressable', ScrollView: 'ScrollView', Switch: 'Switch', TextInput: 'TextInput', Platform: { OS: 'android' }, StyleSheet: { create: x => x, absoluteFill: {}, hairlineWidth: 1 } };
   if (name.includes('vector-icons')) return { Ionicons: 'Icon' };
   if (name.includes('ReaderSettingsContext')) return { useReaderSettings: () => settings, DEFAULT_READER_LINE_HEIGHT: 1.65, DEFAULT_READER_PARAGRAPH_SPACING: 1 };

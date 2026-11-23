@@ -36,7 +36,9 @@ const wait = ms => new Promise(r => setTimeout(r, ms));
         assert.equal(state.tabs.length, 3); assert(state.tabs.every(inside), 'section tabs stay inside the sheet'); assert(state.tabs.every(b => b.h >= 44), 'section tabs are 44px targets');
         assert.equal(state.swatches.length, 5); assert(state.swatches.every(inside), 'all five theme samples fit without horizontal scroll'); assert.equal(state.themeSelected, 1);
         // Collapsed: the sheet never takes more than ~62% of the height, so the page stays visible behind it.
-        if (!label) assert(state.panelTop >= height * 0.36, `collapsed sheet leaves the text visible (top ${Math.round(state.panelTop)} of ${height})`);
+        // PC (Web, >= 1024 px, mouse; 23/11/2026): a full-height side panel on the right, so the page stays visible on the left.
+        if (width >= 1024) { assert(state.close.x >= width - 400 - 1, `PC: settings open on the right side (close at x=${Math.round(state.close.x)})`); assert(state.panelTop < 80, 'PC: full-height side panel'); }
+        else if (!label) assert(state.panelTop >= height * 0.36, `collapsed sheet leaves the text visible (top ${Math.round(state.panelTop)} of ${height})`);
         const scrolled = await evaluate(`(()=>{const e=[...document.querySelectorAll('div')].find(e=>getComputedStyle(e).overflowY==='auto'&&e.scrollHeight>e.clientHeight+2);if(!e)return null;const close=document.querySelector('[aria-label="Fechar ajustes de leitura"]'),before=close.getBoundingClientRect().top;e.scrollTop=e.scrollHeight;const moved=e.scrollTop,after=close.getBoundingClientRect().top;e.scrollTop=0;return{moved,before,after}})()`);
         if (scrolled) { assert(scrolled.moved > 0); assert.equal(scrolled.before, scrolled.after, 'Close stays fixed while content scrolls'); }
         await shot(`categories-${width}-${dark ? 'dark' : 'light'}-${scale}-${index}`); results.push({ width, height, dark, scale, section: label ?? 'recolhido', scroll: scrolled, ...state });

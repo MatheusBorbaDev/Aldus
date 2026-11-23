@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Modal, Platform, Pressable, ScrollView, Share, StyleSheet, Text, TextInput, View } from "react-native";
+import { useFormFactor } from "@/src/presentation/layout/useFormFactor";
+import { desktopSheetStyles } from "@/src/presentation/layout/desktopSheet";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LibraryBook } from "@/src/domain/entities/LibraryBook";
 import { Bookmark } from "@/src/domain/repositories/BookmarkRepository";
@@ -15,6 +17,8 @@ import { StudyAction, StudyDisclosure, StudyQuote } from "@/src/presentation/com
 
 export function StudyBookmarksPanel({ book, capture, highlightMode, chapterTitle, loading, feedback, onCapture, onNavigate, onClose, highlights, onHighlightsSaved, onSelectText, selectionCaptured = false, onCaptureConsumed }: { book: LibraryBook; highlightMode?: HighlightReaderMode; capture: ReadingAnchor | null; chapterTitle: string; loading: boolean; feedback: string | null; onCapture: () => void; onNavigate: (anchor: ReadingAnchor) => void; onClose: () => void; highlights?: Highlight[]; onHighlightsSaved?: () => Promise<void>; onSelectText?: () => void; selectionCaptured?: boolean; onCaptureConsumed?: () => void }) {
   const { palette } = useAppTheme(); const insets = useSafeAreaInsets();
+  // PC: marcações num painel à direita, em altura inteira (o livro continua visível à esquerda).
+  const sheet = useFormFactor() === "desktop" ? desktopSheetStyles("right") : null;
   const [bookmarks, setBookmarks] = useState<Bookmark[]>([]); const [name, setName] = useState(""); const [note, setNote] = useState(""); const [query, setQuery] = useState("");
   const [editing, setEditing] = useState<Bookmark | null>(null); const [error, setError] = useState<string | null>(null); const [busy, setBusy] = useState(false); const [backup, setBackup] = useState(""); const [preview, setPreview] = useState<Bookmark[] | null>(null);
   const canHighlight = Boolean(highlights && onHighlightsSaved && onSelectText);
@@ -42,7 +46,7 @@ export function StudyBookmarksPanel({ book, capture, highlightMode, chapterTitle
   });
   const normalized = query.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
   const visible = bookmarks.filter(b => `${readStudyLocation(b)?.name ?? "Marcador antigo"} ${b.note ?? ""} ${b.textPreview}`.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalized));
-  return <Modal visible transparent animationType="fade" onRequestClose={() => { if (!working) onClose(); }}><View style={[styles.backdrop, { paddingTop: Math.max(insets.top, 16), paddingBottom: Math.max(insets.bottom, 16), backgroundColor: palette.overlay }]}><View style={[styles.panel, { backgroundColor: palette.panel }]}>
+  return <Modal visible transparent animationType="fade" onRequestClose={() => { if (!working) onClose(); }}><View style={[styles.backdrop, { paddingTop: Math.max(insets.top, 16), paddingBottom: Math.max(insets.bottom, 16), backgroundColor: palette.overlay }, sheet?.backdrop]}><View style={[styles.panel, { backgroundColor: palette.panel }, sheet?.panel]}>
     <View style={[styles.header, { borderColor: palette.separator }]}><View style={{ flex: 1, gap: 4 }}><Text style={[styles.heading, { color: palette.text }]}>Marcações</Text><Text numberOfLines={1} style={{ color: palette.secondaryText, fontSize: 13 }}>{book.title}</Text></View><Pressable accessibilityRole="button" accessibilityLabel="Fechar marcações" disabled={working} onPress={onClose} style={styles.close}><Ionicons name="close" size={23} color={palette.text} /></Pressable></View>
     {canHighlight ? <View style={[styles.tabs, { borderColor: palette.separator }]}>{(["highlights", "bookmarks"] as const).map(value => <Pressable key={value} accessibilityRole="tab" accessibilityLabel={value === "highlights" ? "Grifos" : "Marcadores"} accessibilityState={{ selected: tab === value, disabled: working }} disabled={working} onPress={() => setTab(value)} style={[styles.tab, { borderBottomColor: tab === value ? palette.text : "transparent" }]}><Ionicons name={value === "highlights" ? "color-wand-outline" : "bookmark-outline"} size={17} color={tab === value ? palette.text : palette.secondaryText} /><Text style={{ color: tab === value ? palette.text : palette.secondaryText, fontWeight: tab === value ? "700" : "400", fontSize: 14, flexShrink: 1 }}>{value === "highlights" ? "Grifos" : "Marcadores"}</Text></Pressable>)}</View> : null}
     <ScrollView ref={scroll} keyboardShouldPersistTaps="handled" style={{ flexShrink: 1 }} contentContainerStyle={styles.content}>

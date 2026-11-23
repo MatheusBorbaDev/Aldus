@@ -2,6 +2,8 @@ import { Ionicons } from "@expo/vector-icons";
 import { MotionCuesControl } from "./MotionCuesControl";
 import { ReaderSettingsSlider as Slider } from "./ReaderSettingsSlider";
 import { Modal, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from "react-native";
+import { useFormFactor } from "@/src/presentation/layout/useFormFactor";
+import { desktopSheetStyles } from "@/src/presentation/layout/desktopSheet";
 import { ReactNode, useEffect, useRef, useState } from "react";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { DEFAULT_READER_LINE_HEIGHT, DEFAULT_READER_PARAGRAPH_SPACING, useReaderSettings } from "@/src/presentation/contexts/ReaderSettingsContext";
@@ -119,6 +121,8 @@ export function ReaderSettingsPanel({
   const scroll = useRef<ScrollView>(null);
   const settings = useReaderSettings();
   const insets = useSafeAreaInsets();
+  // PC: sumário à esquerda; busca e ajustes à direita, em altura inteira, sem cobrir o livro todo.
+  const sheet = useFormFactor() === "desktop" ? desktopSheetStyles(panelMode === "contents" ? "left" : "right") : null;
   const [pageInput, setPageInput] = useState(String(pageNumber ?? 1));
   const resolve = (selected: PdfReaderTheme) => (settings.resolveTheme ? settings.resolveTheme(selected) : selected) as PdfReaderTheme;
   const palette = pdfSettings ? pdfReaderThemes[resolve(pdfSettings.theme)] : settings.palette;
@@ -160,10 +164,10 @@ export function ReaderSettingsPanel({
   const title = panelMode === "contents" ? "Sumário" : panelMode === "search" ? "Buscar no livro" : "Ajustes de leitura";
 
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <View style={[styles.backdrop, { paddingTop: Math.max(insets.top, 12), paddingBottom: Math.max(insets.bottom, 12) }]}>
+    <Modal visible={visible} transparent animationType={sheet ? "fade" : "slide"} onRequestClose={onClose}>
+      <View style={[styles.backdrop, { paddingTop: Math.max(insets.top, 12), paddingBottom: Math.max(insets.bottom, 12) }, sheet?.backdrop]}>
         <Pressable accessibilityLabel="Fechar preferências" style={StyleSheet.absoluteFill} onPress={onClose} />
-        <View style={[styles.panel, { backgroundColor: palette.panel, borderColor: palette.separator, maxHeight: !appearance || expanded ? "90%" : "62%" }]}>
+        <View style={[styles.panel, { backgroundColor: palette.panel, borderColor: palette.separator, maxHeight: !appearance || expanded ? "90%" : "62%" }, sheet?.panel]}>
           <View style={styles.panelHeader}>
             <View style={styles.headerRow}>
               <Text accessibilityRole="header" style={[styles.title, { color: palette.text }]}>{title}</Text>

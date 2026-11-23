@@ -64,6 +64,13 @@ const load = require('./community-test-loader.cjs')({
   await act(async () => zones.unmount());
   delete global.window;
 
+  // Fase 3b: sumário à esquerda e ajustes/busca/marcações à direita, em altura inteira, por cima do livro (sem relayout).
+  const { desktopSheetStyles, DESKTOP_SHEET_WIDTH } = load('src/presentation/layout/desktopSheet.ts');
+  const left = desktopSheetStyles('left'), right = desktopSheetStyles('right');
+  assert.equal(left.backdrop.justifyContent, 'flex-start');assert.equal(right.backdrop.justifyContent, 'flex-end');
+  assert.deepEqual([right.panel.width, right.panel.height, right.panel.borderRadius], [DESKTOP_SHEET_WIDTH, '100%', 0]);
+  assert.equal(left.panel.borderRightWidth, 1);assert.equal(right.panel.borderLeftWidth, 1);
+
   const { DesktopSidebar, sidebarSyncLabel, DESKTOP_SIDEBAR_WIDTH } = load('src/presentation/components/desktop/DesktopSidebar.tsx');
   assert.equal(sidebarSyncLabel({ running: true, pending: 3, lastSync: 1, error: null }), 'Sincronizando…');
   assert.equal(sidebarSyncLabel({ running: false, pending: 0, lastSync: 1, error: 'x' }), 'Sincronização com erro');
@@ -95,5 +102,5 @@ const load = require('./community-test-loader.cjs')({
   assert.equal(syncButton.props.accessibilityLabel, 'Ainda não sincronizada. Abrir sincronização na Conta');
   await act(async () => syncButton.props.onPress());assert.equal(pushed.at(-1), '/settings');
   await act(async () => tree.unmount());
-  console.log('PASS desktop layout: reader keys (Space/PageDown/Shift+Space/PageUp, not while typing); Ctrl/Shift selection (range both ways, stale anchor), double click window, Cmd as Ctrl; PC only for Web + window >= 1024 + mouse (narrow PC window, touch tablet, phone site and Android keep the touch layout); sidebar with labelled sections, hidden Estudo, search to the catalog, honest sync status. Component test, not a browser capture.');
+  console.log('PASS desktop layout: reader side sheets (contents left, others right, full height); reader keys (Space/PageDown/Shift+Space/PageUp, not while typing); Ctrl/Shift selection (range both ways, stale anchor), double click window, Cmd as Ctrl; PC only for Web + window >= 1024 + mouse (narrow PC window, touch tablet, phone site and Android keep the touch layout); sidebar with labelled sections, hidden Estudo, search to the catalog, honest sync status. Component test, not a browser capture.');
 })().catch(error => { console.error(error); process.exitCode = 1; });
