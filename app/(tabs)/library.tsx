@@ -39,6 +39,7 @@ import { formatBytes } from "@/src/domain/saas/planPresentation";
 import { CatalogLinkPrompt } from '@/src/presentation/components/catalog/CatalogLinkPrompt';
 import { libraryAccountScope } from '@/src/data/library/LibraryAccountScope';
 import { LibraryBulkModal } from '@/src/presentation/components/LibraryBulkModal';
+import { StatusBarScrim } from '@/src/ui/Screen';
 import { ActionMenu, ActionMenuItem, AppText, Button, Chip, ChipRow, EmptyState, IconButton, layout as uiLayout, ListGroup, ListRow, radius, ScreenHeader, SearchField, space } from '@/src/ui';
 
 type BookFilter = "all" | "want" | "reading" | "completed" | "unread" | "interrupted" | "favorites" | "stalled";
@@ -425,6 +426,7 @@ function LibraryContent() {
         />
       ) : null}
       </View>
+      <StatusBarScrim />
       {focusedBook ? (
         <DesktopBookPanel
           title={focusedCard!.title}

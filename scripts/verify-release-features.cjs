@@ -51,6 +51,7 @@ const FEATURES = [
   { id: 'desktop-reader-side-panels', pedido: '23/11: no PC, sumario a esquerda e ajustes, busca e marcacoes a direita em altura inteira, sem mudar a pagina', markers: ['desktopSheetStyles'] },
   { id: 'desktop-periodic-sync', pedido: '23/11: no site aberto e visivel, a biblioteca busca mudancas a cada 90 s (sem aba oculta ou offline)', markers: ['busca mudanças sozinha a cada 90 segundos'] },
   { id: 'desktop-study-community-columns', pedido: '23/11: no PC, Estudo com decks numa coluna a direita e Comunidade com cartoes em duas colunas', markers: ['DesktopSplit', 'DesktopGrid'] },
+  { id: 'status-bar-scrim', pedido: '23/11: Biblioteca e Conta nao passam mais por baixo da barra de status no Android (de ponta a ponta)', markers: ['no-hide-descendants'] },
   { id: 'discover-catalog-tab', pedido: '19/11: aba Descobrir vira o catalogo (vitrine, Sortear um livro, Suas fontes); sem Gutendex/BibliON/MEC', markers: ['Sortear um livro', 'abrir seus arquivos por aqui', 'Calculado neste aparelho'] },
   { id: 'library-tab-scroll-top', pedido: '19/11: tocar na aba Biblioteca, já nela, volta ao início da lista', markers: ['library-book-list'] },
   { id: 'library-first-steps', pedido: 'Onda A5: primeiros passos', markers: ['Primeiros passos'] },

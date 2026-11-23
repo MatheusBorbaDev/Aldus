@@ -1,6 +1,6 @@
 import { router } from "expo-router";
 import { PropsWithChildren, ReactNode } from "react";
-import { ScrollView, StyleSheet, useWindowDimensions, View } from "react-native";
+import { Platform, ScrollView, StyleSheet, useWindowDimensions, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAppTheme } from "@/src/presentation/contexts/AppThemeContext";
 import { IconButton } from "./Button";
@@ -15,6 +15,17 @@ export interface ScreenProps {
   /** Tela dentro das abas: a barra de abas já cuida do inset inferior. */
   inTabs?: boolean;
   header?: ReactNode;
+}
+
+/**
+ * Faixa da cor do fundo atrás da barra de status (23/11/2026). No Android 15+ o app desenha de ponta a ponta e a cor da
+ * StatusBar é ignorada: ao rolar, o conteúdo passava por baixo do relógio e dos ícones (Biblioteca e Conta).
+ */
+export function StatusBarScrim() {
+  const { palette } = useAppTheme();
+  const insets = useSafeAreaInsets();
+  if (Platform.OS === "web" || insets.top <= 0) return null;
+  return <View pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={[styles.scrim, { height: insets.top, backgroundColor: palette.background }]} />;
 }
 
 /** Moldura padrão das telas fora do Reader: área segura, margens e largura máxima. */
@@ -36,6 +47,7 @@ export function Screen({ scroll = true, width = "narrow", inTabs = false, header
       <View style={[styles.fill, { backgroundColor: palette.background, paddingTop: top }]}>
         <View style={frame}>{header}</View>
         <View style={[styles.fill, frame]}>{children}</View>
+        <StatusBarScrim />
       </View>
     );
   }
@@ -45,6 +57,7 @@ export function Screen({ scroll = true, width = "narrow", inTabs = false, header
         {header}
         {children}
       </ScrollView>
+      <StatusBarScrim />
     </View>
   );
 }
@@ -99,6 +112,7 @@ export function Section({ title, action, children }: PropsWithChildren<{ title?:
 
 const styles = StyleSheet.create({
   fill: { flex: 1 },
+  scrim: { position: "absolute", top: 0, left: 0, right: 0, zIndex: 10 },
   header: { flexDirection: "row", alignItems: "center", gap: space.sm, minHeight: 48 },
   back: { marginLeft: -space.md + 2 },
   titles: { flex: 1, minWidth: 0, gap: space.xxs },

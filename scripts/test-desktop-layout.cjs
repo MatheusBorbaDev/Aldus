@@ -103,6 +103,22 @@ const load = require('./community-test-loader.cjs')({
   assert.deepEqual(split.root.findAllByType('Text').map(t => t.props.children), ['Revisar', 'Seus decks'], 'phone: decks after the review, one column');assert.equal(split.root.findAllByType('View').length, 0);
   delete globalThis.__formFactor;
 
+  // Barra de status (23/11/2026): no Android de ponta a ponta, uma faixa da cor do fundo cobre o que rola por baixo do relógio.
+  for (const [os, top, expected] of [['android', 32, 32], ['web', 32, null], ['android', 0, null]]) {
+    const scrimLoad = require('./community-test-loader.cjs')({
+      react: React, 'react/jsx-runtime': require('../.expo/auth-test-tools/node_modules/react/jsx-runtime'),
+      'react-native': { View: 'View', Text: 'Text', Pressable: 'Pressable', ScrollView: 'ScrollView', Platform: { OS: os, select: o => o[os] ?? o.default }, StyleSheet: { create: x => x }, useWindowDimensions: () => ({ width: 390, height: 800 }) },
+      'react-native-safe-area-context': { useSafeAreaInsets: () => ({ top, bottom: 0, left: 0, right: 0 }) },
+      '@/src/presentation/contexts/AppThemeContext': { useAppTheme: () => ({ palette: { background: '#F7F3EA' } }) },
+      'expo-router': { router: {} }, '@expo/vector-icons': { Ionicons: 'Icon' },
+    });
+    const { StatusBarScrim } = scrimLoad('src/ui/Screen.tsx');
+    let scrim;await act(async () => { scrim = create(React.createElement(StatusBarScrim)); });
+    const view = scrim.root.findAllByType('View')[0];
+    if (expected === null) assert.equal(view, undefined, os + ' with top ' + top + ': no scrim');
+    else { const style = Object.assign({}, ...view.props.style);assert.deepEqual([style.position, style.top, style.height, style.backgroundColor, view.props.pointerEvents], ['absolute', 0, expected, '#F7F3EA', 'none']); }
+  }
+
   const { DesktopSidebar, sidebarSyncLabel, DESKTOP_SIDEBAR_WIDTH } = load('src/presentation/components/desktop/DesktopSidebar.tsx');
   assert.equal(sidebarSyncLabel({ running: true, pending: 3, lastSync: 1, error: null }), 'Sincronizando…');
   assert.equal(sidebarSyncLabel({ running: false, pending: 0, lastSync: 1, error: 'x' }), 'Sincronização com erro');
@@ -135,5 +151,5 @@ const load = require('./community-test-loader.cjs')({
   assert.equal(syncButton.props.accessibilityHint, 'Com o site aberto, a biblioteca busca mudanças sozinha a cada 90 segundos.');
   await act(async () => syncButton.props.onPress());assert.equal(pushed.at(-1), '/settings');
   await act(async () => tree.unmount());
-  console.log('PASS desktop layout: Study/Community columns (grid skips empty children, split aside 420 px, phone keeps one column); periodic web sync (90 s, visible and online only, stops); reader side sheets (contents left, others right, full height); reader keys (Space/PageDown/Shift+Space/PageUp, not while typing); Ctrl/Shift selection (range both ways, stale anchor), double click window, Cmd as Ctrl; PC only for Web + window >= 1024 + mouse (narrow PC window, touch tablet, phone site and Android keep the touch layout); sidebar with labelled sections, hidden Estudo, search to the catalog, honest sync status. Component test, not a browser capture.');
+  console.log('PASS desktop layout: Android status bar scrim (height of the bar, background colour, no touch; none on Web or without a bar); Study/Community columns (grid skips empty children, split aside 420 px, phone keeps one column); periodic web sync (90 s, visible and online only, stops); reader side sheets (contents left, others right, full height); reader keys (Space/PageDown/Shift+Space/PageUp, not while typing); Ctrl/Shift selection (range both ways, stale anchor), double click window, Cmd as Ctrl; PC only for Web + window >= 1024 + mouse (narrow PC window, touch tablet, phone site and Android keep the touch layout); sidebar with labelled sections, hidden Estudo, search to the catalog, honest sync status. Component test, not a browser capture.');
 })().catch(error => { console.error(error); process.exitCode = 1; });

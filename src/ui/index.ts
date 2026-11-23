@@ -11,7 +11,7 @@ export { Button, IconButton } from "./Button";
 export type { ButtonProps, ButtonVariant, IconButtonProps, IconName } from "./Button";
 export { Chip, ChipRow } from "./Chip";
 export { ListGroup, ListRow } from "./ListRow";
-export { Screen, ScreenHeader, Section } from "./Screen";
+export { Screen, ScreenHeader, Section, StatusBarScrim } from "./Screen";
 export { EmptyState } from "./EmptyState";
 export { ActionMenu } from "./ActionMenu";
 export type { ActionMenuItem } from "./ActionMenu";
