@@ -8,6 +8,7 @@ import { importDiagnostic } from "@/src/utils/importDiagnostics";
 
 /** Resposta ao aviso de duplicado: abrir o livro que já existe ou importar outra cópia (cancelar usa `cancel`). */
 export type DuplicateImportChoice = "open" | "import" | "cancel";
+interface PickedBookFile { uri: string; name: string; mimeType?: string; size?: number; file?: File }
 
 export function useBookImport(reloadLibrary: () => Promise<void>, openBook?: (bookId: string) => void) {
   const mounted = useRef(true);
@@ -34,24 +35,14 @@ export function useBookImport(reloadLibrary: () => Promise<void>, openBook?: (bo
     lifecycle.reset();
   }, [lifecycle]);
 
-  const start = async () => {
-    if (selectionLocked.current || (state.phase !== "idle" && !isBookImportTerminal(state.phase))) return;
-    selectionLocked.current = true;
-    setImportedBook(null);
-    setRestored(false);
-    setSelecting(true);
-    try {
-      const result = await DocumentPicker.getDocumentAsync({
-        type: ["application/epub+zip", "application/epub", "application/pdf", "application/octet-stream"],
-        copyToCacheDirectory: true,
-      });
-      if (result.canceled || !result.assets[0]) return;
-      const asset = result.assets[0];
+  // Escolher pelo seletor do sistema ou soltar um arquivo na Biblioteca do PC (23/11/2026): o mesmo caminho de importação,
+  // com o mesmo aviso de duplicado, cancelamento e fases.
+  const importPicked = async (asset: PickedBookFile) => {
       const operation = lifecycle.start({ source: "local", fileName: asset.name, fileSize: asset.size });
       const startedAt = lifecycle.current().startedAt ?? Date.now();
       importDiagnostic({ operationId: operation.operationId, source: "local", phase: "preparing", event: "start", startedAt, fileSize: asset.size, uri: asset.uri });
       try {
-        const picked = { uri: asset.uri, name: asset.name, mimeType: asset.mimeType, size: asset.size, file: asset.file };
+        const picked = asset;
         // Fase 1: o mesmo arquivo já importado (SHA-256 no índice local da conta) pede uma decisão antes de importar.
         const duplicateCheck = await appDependencies.importDuplicates.check(picked, operation.signal);
         // Acervo, etapa 2: o mesmo arquivo de um título do acervo antigo volta para o livro que já existe na conta.
@@ -101,6 +92,25 @@ export function useBookImport(reloadLibrary: () => Promise<void>, openBook?: (bo
         lifecycle.fail(operation.operationId, message);
         importDiagnostic({ operationId: operation.operationId, source: "local", format: lifecycle.current().format, phase: "error", event: "error", startedAt, fileSize: lifecycle.current().fileSize, uri: asset.uri });
       }
+  };
+  const lock = () => {
+    if (selectionLocked.current || (state.phase !== "idle" && !isBookImportTerminal(state.phase))) return false;
+    selectionLocked.current = true;
+    setImportedBook(null);
+    setRestored(false);
+    setSelecting(true);
+    return true;
+  };
+  const start = async () => {
+    if (!lock()) return;
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: ["application/epub+zip", "application/epub", "application/pdf", "application/octet-stream"],
+        copyToCacheDirectory: true,
+      });
+      if (result.canceled || !result.assets[0]) return;
+      const asset = result.assets[0];
+      await importPicked({ uri: asset.uri, name: asset.name, mimeType: asset.mimeType, size: asset.size, file: asset.file });
     } catch (error) {
       const operation = lifecycle.start({ source: "local", fileName: "Arquivo selecionado" });
       lifecycle.fail(operation.operationId, friendlyImportError(error));
@@ -108,6 +118,22 @@ export function useBookImport(reloadLibrary: () => Promise<void>, openBook?: (bo
       selectionLocked.current = false;
       if (mounted.current) setSelecting(false);
     }
+  };
+  /** Arquivo solto na janela (Web). Falso quando outra importação está em andamento. */
+  const importFile = async (file: File): Promise<boolean> => {
+    if (!lock()) return false;
+    const uri = URL.createObjectURL(file);
+    try {
+      await importPicked({ uri, name: file.name, mimeType: file.type || undefined, size: file.size, file });
+    } catch (error) {
+      const operation = lifecycle.start({ source: "local", fileName: file.name });
+      lifecycle.fail(operation.operationId, friendlyImportError(error));
+    } finally {
+      selectionLocked.current = false;
+      if (mounted.current) setSelecting(false);
+      URL.revokeObjectURL(uri);
+    }
+    return true;
   };
 
   const cancel = () => {
@@ -135,6 +161,7 @@ export function useBookImport(reloadLibrary: () => Promise<void>, openBook?: (bo
     openDuplicate: () => answerDuplicate("open"),
     importDuplicateAnyway: () => answerDuplicate("import"),
     start,
+    importFile,
     cancel,
     dismiss,
     busy: selecting || (state.phase !== "idle" && !isBookImportTerminal(state.phase)),

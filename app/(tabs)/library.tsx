@@ -30,6 +30,12 @@ import { markEpubLibraryReady, startEpubOpenTrace } from "@/src/utils/epubOpenMe
 import { useBookImport } from "@/src/presentation/hooks/useBookImport";
 import { BookImportModal } from "@/src/presentation/components/BookImportModal";
 import { BookCloudControls } from '@/src/presentation/components/LibrarySyncControls';
+import { useFormFactor } from "@/src/presentation/layout/useFormFactor";
+import { isDoubleActivation, PointerKeys, pointerSelection } from "@/src/presentation/layout/desktopSelection";
+import { DesktopBookPanel } from "@/src/presentation/components/desktop/DesktopBookPanel";
+import { BookCover } from "@/src/presentation/components/BookCover";
+import { getBookCover } from "@/src/utils/coverHelper";
+import { formatBytes } from "@/src/domain/saas/planPresentation";
 import { CatalogLinkPrompt } from '@/src/presentation/components/catalog/CatalogLinkPrompt';
 import { libraryAccountScope } from '@/src/data/library/LibraryAccountScope';
 import { LibraryBulkModal } from '@/src/presentation/components/LibraryBulkModal';
@@ -91,6 +97,14 @@ function LibraryContent() {
   const [format, setFormat] = useState<'all' | 'epub' | 'pdf'>('all');
   const [layout, setLayout] = useState<'grid' | 'list'>('grid');
   const requests = useRef(0);
+  // Biblioteca do PC (23/11/2026): o clique mostra o livro no painel; duplo clique, Enter ou "Ler" abrem; Ctrl/Shift selecionam vários.
+  const desktop = useFormFactor() === "desktop";
+  const [focusedId, setFocusedId] = useState<string | null>(null);
+  const [dragging, setDragging] = useState(false);
+  const selectionAnchor = useRef<string | null>(null);
+  const lastPress = useRef<{ id: string; at: number } | null>(null);
+  const visibleBooksRef = useRef<LibraryBook[]>([]);
+  const dropTarget = useRef<View>(null);
   // 19/11/2026 (dono): tocar de novo na aba Biblioteca, já nela, volta ao início da lista, como nos outros apps.
   const listRef = useRef<FlatList<LibraryBook>>(null);
   useScrollToTop(listRef);
@@ -127,6 +141,20 @@ function LibraryContent() {
     }
     router.push({ pathname: "/reader/[bookId]", params: { bookId: item.id } });
   }, []);
+  const desktopPress = useCallback((item: LibraryBook, keys: PointerKeys) => {
+    if (keys.toggle || keys.range || selecting) {
+      const result = pointerSelection(visibleBooksRef.current.map(book => book.id), selection, selectionAnchor.current, item.id, keys);
+      selectionAnchor.current = result.anchor;
+      setSelection(result.selection);
+      if (!selecting) { setSelecting(true); setNotice(null); }
+      return;
+    }
+    const now = Date.now();
+    if (isDoubleActivation(lastPress.current, item.id, now)) { lastPress.current = null; openBook(item); return; }
+    lastPress.current = { id: item.id, at: now };
+    selectionAnchor.current = item.id;
+    setFocusedId(item.id);
+  }, [selecting, selection, openBook]);
   const organizeBook = useCallback((item: LibraryBook, card: Book) => setOrganizing({ ...item, title: card.title, author: card.author }), []);
   const organizationDisabled = Boolean(organizationError);
   const selectedIds = useMemo(() => books.filter(book => selection.has(book.id)).map(book => book.id), [books, selection]);
@@ -137,8 +165,9 @@ function LibraryContent() {
 
   const renderBook = useCallback(({ item }: { item: LibraryBook }) => (
     <LibraryBookCell item={item} record={organization[item.id]} selecting={selecting} selected={selection.has(item.id)} layout={layout} cellWidth={cellWidth}
-      palette={palette} themeMode={resolvedTheme} organizationDisabled={organizationDisabled} hideCounts={hideCounts} onOpen={openBook} onToggle={toggleSelection} onOrganize={organizeBook} />
-  ), [organization, selecting, selection, layout, cellWidth, palette, resolvedTheme, organizationDisabled, hideCounts, openBook, toggleSelection, organizeBook]);
+      palette={palette} themeMode={resolvedTheme} organizationDisabled={organizationDisabled} hideCounts={hideCounts} onOpen={openBook} onToggle={toggleSelection} onOrganize={organizeBook}
+      onPointerPress={desktop ? desktopPress : undefined} focused={desktop && !selecting && focusedId === item.id} />
+  ), [organization, selecting, selection, layout, cellWidth, palette, resolvedTheme, organizationDisabled, hideCounts, openBook, toggleSelection, organizeBook, desktop, desktopPress, focusedId]);
 
   const visibleBooks = useMemo(() => {
     const normalizedQuery = normalizeLibraryText(query);
@@ -183,6 +212,47 @@ function LibraryContent() {
   const paddingTop = Platform.OS === "web" ? space.xxl : Math.max(insets.top, space.lg);
   const filtersActive = Boolean(query || filter !== "all" || format !== "all" || collection);
   const catalogQuery = libraryCatalogQuery(query);
+  visibleBooksRef.current = visibleBooks;
+  const focusedBook = desktop && focusedId ? books.find(book => book.id === focusedId && !book.isDeleted) ?? null : null;
+  const focusedCard = focusedBook ? toCardBook(focusedBook, organization[focusedBook.id]) : null;
+  const focusedDetails = focusedBook ? desktopBookDetails(focusedBook, organization[focusedBook.id], hideCounts) : [];
+  // Teclado do PC: Enter abre o livro do painel; Esc fecha o painel ou sai da seleção. Não age enquanto se digita num campo.
+  useEffect(() => {
+    if (!desktop || typeof window === "undefined") return;
+    const onKey = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (event.altKey || event.ctrlKey || event.metaKey || target?.closest("input, textarea, select, [contenteditable='true'], [role='dialog']")) return;
+      if (event.key === "Escape") {
+        if (selecting) { setSelecting(false); setSelection(new Set()); setNotice(null); } else if (focusedId) setFocusedId(null);
+      } else if (event.key === "Enter" && focusedBook && !target?.closest("[role='button'], [role='link'], [role='checkbox'], button, a")) {
+        event.preventDefault(); openBook(focusedBook);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [desktop, selecting, focusedId, focusedBook, openBook]);
+  // Arrastar arquivos do computador para a Biblioteca (Web). Um arquivo por vez, pelo mesmo caminho de "Importar arquivo".
+  const importDropped = bookImport.importFile;
+  useEffect(() => {
+    if (Platform.OS !== "web") return;
+    const element = dropTarget.current as unknown as HTMLElement | null;
+    if (!element || typeof element.addEventListener !== "function") return;
+    const hasFiles = (event: DragEvent) => Array.from(event.dataTransfer?.types ?? []).includes("Files");
+    const over = (event: DragEvent) => { if (!hasFiles(event)) return; event.preventDefault(); if (event.dataTransfer) event.dataTransfer.dropEffect = "copy"; setDragging(true); };
+    const leave = (event: DragEvent) => { if (!event.relatedTarget || !element.contains(event.relatedTarget as Node)) setDragging(false); };
+    const drop = (event: DragEvent) => {
+      if (!hasFiles(event)) return;
+      event.preventDefault(); setDragging(false);
+      const files = Array.from(event.dataTransfer?.files ?? []), books = files.filter(isBookFile);
+      if (!books.length) { setNotice("Solte um arquivo EPUB ou PDF para importar."); return; }
+      void importDropped(books[0]).then(started => {
+        if (!started) setNotice("Espere a importação em andamento terminar e solte o arquivo de novo.");
+        else if (files.length > 1) setNotice(`Importando “${books[0].name}”. Solte um arquivo por vez.`);
+      });
+    };
+    element.addEventListener("dragover", over); element.addEventListener("dragleave", leave); element.addEventListener("drop", drop);
+    return () => { element.removeEventListener("dragover", over); element.removeEventListener("dragleave", leave); element.removeEventListener("drop", drop); };
+  }, [importDropped]);
   const clearFilters = () => { setQuery(""); setFilter("all"); setFormat("all"); setCollection(""); };
   const startSelecting = () => { setSelecting(true); setSelection(new Set()); setNotice(null); };
   const stopSelecting = () => { setSelecting(false); setSelection(new Set()); setNotice(null); };
@@ -306,10 +376,8 @@ function LibraryContent() {
   );
 
   return (
-    <View
-      onLayout={event => setLayoutWidth(event.nativeEvent.layout.width)}
-      style={[styles.screen, { backgroundColor: palette.background }]}
-    >
+    <View ref={dropTarget} style={[styles.screen, desktop ? styles.desktopRow : null, { backgroundColor: palette.background }]}>
+      <View style={styles.column} onLayout={event => setLayoutWidth(event.nativeEvent.layout.width)}>
       {(status === "loading" || status === "idle") && books.length === 0 ? (
         <View style={[styles.frame, { paddingHorizontal: gutter, paddingTop }]}>
           {header}
@@ -355,6 +423,27 @@ function LibraryContent() {
             </EmptyState>
           }
         />
+      ) : null}
+      </View>
+      {focusedBook ? (
+        <DesktopBookPanel
+          title={focusedCard!.title}
+          author={focusedCard!.author}
+          cover={<BookCover identity={focusedBook.id} title={focusedCard!.title} author={focusedCard!.author} format={focusedCard!.formatLabel ?? focusedCard!.format} source={getBookCover(focusedCard!)} />}
+          details={focusedDetails}
+          readLabel={isRecordBook(focusedBook) ? "Ver ficha" : focusedBook.progress > 0 ? "Continuar lendo" : "Ler"}
+          onRead={() => openBook(focusedBook)}
+          onOrganize={() => organizeBook(focusedBook, focusedCard!)}
+          organizeDisabled={organizationDisabled}
+          onClose={() => setFocusedId(null)}
+          footer={<BookCloudControls book={focusedBook} title={focusedCard!.title} organizeDisabled={organizationDisabled} onOpen={() => openBook(focusedBook)} onOrganize={() => organizeBook(focusedBook, focusedCard!)} />}
+        />
+      ) : null}
+      {dragging ? (
+        <View pointerEvents="none" style={[styles.dropOverlay, { borderColor: palette.accent, backgroundColor: palette.background }]}>
+          <AppText variant="heading">Solte para importar</AppText>
+          <AppText variant="bodySmall" tone="secondary">Um arquivo EPUB ou PDF por vez.</AppText>
+        </View>
       ) : null}
       <ActionMenu visible={openMenu === "add"} title="Adicionar livros" items={addItems} onClose={() => setOpenMenu(null)} />
       <ActionMenu visible={openMenu === "more"} title="Biblioteca" items={moreItems} onClose={() => setOpenMenu(null)} />
@@ -404,21 +493,25 @@ interface LibraryBookCellProps {
   onOpen(item: LibraryBook): void;
   onToggle(id: string): void;
   onOrganize(item: LibraryBook, card: Book): void;
+  /** Só no PC: clique com Ctrl/Shift e painel de detalhes. */
+  onPointerPress?(item: LibraryBook, keys: PointerKeys): void;
+  focused?: boolean;
 }
 
 /**
  * Uma célula da grade/lista. Memoizada: digitar na busca, abrir menus ou marcar um livro não redesenha os demais cartões
  * (com 1000 livros, cada mudança redesenhava todos os ~72 cartões montados). Só recebe dados do próprio livro e callbacks estáveis.
  */
-const LibraryBookCell = memo(function LibraryBookCell({ hideCounts, item, record, selecting, selected, layout, cellWidth, palette, themeMode, organizationDisabled, onOpen, onToggle, onOrganize }: LibraryBookCellProps) {
+const LibraryBookCell = memo(function LibraryBookCell({ hideCounts, item, record, selecting, selected, layout, cellWidth, palette, themeMode, organizationDisabled, onOpen, onToggle, onOrganize, onPointerPress, focused }: LibraryBookCellProps) {
   const cardBook = useMemo(() => toCardBook(item, record), [item, record]);
   const manual = isRecordBook(item) && !hideCounts ? manualProgressLabel(record?.manualProgress, item.recordFormat) : null;
   const open = useCallback(() => onOpen(item), [item, onOpen]);
   const toggle = useCallback(() => onToggle(item.id), [item.id, onToggle]);
+  const pointer = useMemo(() => onPointerPress ? (_book: Book, keys: PointerKeys) => onPointerPress(item, keys) : undefined, [item, onPointerPress]);
   return (
     <View style={{ width: cellWidth, minWidth: 0, gap: space.xs, marginBottom: space.lg }}>
-      {selecting ? <SharedBookCard layout={layout} book={cardBook} themeMode={themeMode} colors={palette} selection={selected} onPress={toggle} showProgress={!hideCounts} /> : <>
-        <SharedBookCard layout={layout} book={cardBook} themeMode={themeMode} colors={palette} onPress={open} showProgress={!hideCounts} />
+      {selecting ? <SharedBookCard layout={layout} book={cardBook} themeMode={themeMode} colors={palette} selection={selected} onPress={toggle} onPointerPress={pointer} showProgress={!hideCounts} /> : <>
+        <SharedBookCard layout={layout} book={cardBook} themeMode={themeMode} colors={palette} onPress={open} onPointerPress={pointer} focused={focused} showProgress={!hideCounts} />
         {/* Uma linha só: situação de leitura · disponibilidade, e o menu "⋯" com abrir, organizar e remover. */}
         <BookCloudControls book={item} title={cardBook.title} organizeDisabled={organizationDisabled} onOpen={open} onOrganize={() => onOrganize(item, cardBook)}
           status={`${record?.favorite ? "★ · " : ""}${record?.wantToRead ? "Quero ler · " : ""}${readingStatusLabels[inferredReadingStatus(item, record)]}${manual ? ` · ${manual}` : ""}${record?.series ? ` · ${record.series}${record.volume ? ` ${record.volume}` : ""}` : ""}`} />
@@ -426,6 +519,34 @@ const LibraryBookCell = memo(function LibraryBookCell({ hideCounts, item, record
     </View>
   );
 });
+
+const SANE_DATE = Date.UTC(2000, 0, 1);
+
+function isBookFile(file: File): boolean {
+  return /.(epub|pdf)$/i.test(file.name) || file.type === "application/pdf" || file.type === "application/epub+zip";
+}
+
+/** Linhas do painel do PC: só o que o livro tem. Porcentagem some com "Ocultar porcentagem e páginas". */
+export function desktopBookDetails(book: LibraryBook, record: BookOrganization | undefined, hideCounts: boolean): Array<{ label: string; value: string }> {
+  const details: Array<{ label: string; value: string }> = [];
+  const card = toCardBook(book, record);
+  details.push({ label: "Formato", value: (card.formatLabel ?? card.format).toUpperCase() });
+  const marks = [record?.favorite ? "Favorito" : null, record?.wantToRead ? "Quero ler" : null].filter(Boolean).join(" · ");
+  details.push({ label: "Situação", value: readingStatusLabels[inferredReadingStatus(book, record)] + (marks ? ` · ${marks}` : "") });
+  if (!hideCounts) {
+    const manual = isRecordBook(book) ? manualProgressLabel(record?.manualProgress, book.recordFormat) : null;
+    const percent = Math.round(Math.max(0, Math.min(1, book.progress)) * 100);
+    if (manual) details.push({ label: "Progresso", value: manual }); else if (!isRecordBook(book) && percent > 0) details.push({ label: "Progresso", value: `${percent}%` });
+  }
+  if (record?.series) details.push({ label: "Série", value: record.volume ? `${record.series} ${record.volume}` : record.series });
+  if (record?.collections.length) details.push({ label: "Coleções", value: record.collections.join(", ") });
+  if (!isRecordBook(book) && book.fileSize > 0) details.push({ label: "Tamanho", value: formatBytes(book.fileSize) });
+  // Data só quando é uma data de verdade (o Aldus não existia antes de 2000): registro sem data não vira "31/12/1969".
+  if (book.addedDate >= SANE_DATE) details.push({ label: "Adicionado em", value: new Date(book.addedDate).toLocaleDateString("pt-BR") });
+  const last = book.lastReadAt ?? book.lastOpenedDate;
+  if (last && last >= SANE_DATE) details.push({ label: "Última leitura", value: new Date(last).toLocaleDateString("pt-BR") });
+  return details;
+}
 
 function toCardBook(book: LibraryBook, record?: BookOrganization): Book {
   const mockBook = catalogBookFor(book), hasOrganization = Boolean(record);
@@ -445,6 +566,9 @@ function toCardBook(book: LibraryBook, record?: BookOrganization): Book {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, width: "100%" },
+  desktopRow: { flexDirection: "row" },
+  column: { flex: 1, minWidth: 0 },
+  dropOverlay: { position: "absolute", top: 16, right: 16, bottom: 16, left: 16, borderWidth: 2, borderStyle: "dashed", borderRadius: 16, alignItems: "center", justifyContent: "center", gap: 8, opacity: 0.94 },
   frame: { width: "100%", flex: 1 },
   headerBlock: { gap: space.md, marginBottom: space.lg },
   toolbar: { flexDirection: "row", alignItems: "center", gap: space.xs, marginLeft: -space.sm },

@@ -46,6 +46,7 @@ const FEATURES = [
   { id: 'reader-paged-longpress-edges', pedido: '20/11: grifar ao pressionar e segurar na primeira e na última linha da página em Virar páginas', markers: ['isScrollFlow() && isAnimating'] },
   { id: 'reader-longpress-drag', pedido: '23/11: depois de pressionar e segurar, arrastar o dedo estende o grifo palavra a palavra (sem depender dos botoes)', markers: ['studyDragTo', 'studyDragBegin'] },
   { id: 'desktop-shell', pedido: '23/11: modulo PC na Web (janela larga e mouse): barra lateral propria com busca e estado do sincronismo; celular intacto', markers: ['Buscar livros no catálogo', 'Abrir sincronização na Conta'] },
+  { id: 'desktop-library', pedido: '23/11: Biblioteca do PC: painel de detalhes, clique duplo abre, Ctrl/Shift selecionam, soltar EPUB/PDF importa', markers: ['Detalhes do livro', 'Solte para importar', 'Fechar painel'] },
   { id: 'discover-catalog-tab', pedido: '19/11: aba Descobrir vira o catalogo (vitrine, Sortear um livro, Suas fontes); sem Gutendex/BibliON/MEC', markers: ['Sortear um livro', 'abrir seus arquivos por aqui', 'Calculado neste aparelho'] },
   { id: 'library-tab-scroll-top', pedido: '19/11: tocar na aba Biblioteca, já nela, volta ao início da lista', markers: ['library-book-list'] },
   { id: 'library-first-steps', pedido: 'Onda A5: primeiros passos', markers: ['Primeiros passos'] },

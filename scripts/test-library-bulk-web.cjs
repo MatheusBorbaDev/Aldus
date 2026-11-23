@@ -22,7 +22,7 @@ const wait=ms=>new Promise(r=>setTimeout(r,ms));
   for(const width of [320,390,768,1440])for(const dark of [false,true]){
    await send('Emulation.setDeviceMetricsOverride',{width,height:900,deviceScaleFactor:1,mobile:false});
    if(await evaluate('window.fixture.dark')!==dark)await more(dark?'Mudar para tema escuro':'Mudar para tema claro');await wait(200);
-   const state=await evaluate(`({overflow:document.documentElement.scrollWidth>innerWidth,cards:document.querySelectorAll('[aria-label^="Abrir Livro sintético"]').length,first:document.querySelector('[aria-label^="Abrir Livro sintético"]')?.getBoundingClientRect().width})`);
+   const state=await evaluate(`({overflow:document.documentElement.scrollWidth>innerWidth,cards:document.querySelectorAll('[aria-label^="Abrir Livro sintético"],[aria-label^="Mostrar Livro sintético"]').length,first:document.querySelector('[aria-label^="Abrir Livro sintético"],[aria-label^="Mostrar Livro sintético"]')?.getBoundingClientRect().width})`);
    assert.equal(state.overflow,false);assert(state.cards>0);assert(state.first>120&&state.first<400);results.push({width,dark,...state});await screenshot('library-'+width+'-'+(dark?'dark':'light'));
   }
   await click('Continuar lendo Livro sintético 0001');assert.equal((await evaluate('window.fixture.route')).params.bookId,'A-0');
@@ -31,10 +31,10 @@ const wait=ms=>new Promise(r=>setTimeout(r,ms));
   // 19/11: "Buscar em catálogos públicos" (Gutenberg/Gutendex) saiu com a nova Descobrir; o catálogo segue em "Buscar qualquer livro".
   await add('Buscar qualquer livro');assert.equal(await evaluate('window.fixture.route'),'/catalog');
   await more('Minhas fontes');assert.equal(await evaluate('window.fixture.route'),'/sources');
-  await click('Exibir em lista');assert(await evaluate(`document.querySelector('[aria-label^="Abrir Livro sintético"]').getBoundingClientRect().width>600`));
+  await click('Exibir em lista');assert(await evaluate(`document.querySelector('[aria-label^="Abrir Livro sintético"],[aria-label^="Mostrar Livro sintético"]').getBoundingClientRect().width>600`));
   await click('Exibir em grade');
   await click('Filtrar formato: Todos');await wait(250);await click('PDF');await wait(150);assert(await evaluate(`document.body.textContent.includes('Nenhum livro encontrado')`));
-  await click('Limpar filtros');assert(await evaluate(`document.querySelectorAll('[aria-label^="Abrir Livro sintético"]').length>0`));
+  await click('Limpar filtros');assert(await evaluate(`document.querySelectorAll('[aria-label^="Abrir Livro sintético"],[aria-label^="Mostrar Livro sintético"]').length>0`));
   await send('Emulation.setDeviceMetricsOverride',{width:390,height:844,deviceScaleFactor:1,mobile:false});await send('Emulation.setTouchEmulationEnabled',{enabled:true});await wait(200);await more('Selecionar livros');
   let labels=await evaluate(`[...document.querySelectorAll('[role="checkbox"]')].slice(0,2).map(e=>e.getAttribute('aria-label'))`);assert.equal(labels.length,2);
   // Real mouse then touch input on the rendered checkbox controls.
@@ -53,7 +53,7 @@ const wait=ms=>new Promise(r=>setTimeout(r,ms));
   assert(Object.values(await evaluate('window.fixture.records()')).every(record=>record.collections.length===0));
   assert.equal(await evaluate(`document.body.textContent.includes('Nenhum livro encontrado')`),false,'removing final collection member resets the obsolete filter');
   await send('Page.reload');for(let i=0;i<100&&!(await evaluate('Boolean(window.fixture&&window.fixture.records)'));i++)await wait(100);await wait(200);assert.equal(Object.keys(await evaluate('window.fixture.records()')).length,2,'actual localStorage survives reopen');
-  await evaluate('window.fixture.resize(1000)');await wait(250);const rendered=await evaluate(`document.querySelectorAll('[aria-label^="Abrir Livro sintético"]').length`);assert(rendered<200,'virtualization must not render all 1000 books');
+  await evaluate('window.fixture.resize(1000)');await wait(250);const rendered=await evaluate(`document.querySelectorAll('[aria-label^="Abrir Livro sintético"],[aria-label^="Mostrar Livro sintético"]').length`);assert(rendered<200,'virtualization must not render all 1000 books');
   await more('Selecionar livros');
   // The action menu returns focus to its trigger when it finishes closing (correct a11y); focus the book only after that.
   for(let i=0;i<60&&await evaluate(`!!document.querySelector('[aria-modal="true"]')`);i++)await wait(50);

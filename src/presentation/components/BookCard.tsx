@@ -5,6 +5,7 @@ import { getBookCover } from "@/src/utils/coverHelper";
 import { BookCover } from './BookCover';
 import { THEMES } from "@/src/constants/theme";
 import { radius, space, typography } from "@/src/ui/tokens";
+import { PointerKeys, pointerKeysFrom } from "@/src/presentation/layout/desktopSelection";
 
 interface BookCardProps {
   book: Book;
@@ -15,6 +16,10 @@ interface BookCardProps {
   layout?: "grid" | "list";
   selection?: boolean;
   colors?: { panel: string; text: string; secondaryText: string; separator: string; accent: string };
+  /** PC: recebe também Ctrl/Shift do clique (no lugar de `onPress`). */
+  onPointerPress?: (book: Book, keys: PointerKeys) => void;
+  /** PC: livro mostrado no painel de detalhes (contorno, sem caixa de seleção). */
+  focused?: boolean;
 }
 
 /**
@@ -30,6 +35,8 @@ export const BookCard: React.FC<BookCardProps> = ({
   layout = "grid",
   selection,
   colors,
+  onPointerPress,
+  focused,
 }) => {
   const theme = colors ? { ...THEMES[themeMode], uiBackground: colors.panel, text: colors.text, uiText: colors.secondaryText, border: colors.separator, accent: colors.accent } : THEMES[themeMode];
   const coverSource = getBookCover(book);
@@ -45,14 +52,17 @@ export const BookCard: React.FC<BookCardProps> = ({
       {...(Platform.OS === 'web' && selection !== undefined ? { onKeyDown: (event: { key: string; repeat?: boolean; preventDefault(): void }) => {
         if (event.key === ' ' || event.key === 'Enter') { event.preventDefault(); if (!event.repeat) onPress(book); }
       } } : {})}
-      accessibilityLabel={selection === undefined ? `Abrir ${book.title}, de ${book.author}` : `Selecionar ${book.title}`}
+      accessibilityLabel={selection === undefined ? `${onPointerPress ? 'Mostrar' : 'Abrir'} ${book.title}, de ${book.author}` : `Selecionar ${book.title}`}
+      {...(focused ? { 'aria-current': true } : {})}
       android_ripple={{ color: theme.border }}
       style={[
         styles.card,
         layout === "list" && styles.listCard,
-        { borderColor: selection ? theme.accent : 'transparent' },
+        { borderColor: selection || focused ? theme.accent : 'transparent' },
+        // PC: Shift+clique soma livros à seleção; sem isto o navegador também selecionava o texto dos cartões.
+        onPointerPress ? ({ userSelect: 'none' } as object) : null,
       ]}
-      onPress={() => onPress(book)}
+      onPress={event => onPointerPress ? onPointerPress(book, pointerKeysFrom(event)) : onPress(book)}
     >
       <View style={[styles.cover, layout === "list" && styles.listCover, { backgroundColor: theme.border }]}>
         <BookCover identity={book.id} title={book.title} author={book.author} format={book.formatLabel ?? book.format} source={coverSource} compact={layout === 'list'} />
