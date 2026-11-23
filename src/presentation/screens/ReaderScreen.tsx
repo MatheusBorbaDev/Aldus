@@ -84,6 +84,7 @@ import { useReduceMotion } from "@/src/presentation/hooks/useReduceMotion";
 import { useAppPaletteName } from "@/src/presentation/contexts/AppThemeContext";
 import { appDependencies } from "@/src/presentation/services/dependencies";
 import { LibraryBook, StoredChapter } from "@/src/domain/entities/LibraryBook";
+import { useFormFactor } from "@/src/presentation/layout/useFormFactor";
 import {
   epubDiagnosticConsole as console,
   markEpubOpenEvent,
@@ -95,6 +96,9 @@ interface Props {
   bookId: string;
 }
 
+/** Abaixo disso, mesmo no PC, cada página ficaria estreita demais para duas colunas confortáveis. */
+export const SPREAD_MIN_WIDTH = 1100;
+
 export function ReaderScreen({ bookId }: Props) {
   const renderCount = useRef(0);
   const reflowModeGeneration = useRef(0);
@@ -105,6 +109,8 @@ export function ReaderScreen({ bookId }: Props) {
   const insets = useSafeAreaInsets();
   const settings = useReaderSettings();
   const { width, height } = useWindowDimensions();
+  // PC (23/11/2026): com a janela larga, o modo página mostra duas páginas lado a lado, como um livro aberto.
+  const spreadPages = useFormFactor() === "desktop" && width >= SPREAD_MIN_WIDTH;
   const { progress, controlsVisible, setProgress, setControlsVisible, toggleControls } = useReaderStore();
   const [readerPanel, setReaderPanel] = useState<"appearance" | "contents" | "search" | null>(null);
   const [headerHeight, setHeaderHeight] = useState(0);
@@ -701,6 +707,7 @@ export function ReaderScreen({ bookId }: Props) {
         pageSurfaceImage: paperTextureCss(settings.paperTexture ?? "none", activePalette.background, activePalette.text),
         pageTurn,
         readingFlow: settings.readingFlow ?? "paged",
+        spread: spreadPages && (settings.readingFlow ?? "paged") === "paged",
       }
     : {
         fontSize: settings.fontSize,
@@ -716,6 +723,7 @@ export function ReaderScreen({ bookId }: Props) {
         pageSurfaceImage: paperTextureCss(settings.paperTexture ?? "none", activePalette.background, activePalette.text),
         pageTurn,
         readingFlow: settings.readingFlow ?? "paged",
+        spread: spreadPages && (settings.readingFlow ?? "paged") === "paged",
       };
 
   const pageNumber = isPdf && !isReflowPdf

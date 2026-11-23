@@ -14,6 +14,7 @@ const load = require('./community-test-loader.cjs')({
   '@/src/presentation/contexts/AppThemeContext': { useAppTheme: () => ({ palette: { tabBar: '#FBF9F4', border: '#ddd', text: '#203B32', secondaryText: '#5C6A63', accent: '#8F4528', accentSoft: '#F6E9E1', input: '#fff', surfaceSecondary: '#EDEFE5' } }) },
   '@/src/presentation/components/LibrarySyncControls': { useLibrarySync: () => sync },
   '@/src/presentation/i18n/ptBR': { numberLabel: n => String(n) },
+  '@/src/utils/epubOpenMetrics': { epubDiagnosticConsole: { log() {} } },
   '@/src/ui': { radius: { md: 10 }, space: { xxs: 2, sm: 8, md: 12, lg: 16, xl: 20 }, typography: { title: {}, label: {}, bodySmall: {}, caption: {} } },
 });
 
@@ -49,6 +50,20 @@ const load = require('./community-test-loader.cjs')({
   assert.deepEqual(pointerKeysFrom({ nativeEvent: { metaKey: true, shiftKey: true } }), { toggle: true, range: true }, 'Cmd counts as Ctrl');
   assert.deepEqual(pointerKeysFrom(undefined), { toggle: false, range: false });
 
+  // Fase 3: atalhos do leitor no PC (Espaço/Page Down avançam, Shift+Espaço/Page Up voltam; nada enquanto se digita).
+  const listeners = {};
+  global.window = { addEventListener: (type, fn) => { listeners[type] = fn; }, removeEventListener: () => {} };
+  const { ReadingTouchZones } = load('src/presentation/components/reader/ReadingTouchZones.tsx');
+  const turns = [];
+  let zones;
+  await act(async () => { zones = create(React.createElement(ReadingTouchZones, { onPreviousPage: () => turns.push('prev'), onNextPage: () => turns.push('next'), onToggleControls: () => turns.push('controls') })); });
+  const press = (key, extra = {}) => listeners.keydown({ key, shiftKey: false, altKey: false, ctrlKey: false, metaKey: false, target: { closest: () => null }, preventDefault() {}, ...extra });
+  press(' '); press('PageDown'); press('ArrowRight'); press(' ', { shiftKey: true }); press('PageUp'); press('ArrowLeft'); press('Escape');
+  press(' ', { target: { closest: () => ({}) } }); press('PageDown', { ctrlKey: true });
+  assert.deepEqual(turns, ['next', 'next', 'next', 'prev', 'prev', 'prev', 'controls'], 'Space/PageDown forward, Shift+Space/PageUp back; typing or Ctrl does not turn');
+  await act(async () => zones.unmount());
+  delete global.window;
+
   const { DesktopSidebar, sidebarSyncLabel, DESKTOP_SIDEBAR_WIDTH } = load('src/presentation/components/desktop/DesktopSidebar.tsx');
   assert.equal(sidebarSyncLabel({ running: true, pending: 3, lastSync: 1, error: null }), 'Sincronizando…');
   assert.equal(sidebarSyncLabel({ running: false, pending: 0, lastSync: 1, error: 'x' }), 'Sincronização com erro');
@@ -80,5 +95,5 @@ const load = require('./community-test-loader.cjs')({
   assert.equal(syncButton.props.accessibilityLabel, 'Ainda não sincronizada. Abrir sincronização na Conta');
   await act(async () => syncButton.props.onPress());assert.equal(pushed.at(-1), '/settings');
   await act(async () => tree.unmount());
-  console.log('PASS desktop layout: Ctrl/Shift selection (range both ways, stale anchor), double click window, Cmd as Ctrl; PC only for Web + window >= 1024 + mouse (narrow PC window, touch tablet, phone site and Android keep the touch layout); sidebar with labelled sections, hidden Estudo, search to the catalog, honest sync status. Component test, not a browser capture.');
+  console.log('PASS desktop layout: reader keys (Space/PageDown/Shift+Space/PageUp, not while typing); Ctrl/Shift selection (range both ways, stale anchor), double click window, Cmd as Ctrl; PC only for Web + window >= 1024 + mouse (narrow PC window, touch tablet, phone site and Android keep the touch layout); sidebar with labelled sections, hidden Estudo, search to the catalog, honest sync status. Component test, not a browser capture.');
 })().catch(error => { console.error(error); process.exitCode = 1; });

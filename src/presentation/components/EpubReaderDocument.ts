@@ -12,6 +12,8 @@ export interface ReaderDocumentOptions {
   maxWidth?: number;
   alignment?: "left" | "justify";
   allowTextSelection?: boolean;
+  /** PC (23/11/2026): duas páginas lado a lado no modo página. A "página" do leitor passa a ser o par (a tela inteira). */
+  spread?: boolean;
   textColor: string;
   backgroundColor: string;
   /** Nonce da CSP do documento. Só para testes; por padrão é sorteado a cada documento. */
@@ -64,7 +66,7 @@ export function createEpubReaderDocument(chapters: StoredChapter[], options: Rea
   const textSelection = options.allowTextSelection ? "text" : "none";
 
   return `<!doctype html>
-<html${documentLanguage ? ` lang="${escapeAttribute(documentLanguage)}"` : ""}>
+<html${documentLanguage ? ` lang="${escapeAttribute(documentLanguage)}"` : ""}${options.spread ? ` class="reader-spread"` : ""}>
 <head>
 <meta charset="utf-8">
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data: blob:; font-src data:; style-src 'unsafe-inline'; script-src 'nonce-${nonce}'; connect-src 'none'; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
@@ -118,6 +120,11 @@ export function createEpubReaderDocument(chapters: StoredChapter[], options: Rea
   }
   #reader-content.is-transitioning.turn-instant {
     transition: none;
+  }
+  /* Duas páginas no PC: cada tela vira duas colunas; a navegação, as âncoras e a contagem continuam pela largura da tela. */
+  html.reader-spread:not(.reader-scroll) #reader-content {
+    column-width: auto !important;
+    column-count: 2 !important;
   }
   /* Rolagem contínua (Fase E, 16/11/2026): o livro vira uma coluna vertical; as "páginas" passam a ser telas virtuais. */
   html.reader-scroll #reader-viewport {
@@ -808,6 +815,7 @@ export function createEpubReaderDocument(chapters: StoredChapter[], options: Rea
     var maxWidth = Math.max(320, Math.min(1200, options.maxWidth || 900));
     var alignment = options.alignment === "justify" ? "justify" : "left";
     var textSelection = options.allowTextSelection ? "text" : "none";
+    if (typeof options.spread === "boolean") document.documentElement.classList.toggle("reader-spread", options.spread);
 
     dynamicStyle.innerHTML =
       "*, body, p, div, span, li, blockquote, h1, h2, h3, h4, h5, h6 { " +

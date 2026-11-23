@@ -150,17 +150,43 @@ function load(file){if(cache.has(file))return cache.get(file);const exports={};c
    return {a:a.word,b:b.word,long,doc:doc.map(m=>m.status+':'+(m.anchor&&m.anchor.quote)),docShown,live,liveReplies,zone:zone.map(m=>m.status+':'+(m.anchor&&m.anchor.quote)),pageMessages:messages.slice(start).filter(m=>m.type==='page').length};})()`);
   if(drag.skipped)console.log('SKIP drag selection: no two visible lines of words');
   else {
-  const quoteOf=entry=>entry.slice(entry.indexOf(':')+1);
+  const quoteOf=entry=>entry.slice(entry.indexOf(':')+1),flat=text=>text.replace(/\s+/g,' ').trim(); // the page shows source line breaks as spaces
   assert.equal(drag.long,1,'the press posts one long press');
   assert.equal(drag.doc.length,2,'word first, then the dragged trecho: '+JSON.stringify(drag.doc));
   const docQuote=quoteOf(drag.doc[1]);assert.ok(drag.doc[1].startsWith('captured:')&&docQuote.startsWith(drag.a)&&docQuote.endsWith(drag.b)&&docQuote.length>drag.a.length+drag.b.length,'document drag goes from the pressed word to the word under the finger: '+JSON.stringify(drag));
-  assert.equal(drag.docShown,docQuote,'the dragged trecho is shown selected');
+  assert.equal(flat(drag.docShown),flat(docQuote),'the dragged trecho is shown selected');
   assert.equal(drag.liveReplies,1,'moving the finger only updates the visible selection (no reply until release)');
   assert.ok(drag.live.startsWith(drag.a)&&drag.live.endsWith(drag.b),'dragging back to an earlier word selects from it to the pressed word: '+drag.live);
-  assert.equal(drag.zone.length,2);assert.equal(quoteOf(drag.zone[1]),drag.live,'release replies with the trecho shown');
+  assert.equal(drag.zone.length,2);assert.equal(flat(quoteOf(drag.zone[1])),flat(drag.live),'release replies with the trecho shown');
   assert.equal(drag.pageMessages,0,'dragging never moves the page');
   console.log('PASS drag after press-and-hold on the actual document: forward from the document, backward from the touch zones, one reply on release',JSON.stringify({a:drag.a,b:drag.b,quote:quoteOf(drag.doc[1]).slice(0,80)}));
   }
+  // PC (23/11/2026): two pages side by side. Turning it on and off keeps the trecho on screen, both halves of the screen show
+  // text, "next" moves one pair, and the page count is the count of pairs. Desktop-sized window, then back to the phone size.
+  await send('Emulation.setDeviceMetricsOverride',{width:1280,height:800,deviceScaleFactor:1,mobile:false});await new Promise(r=>setTimeout(r,700));
+  const spread=await evaluate(`(async()=>{const sleep=ms=>new Promise(r=>setTimeout(r,ms)),pages=()=>messages.filter(m=>m.type==='page');
+   const capture=id=>{window.readerStudy({type:'studyCapture',id});const a=messages.filter(m=>m.type==='study'&&m.id===id).at(-1).anchor;return {c:a.chapterId,s:a.start};};
+   const settle=async options=>{const start=messages.length;window.updateTypography(options);let frames=0;while(!messages.slice(start).some(m=>m.type==='page'&&m.origin==='SETTINGS_LAYOUT')){if(++frames>600)throw Error('spread layout not acknowledged');await new Promise(r=>requestAnimationFrame(r));}await sleep(150);};
+   const halves=()=>{const v=document.getElementById('reader-viewport').getBoundingClientRect(),y=v.top+v.height/2,hit=x=>{const r=document.caretRangeFromPoint(x,y);return !!(r&&r.startContainer.nodeType===3&&r.startContainer.parentElement.closest('.epub-chapter')&&r.startContainer.textContent.trim());};return [hit(v.left+v.width*0.25),hit(v.left+v.width*0.75)];};
+   await settle(${JSON.stringify(options)});window.goToPage(10);await sleep(400);const t0=pages().at(-1).totalPages,a0=capture(70);
+   await settle(${JSON.stringify({...options,spread:true})});const on=document.documentElement.classList.contains('reader-spread'),t1=pages().at(-1).totalPages,a1=capture(71),h1=halves();
+   window.navigatePage(1);await sleep(500);const a2=capture(72),p2=pages().at(-1).pageNumber;
+   await settle(${JSON.stringify({...options,spread:false})});const off=!document.documentElement.classList.contains('reader-spread'),t3=pages().at(-1).totalPages,a3=capture(73);
+   return {t0,a0,on,t1,a1,h1,a2,p2,off,t3,a3,overflow:document.documentElement.scrollWidth>innerWidth};})()`);
+  assert.equal(spread.on,true);assert.equal(spread.off,true);
+  const within=(a,from,to)=>a.c===from.c&&a.c===to.c&&from.s<=a.s&&a.s<to.s;
+  assert.ok(within(spread.a0,spread.a1,spread.a2),'two pages keep the trecho on screen (inside the pair shown): '+JSON.stringify(spread));
+  assert.deepEqual(spread.h1,[true,true],'text on the left and on the right page');
+  assert.ok(spread.t1<spread.t0&&spread.t1>=Math.floor(spread.t0/2),'the count becomes pairs (chapters start on a new column): '+JSON.stringify([spread.t0,spread.t1]));
+  assert.ok(spread.a2.c!==spread.a1.c||spread.a2.s>spread.a1.s,'next moves forward one pair');
+  assert.ok(spread.a3.c===spread.a2.c&&spread.a3.s<=spread.a2.s&&spread.a2.s-spread.a3.s<spread.a2.s-spread.a1.s,'back to one page shows the page that holds the trecho: '+JSON.stringify(spread));assert.ok(Math.abs(spread.t3-spread.t0)<=1,'single-page count returns');
+  assert.equal(spread.overflow,false);
+  fs.mkdirSync('.expo/desktop-shell-web',{recursive:true});fs.writeFileSync(path.join('.expo/desktop-shell-web','reader-spread-1280.png'),Buffer.from((await send('Page.captureScreenshot',{format:'png'})).data,'base64'));
+  await evaluate(`window.updateTypography(${JSON.stringify({...options,spread:true})})`);await new Promise(r=>setTimeout(r,900));
+  fs.writeFileSync(path.join('.expo/desktop-shell-web','reader-spread-1280-on.png'),Buffer.from((await send('Page.captureScreenshot',{format:'png'})).data,'base64'));
+  await evaluate(`window.updateTypography(${JSON.stringify({...options,spread:false})})`);await new Promise(r=>setTimeout(r,900));
+  await send('Emulation.setDeviceMetricsOverride',{width:420,height:780,deviceScaleFactor:1,mobile:true});await new Promise(r=>setTimeout(r,700));
+  console.log('PASS two pages side by side on the actual document (1280 px): same trecho on and off, text on both halves, next = one pair, pages counted as pairs',JSON.stringify(spread));
   // Page turn (phase D, 16/11/2026): none is immediate, flip rotates the viewport and confirms the page only at the end, rapid
   // taps add up in every mode, reduce motion (app flag or system media) forces none, and nothing is left rotated afterwards.
   // The system preference is emulated explicitly: this PC has Windows animations off, which Chrome reports as reduce.

@@ -49,6 +49,7 @@ export interface DocumentReaderAdapterProps {
     pageSurfaceImage?: string;
     pageTurn?: "none" | "slide" | "flip";
     readingFlow?: "paged" | "scroll";
+    spread?: boolean;
   };
   onPdfTotalPages: (count: number) => void;
   onEpubPageInfo: (info: EpubPageInfo) => void;
@@ -208,6 +209,7 @@ export function DocumentReaderAdapter({
             pageSurfaceImage={settings.pageSurfaceImage}
             pageTurn={settings.pageTurn}
             readingFlow={settings.readingFlow}
+            spread={settings.spread}
             onDocumentTap={onToggleControls}
             onDocumentLongPress={onLongPressText}
             onPageInfo={onEpubPageInfo}

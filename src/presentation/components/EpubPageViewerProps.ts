@@ -55,6 +55,8 @@ export interface EpubPageViewerProps {
   pageTurn?: "none" | "slide" | "flip";
   /** Rolagem contínua (Fase E): o livro numa coluna vertical. Ausente = páginas. */
   readingFlow?: "paged" | "scroll";
+  /** PC: duas páginas lado a lado no modo página (só a Web usa). */
+  spread?: boolean;
   /** Na rolagem, toque sem arrastar e pressionar e segurar chegam do documento (não há zonas de toque por cima). */
   onDocumentTap?: () => void;
   onDocumentLongPress?: (x: number, y: number) => void;

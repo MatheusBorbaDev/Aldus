@@ -28,6 +28,7 @@ function EpubPageViewerComponent({
   pageSurfaceImage = "none",
   pageTurn = "slide",
   readingFlow = "paged",
+  spread = false,
   onDocumentTap,
   onDocumentLongPress,
   onPageInfo,
@@ -71,6 +72,7 @@ function EpubPageViewerComponent({
         allowTextSelection,
         textColor,
         backgroundColor,
+        spread,
       });
       markEpubOpenEvent(
         "srcdoc_generation_end",
@@ -215,10 +217,11 @@ function EpubPageViewerComponent({
         allowTextSelection,
         textColor,
         backgroundColor,
+        spread,
       },
       "*"
     );
-  }, [fontSize, fontFamily, marginSize, lineHeight, paragraphSpacing, maxWidth, alignment, allowTextSelection, textColor, backgroundColor]);
+  }, [fontSize, fontFamily, marginSize, lineHeight, paragraphSpacing, maxWidth, alignment, allowTextSelection, textColor, backgroundColor, spread]);
 
   // Textura de papel: só o fundo do viewport, separado da tipografia para não recalcular o layout.
   useEffect(() => {
@@ -265,6 +268,7 @@ function EpubPageViewerComponent({
           allowTextSelection,
           textColor,
           backgroundColor,
+          spread,
         },
         "*"
       );

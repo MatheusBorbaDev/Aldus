@@ -55,10 +55,13 @@ export function ReadingTouchZones({ onPreviousPage, onNextPage, onToggleControls
         return;
       }
 
-      if (event.key === "ArrowLeft") {
+      // PC (23/11/2026): Espaço/Page Down avançam e Shift+Espaço/Page Up voltam, como nos leitores de mesa.
+      const back = event.key === "PageUp" || (event.key === " " && event.shiftKey);
+      const forward = event.key === "PageDown" || (event.key === " " && !event.shiftKey);
+      if (event.key === "ArrowLeft" || back) {
         event.preventDefault();
         onPreviousPage();
-      } else if (event.key === "ArrowRight") {
+      } else if (event.key === "ArrowRight" || forward) {
         event.preventDefault();
         onNextPage();
       } else if (event.key === "Escape") {
