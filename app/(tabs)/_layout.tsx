@@ -5,6 +5,8 @@ import { useFeatureAccess } from "@/src/presentation/contexts/AuthContext";
 import { ColorValue, Platform, useWindowDimensions } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { layout, typography } from "@/src/ui";
+import { useFormFactor } from "@/src/presentation/layout/useFormFactor";
+import { DesktopSidebar, DesktopSidebarProps } from "@/src/presentation/components/desktop/DesktopSidebar";
 
 type IconName = React.ComponentProps<typeof Ionicons>["name"];
 const icon = (outline: IconName, filled: IconName) =>
@@ -13,7 +15,8 @@ const icon = (outline: IconName, filled: IconName) =>
 
 /**
  * Navegação principal: Biblioteca · Descobrir · Estudo · Comunidade · Conta.
- * Celular: barra inferior. Web ≥ 768: barra lateral (rótulo ao lado do ícone a partir de 1200).
+ * Celular: barra inferior. Web ≥ 768 com toque: barra lateral (rótulo ao lado do ícone a partir de 1200).
+ * PC (Web, janela ≥ 1024 e mouse): barra lateral própria do PC, com busca e estado do sincronismo.
  * Os nomes de rota (`library`, `search`, `study`, `community`, `settings`) são preservados por compatibilidade de links.
  */
 export default function TabsLayout() {
@@ -21,12 +24,14 @@ export default function TabsLayout() {
   const flashcards = useFeatureAccess("flashcards");
   const { width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
+  const desktop = useFormFactor() === "desktop";
   const sidebar = Platform.OS === "web" && width >= layout.sidebarBreakpoint;
   const wideSidebar = sidebar && width >= 1200;
   const sidebarWidth = wideSidebar ? 220 : 96;
 
   return (
     <Tabs
+      tabBar={desktop ? props => <DesktopSidebar {...(props as unknown as DesktopSidebarProps)} /> : undefined}
       screenOptions={{
         headerShown: false,
         tabBarPosition: sidebar ? "left" : "bottom",
