@@ -678,7 +678,11 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
   `pointer: fine`; tablet de toque, site no celular e Android ficam no layout de toque) e `DesktopSidebar` (248 px, busca Ctrl+K →
   catálogo, seções com rótulo, estado do sincronismo). `test-desktop-layout` (critical, 146) e `test:desktop:web` (Chromium, fixture
   da Biblioteca real; capturas 1024/1280/1440 claro/escuro em `.expo/desktop-shell-web`). Fixture da biblioteca consertada (stubs e
-  UTF-8); `test-library-bulk-web` volta a passar. NÃO conferido logado no site exportado; Vercel aguardando aprovação da fase.
+  UTF-8); `test-library-bulk-web` volta a passar. NÃO conferido logado no site exportado. Aprovada e publicada na Vercel (bundle com
+  os textos da barra). Fase 2 `f34895b`: Biblioteca do PC — clique mostra `DesktopBookPanel` (340 px; datas < 2000 não aparecem),
+  clique duplo/Enter/"Ler" abrem, Esc fecha; Ctrl/Shift via `desktopSelection.ts`; soltar EPUB/PDF chama `useBookImport().importFile`
+  (mesmo caminho de "Importar arquivo"; um por vez). `test:desktop:web` com mouse real (painel, duplo clique, Ctrl/Shift, Esc, soltar
+  EPUB, recusar .txt); critical 146/146; 68 recursos. Vercel da fase 2 aguardando aprovação.
 
 ### 17/11/2026 — Revisão para as betas públicas: dependências, banco, hospedagem (Claude)
 - Pedido do dono: ajustar dependências e configurações (banco, hospedagem etc.) e revisar o necessário para iniciar o plano das betas públicas.
