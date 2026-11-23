@@ -697,7 +697,7 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
   de 420 px à direita; início da Comunidade com cartões em duas colunas (só a página inicial alarga); celular inalterado. Teste de
   componente no critical; SEM captura (as telas exigem conta e não há fixture). v16 `89af431`: APK (SHA-256 `b9b639acc7bd9369…`,
   chave do dono, `verify --apk` 72) em `G:\Meu Drive\Aldus APK\Aldus-1.0.0-beta.2-16-89af431.apk`; push até `89af431`. Vercel da
-  fase 5 aguardando aprovação. Plano do módulo PC concluído no código; pendente: encaixe lateral que estreita a página (exige
+  fase 5 aprovada e publicada (bundle conferido). Plano do módulo PC concluído e no ar; pendente: encaixe lateral que estreita a página (exige
   redimensionamento que preserve a posição) e conferência logada no site.
 
 ### 17/11/2026 — Revisão para as betas públicas: dependências, banco, hospedagem (Claude)
