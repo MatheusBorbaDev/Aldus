@@ -185,6 +185,24 @@ function load(file){if(cache.has(file))return cache.get(file);const exports={};c
   await evaluate(`window.updateTypography(${JSON.stringify({...options,spread:true})})`);await new Promise(r=>setTimeout(r,900));
   fs.writeFileSync(path.join('.expo/desktop-shell-web','reader-spread-1280-on.png'),Buffer.from((await send('Page.captureScreenshot',{format:'png'})).data,'base64'));
   await evaluate(`window.updateTypography(${JSON.stringify({...options,spread:false})})`);await new Promise(r=>setTimeout(r,900));
+  // Width changes (PC window resized, a side panel docked): the trecho at the top stays on screen instead of the page number
+  // landing elsewhere; back to the first width shows the same top again.
+  const topAnchor=async id=>evaluate(`(()=>{window.readerStudy({type:'studyCapture',id:${id}});const a=messages.filter(m=>m.type==='study'&&m.id===${id}).at(-1).anchor;return {anchor:a,c:a.chapterId,s:a.start,page:messages.filter(m=>m.type==='page').at(-1).pageNumber}})()`);
+  // Where is the original trecho now? studyNavigate answers with its page; it is on screen when that is the page shown.
+  const pageOf=async(anchor,id)=>evaluate(`(()=>{window.readerStudy({type:'studyNavigate',id:${id},anchor:${JSON.stringify(null)}});return 0})()`.replace('null',JSON.stringify(anchor))).then(()=>evaluate(`messages.filter(m=>m.type==='study'&&m.id===${id}).at(-1).pageNumber`));
+  await evaluate(`(async()=>{window.goToPage(12);await new Promise(r=>setTimeout(r,500));})()`);
+  const r0=await topAnchor(80);
+  await send('Emulation.setDeviceMetricsOverride',{width:600,height:800,deviceScaleFactor:1,mobile:false});await new Promise(r=>setTimeout(r,1200));
+  const r1=await topAnchor(81);
+  await send('Emulation.setDeviceMetricsOverride',{width:1280,height:800,deviceScaleFactor:1,mobile:false});await new Promise(r=>setTimeout(r,1200));
+  const r2=await topAnchor(83);
+  // Probe last: asking where the trecho is navigates, which (by design) replaces the trecho kept for later width changes.
+  await send('Emulation.setDeviceMetricsOverride',{width:600,height:800,deviceScaleFactor:1,mobile:false});await new Promise(r=>setTimeout(r,1200));
+  const r3=await topAnchor(84),at1=await pageOf(r0.anchor,82);
+  await send('Emulation.setDeviceMetricsOverride',{width:1280,height:800,deviceScaleFactor:1,mobile:false});await new Promise(r=>setTimeout(r,800));
+  assert.equal(at1,r3.page,'narrower window: the page shown holds the trecho that was at the top: '+JSON.stringify({r0:{s:r0.s,page:r0.page},r1:{s:r1.s,page:r1.page},r3:{s:r3.s,page:r3.page},at1}));assert.equal(r1.page,r3.page,'same narrow page both times');
+  assert.ok(r2.c===r0.c&&Math.abs(r2.s-r0.s)<200,'back to the first width: the same top again: '+JSON.stringify({r0:r0.s,r2:r2.s}));
+  console.log('PASS width change keeps the trecho (1280 → 600 → 1280)',JSON.stringify({r0:[r0.s,r0.page],r1:[r1.s,r1.page],at1,r2:[r2.s,r2.page]}));
   await send('Emulation.setDeviceMetricsOverride',{width:420,height:780,deviceScaleFactor:1,mobile:true});await new Promise(r=>setTimeout(r,700));
   console.log('PASS two pages side by side on the actual document (1280 px): same trecho on and off, text on both halves, next = one pair, pages counted as pairs',JSON.stringify(spread));
   // Page turn (phase D, 16/11/2026): none is immediate, flip rotates the viewport and confirms the page only at the end, rapid

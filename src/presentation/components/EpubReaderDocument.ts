@@ -483,6 +483,20 @@ export function createEpubReaderDocument(chapters: StoredChapter[], options: Rea
       // when scheduling the frame can replay page 1 after initial restoration.
       var pageToPreserve = currentPage;
       totalPages = calculateTotalPages();
+      // Largura nova (janela do PC redimensionada, painel encaixado, duas páginas): o mesmo número de página cai em outro trecho.
+      // Volta ao trecho do topo da página (a âncora lógica, que só uma navegação explícita troca), não ao número (23/11/2026).
+      var keep = initialLayoutReady && !restorationPending ? typographyLogicalAnchor : null;
+      if (keep) {
+        try {
+          var keepSection = Array.from(content.querySelectorAll(".epub-chapter")).find(function(s) { return s.getAttribute("data-chapter-id") === keep.chapterId; });
+          var keepModel = keepSection && studyText(keepSection), keepRange = keepModel && studyRange(keepModel, keep.start, keep.start + 1);
+          var keepRect = keepRange && keepRange.getClientRects()[0];
+          if (keepRect) {
+            if (isScrollFlow()) { pageToPreserve = pageForRect(keepRect); scrollTargetTop = topForRect(keepRect); }
+            else pageToPreserve = Math.floor((keepRect.left - content.getBoundingClientRect().left + 1) / Math.max(1, getPageWidth())) + 1;
+          }
+        } catch (error) { /* Sem trecho localizável: fica o número da página, como antes. */ }
+      }
       var targetPage = Math.max(1, Math.min(totalPages, pageToPreserve));
       console.log('[FORENSIC:iframe:recalculateLayout:raf] t=' + (performance.timeOrigin + performance.now()) + ' reason=' + reason + ' totalPages=' + totalPages + ' pageToPreserve=' + pageToPreserve + ' → targetPage=' + targetPage);
       window.goToPage(targetPage, undefined, 'LAYOUT_RECALC');
