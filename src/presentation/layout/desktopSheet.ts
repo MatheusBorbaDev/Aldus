@@ -5,7 +5,7 @@ export const DESKTOP_SHEET_WIDTH = 400;
 
 /**
  * Leitor do PC (23/11/2026): sumário, busca, ajustes e marcações abrem como painéis laterais de altura inteira em vez de
- * folhas de celular. O painel fica por cima do livro, que não muda de largura: nenhum relayout, nenhuma posição em risco.
+ * folhas de celular. O leitor abre espaço do lado do painel (o livro fica todo visível) e o documento volta ao mesmo trecho.
  */
 export function desktopSheetStyles(side: "left" | "right"): { backdrop: ViewStyle; panel: ViewStyle } {
   return {
@@ -16,7 +16,8 @@ export function desktopSheetStyles(side: "left" | "right"): { backdrop: ViewStyl
       paddingHorizontal: 0,
       paddingTop: 0,
       paddingBottom: 0,
-      backgroundColor: "rgba(0,0,0,0.12)",
+      // Sem escurecer: a página ao lado continua para leitura (o livro abriu espaço para o painel).
+      backgroundColor: "transparent",
     },
     panel: {
       width: DESKTOP_SHEET_WIDTH,

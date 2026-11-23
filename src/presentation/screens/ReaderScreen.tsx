@@ -85,6 +85,7 @@ import { useAppPaletteName } from "@/src/presentation/contexts/AppThemeContext";
 import { appDependencies } from "@/src/presentation/services/dependencies";
 import { LibraryBook, StoredChapter } from "@/src/domain/entities/LibraryBook";
 import { useFormFactor } from "@/src/presentation/layout/useFormFactor";
+import { DESKTOP_SHEET_WIDTH } from "@/src/presentation/layout/desktopSheet";
 import {
   epubDiagnosticConsole as console,
   markEpubOpenEvent,
@@ -110,11 +111,16 @@ export function ReaderScreen({ bookId }: Props) {
   const settings = useReaderSettings();
   const { width, height } = useWindowDimensions();
   // PC (23/11/2026): com a janela larga, o modo página mostra duas páginas lado a lado, como um livro aberto.
-  const spreadPages = useFormFactor() === "desktop" && width >= SPREAD_MIN_WIDTH;
+  const desktopReader = useFormFactor() === "desktop";
   const { progress, controlsVisible, setProgress, setControlsVisible, toggleControls } = useReaderStore();
   const [readerPanel, setReaderPanel] = useState<"appearance" | "contents" | "search" | null>(null);
   const [headerHeight, setHeaderHeight] = useState(0);
   const [studyVisible, setStudyVisible] = useState(false);
+  // PC (23/11/2026): o painel aberto encaixa ao lado e o livro abre espaço, sem texto coberto; ao mudar a largura o documento volta
+  // ao trecho do topo (não ao número da página). Duas páginas só quando ainda cabem ao lado do painel.
+  const dockLeft = desktopReader && readerPanel === "contents" ? DESKTOP_SHEET_WIDTH : 0;
+  const dockRight = desktopReader && ((readerPanel !== null && readerPanel !== "contents") || studyVisible) ? DESKTOP_SHEET_WIDTH : 0;
+  const spreadPages = desktopReader && width - dockLeft - dockRight >= SPREAD_MIN_WIDTH;
   const [studyAnchor, setStudyAnchor] = useState<ReadingAnchor | null>(null);
   const [studyRequest, setStudyRequest] = useState<ReaderStudyRequest | null>(null);
   const [studyLoading, setStudyLoading] = useState(false);
@@ -1110,7 +1116,7 @@ export function ReaderScreen({ bookId }: Props) {
     studySelectionIntent.current = true; setStudyAnchor(anchor); setStudySelectionCaptured(true); setStudyFeedback(null); setStudyVisible(true);
   };
   const readerDocument = (
-    <View style={[styles.documentSurface, documentSafeInsets(Platform.OS, insets), { opacity: Platform.OS === "web" ? documentBrightnessFactor : 1 }]}>
+    <View style={[styles.documentSurface, documentSafeInsets(Platform.OS, insets), dockLeft || dockRight ? { left: dockLeft, right: dockRight } : null, { opacity: Platform.OS === "web" ? documentBrightnessFactor : 1 }]}>
       {!(isReflowPdf && !pdfReflowDocument) ? <DocumentReaderAdapter
         mimeType={bookMimeType}
         filePath={bookFilePath}
