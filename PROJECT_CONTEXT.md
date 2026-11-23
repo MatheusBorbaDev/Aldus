@@ -687,7 +687,10 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
   "página" vira o par; só PC + janela ≥ 1100 + modo página) e teclas Espaço/Page Down/Shift+Espaço/Page Up. `test:reader:browser` e
   `test:reader:epub:web` (Dom Casmurro 197 → 126 pares) ligam/desligam no meio do livro mantendo o trecho; asserções de arraste
   passaram a comparar texto com espaços normalizados (quebras de linha do livro real). Sumário e notas fixos na lateral (resto da
-  fase 3) ainda NÃO feitos. Vercel da fase 3 aguardando aprovação.
+  fase 3) ainda NÃO feitos. Fase 3 aprovada e publicada. Resto da fase 3: no PC, Sumário à esquerda e Busca/Ajustes/Marcações à
+  direita como painéis laterais de altura inteira (`desktopSheet.ts`), por cima do livro, sem mudar a largura (encaixar estreitando a
+  página exigiria antes um redimensionamento que preserve a posição: hoje `display()` refaz pela página, não pela âncora).
+  `test:reader:settings:web` (125 layouts) espera o painel lateral no PC; fixtures e 2 suítes críticas resolvem os módulos novos.
 
 ### 17/11/2026 — Revisão para as betas públicas: dependências, banco, hospedagem (Claude)
 - Pedido do dono: ajustar dependências e configurações (banco, hospedagem etc.) e revisar o necessário para iniciar o plano das betas públicas.
