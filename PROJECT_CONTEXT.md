@@ -30,8 +30,8 @@ AGENTS.md/skills. `scripts/test-legal.cjs` exige que este arquivo mantenha o tra
 
 Leitor EPUB/PDF e estudo, Android + Web, pt-BR (antigo Kindle Reader). `aldus-reader` 1.0.0-beta.2, Android
 `com.aldus.reader` versionCode 3 (handoffs antigos dizem `com.kindle.reader`: obsoleto), scheme `aldus`. Expo ~57.0.25,
-React Native 0.86.3, React 19.2.3, expo-router (typedRoutes), Zustand 5, expo-sqlite, WebView 13, pdfjs-dist 6, jszip,
-three (landing); nativewind/tailwind instalados mas a UI real usa StyleSheet + `src/theme`. TypeScript ~6.0.3, Node 24.
+React Native 0.86.3, React 19.2.3, expo-router (typedRoutes), Zustand 5, expo-sqlite, WebView 13, pdfjs-dist 6, jszip;
+nativewind/tailwind instalados mas a UI real usa StyleSheet + `src/theme`. TypeScript ~6.0.3, Node 24.
 Backend: Supabase (Auth, Postgres/RLS, Storage, Edge Function `username-login`). Web via Vercel; Android via Gradle local
 (`android/` versionado) ou EAS. iOS não é alvo. Remoto Git: `origin` = `github.com/matheusbitlab/Aldus` (branch oficial `main`).
 
@@ -281,7 +281,7 @@ Legenda: **IVER** = implementado e verificado (suíte/execução citada); **ISVS
 | Sources / Drive | Sources IVER (local); Drive ISVS | `src/data/sources/*`, `src/data/drive/*`, `modules/aldus-drive-auth`; `test:source-catalog`, `test:drive`. BUG 03 (Drive real Android) aberto; BUG 12 resolvido no código (`10d6d24`, `test-source-ownership`), Android não testado. |
 | Community | PARC (local v0.1 + Etapas 2 e 3 no código e no servidor; sem homologação com sessões reais) | `LocalCommunityRepository`; Pessoas/Leitor + `SupabaseCommunityGateway` (12/11); `test-community-*`. Migrations `202610130001_community_foundation.sql` e `20261112120000_community_social_graph.sql` **aplicadas no Supabase em 12/11** pelo editor SQL do painel (não constam no ledger `supabase_migrations`). Clubes/Fóruns (16/11): `20261116120000_community_clubs_forums.sql` **aplicada em 16/11** pelo mesmo caminho (fora do ledger); `test-community-clubs{,-schema}`. Falta APK/deploy com o código e teste com duas contas reais. |
 | SaaS/planos/cotas e Admin | IVER (local) / remoto ISVS | `src/domain/saas`, `src/admin`, migrations `20261015*`; `test:saas*`, `test:admin*`. Deploy/OWNER só por registro; login/TOTP real pendente. |
-| Landing Web e legal | IVER (local/Chromium) | `src/marketing`, `src/legal`; `test:marketing*`, `test:legal*`. Produção Vercel = `09fcb02` (19/11), conferida por rotas e bundle. |
+| Landing Web e legal | IVER (local/Chromium) | `src/marketing`, `src/legal`; `test:marketing*`, `test:legal*`. Produção Vercel = `f6967e6` (23/11, abertura "A prensa"), conferida por `build-info`, marcadores e fonte. |
 | Android (build/APK/módulos) | PARC | `android/`, `scripts/build-apk-local.mjs`; APK `00b6e4d`/`53b4e32` (privados, ignorados). Homologação física BLOQUEADA (Redmi ausente), APK do HEAD inexistente. |
 | UX/UI reformulação (27/10) | IVER (Web controlado) / físico PENDENTE | commits `d6ef9c7`, `ea0b1ec`, `f970c2d`; `test-app-design`, 8 suítes Chromium. Será substituída pelo redesign abaixo. |
 | Rolagem contínua (16/11) | PDF Original, EPUB e Leitura Livre IVER (Chromium); Android NÃO TESTADO | `src/domain/reader/pdfScroll.ts` (`createPdfScroller`), `PdfPageViewer.{native,web}`; `test-pdf-scroll`, `test:reader:pdf:web`. |
@@ -312,7 +312,7 @@ Legenda: **IVER** = implementado e verificado (suíte/execução citada); **ISVS
 | Community | `src/community/**`, `app/community/*`, `supabase/migrations/*community*` | community-estudo.md §11/13/13.2, skill community |
 | Design system (tokens/primitivos) | `src/ui/*` (`tokens.ts`, `Text`, `Button`, `Chip`, `ListRow`, `Screen`, `EmptyState`, `ActionMenu`, `SearchField`), cores em `src/theme/tokens.ts` | `docs/context/design-system.md` |
 | Navegação/tema/UI geral | `app/(tabs)/_layout.tsx`, `app/_layout.tsx`, `src/theme/{tokens,appUi}.ts`, `components/{AppUi,SettingsLayout,TopHeader}.tsx`, `screens/SettingsScreen.tsx` | skill interface-review |
-| Landing/legal | `src/marketing/*`, `src/legal/*`, `app/legal/*`, `app/index.web.tsx`, `public/`; `LANDING_PAGE_CONTEXT.md` (raiz) | `legal-build-git.md` §14 |
+| Landing/legal | `src/marketing/*` (abertura: `PressHero.tsx`, `pressStyles.ts`, `AldusMedal.tsx`, `landingScrollEffects.ts`; script do `<head>` em `scripts/write-public-web.cjs`), `src/legal/*`, `app/legal/*`, `app/index.web.tsx`, `public/` (fontes em `public/fonts`); `LANDING_PAGE_CONTEXT.md` (raiz) | `legal-build-git.md` §14 |
 | Build Web/CI | `package.json` (`export:web`), `scripts/{validate-web-env,write-build-metadata,write-public-web}.cjs`, `scripts/copy-books-to-dist.mjs`, `vercel.json`, `.github/workflows/validate.yml` | legal-build-git.md §16 |
 | Build Android/APK | `android/`, `scripts/{build-apk-local.mjs,archive-commit-apk.mjs,release-signing.cjs}`, `eas.json` | legal-build-git.md §15, skill verify-android-apk-delivery |
 | Supabase (migrations/RLS/deploy) | `supabase/migrations/*`, `supabase/{admin,audit,tests}`, `LIBRARY_SYNC_DEPLOYMENT.md` (raiz) | skill backend-operations; **nunca aplicar sem pedido** |
@@ -714,7 +714,19 @@ Export/build/teste controlado **não** comprova Android físico, sessão autenti
   livro"; mediana das viradas para a frente deste aparelho × páginas que faltam); estimativa por capítulo removida; sem ritmo ou
   sem total, nada; some com "Ocultar porcentagem e páginas"; texto pode quebrar linha, "Página X de Y" fixo. `reading-pace`
   (critical) atualizado. Entrega v18 `4a0cc73`: APK (SHA-256 `33a104a82aec3a4d…`, chave do dono, 73) em
-  `G:Meu DriveAldus APKAldus-1.0.0-beta.2-18-4a0cc73.apk`; push até `4a0cc73`; Vercel READY com o texto novo. NÃO TESTADO em aparelho.
+  `G:\Meu Drive\Aldus APK\Aldus-1.0.0-beta.2-18-4a0cc73.apk`; push até `4a0cc73`; Vercel READY com o texto novo. NÃO TESTADO em aparelho.
+- 23/11, dono: landing "nessa vibe de montagem e animações" (referência vexterintelligence.com.br), depois "algo diferente dos dois…
+  que impressione ao abrir"; protótipo aprovado ("ficou perfeito", "pode mandar"). `570bdad`: abertura "A prensa" — na 1ª carga da
+  sessão a medalha (perfil de `assets/brand`) é cunhada e voa ao cabeçalho, os tipos compõem o título, a folha imprime e o livro se
+  monta; parágrafo da experiência acende palavra a palavra com grifo; fichas de recursos empilham. HTML pré-renderizado = página
+  impressa; script do `<head>` segura a tela escura até o app iniciar (prazo 8 s); nunca toca com movimento reduzido, no app nem 2×
+  na sessão (`@kindle/landing-intro.v1` em sessionStorage); botão "Ver a abertura". Fonte EB Garamond (OFL) servida pelo site
+  (`public/fonts`); a Cormorant do protótipo desenhava o "ê" com circunflexo solto. História 3D, seu renderizador e 2 suítes
+  removidos; `f6967e6` tira o three.js (avisos de terceiros regenerados). `test:marketing:web` reescrito: sem JS, abertura,
+  memória da sessão, pular/Esc/rever, leitura e fichas, 9 larguras 320–1920 sem estouro, movimento reduzido, rotas. Critical
+  144/144; 74 recursos (`landing-press-opening`, marcadores só da Web: `webMarkers`, exigidos no site e não no APK). Push até
+  `f6967e6`; Vercel READY (`build-info` = `f6967e6`, marcadores e fonte conferidos ao vivo). Sem APK novo: a landing não existe no
+  app. VALIDADO no Chromium headless e no Chrome do PC; NÃO TESTADO em celular físico.
 
 ### 17/11/2026 — Revisão para as betas públicas: dependências, banco, hospedagem (Claude)
 - Pedido do dono: ajustar dependências e configurações (banco, hospedagem etc.) e revisar o necessário para iniciar o plano das betas públicas.

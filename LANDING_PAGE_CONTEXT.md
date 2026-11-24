@@ -11,7 +11,8 @@ Este documento descreve somente a landing page pública do Aldus Reader. Ele nã
 - Estilos: `src/marketing/landingStyles.ts`.
 - SEO e URL pública: `src/marketing/seo.ts`.
 - Entrada Web: `app/index.web.tsx`.
-- História visual do livro: `src/marketing/ScrollBookStory.tsx` e `src/marketing/cinematic/`.
+- Abertura "A prensa" (23/11/2026): `src/marketing/PressHero.tsx`, `pressStyles.ts`, `AldusMedal.tsx` (medalha da marca),
+  `landingScrollEffects.ts`; script do `<head>` em `scripts/write-public-web.cjs`; fonte EB Garamond em `public/fonts`.
 
 ## Proposta e conteúdo
 
@@ -28,13 +29,24 @@ A landing apresenta o Aldus como um espaço pessoal para leitura, organização 
 
 Os textos devem permanecer em português brasileiro e não podem prometer contratação, pagamento, sincronização remota ou recurso premium ainda indisponível. A landing não consulta bibliotecas privadas nem exibe dados de contas.
 
-## Livro 3D e rolagem
+## Abertura "A prensa" e rolagem (23/11/2026)
 
-`ScrollBookStory` é uma experiência de rolagem com um único livro tridimensional. A rolagem usa a região real da landing, não presume `window.scrollY`. O progresso controla a pose do livro e as cenas de biblioteca, Reader, estudo e plano.
+Aprovada pelo dono a partir de um protótipo ("ficou perfeito"). O nome vem de Aldo Manúcio, impressor veneziano: na primeira carga
+da sessão, a medalha da marca é cunhada no centro da tela escura e voa ao cabeçalho; os tipos soltos compõem o título; uma folha desce
+e "imprime" a página; o livro se monta (capa de trás, folhas, capa da frente, medalha e título carimbados, brilho). Cerca de 5,5 s,
+com "Pular abertura" e `Escape`; "Ver a abertura" toca de novo.
 
-O caminho cinematográfico utiliza Three.js de forma lazy no Web, com fallback estático para ausência de WebGL, contexto perdido, redução de movimento, `saveData` ou limitações de desempenho. A cena possui orçamento adaptativo de DPR, sombras e pontos de partículas. A animação deve permanecer reversível: rolar para baixo avança, rolar para cima retorna e parar mantém a pose.
+Regras: o HTML pré-renderizado já é a página impressa (sem JavaScript, nada se esconde). O script do `<head>` só segura a tela escura
+(`al-intro-wait`) até o app iniciar, com prazo de 8 s. A abertura nunca toca com `prefers-reduced-motion`, em navegação interna do app
+nem duas vezes na mesma sessão (`@kindle/landing-intro.v1` em sessionStorage). Letras animam só `transform`/`opacity` (desfoque por letra
+travava). Abaixo, o parágrafo da experiência acende palavra a palavra e o grifo se pinta em "o que marca"; as fichas de recursos ficam
+presas e recuam sob a seguinte. Tudo segue o scroller da landing, sem `window.scrollY`, sem prender a rolagem.
 
-Não substituir a cena por uma imagem, GIF ou vídeo. Não criar livros paralelos para representar etapas. Alterações na composição devem manter uma única geometria, proporções físicas, lombada, páginas, profundidade e perspectiva.
+Fonte: EB Garamond 400 (OFL, licença em `public/fonts`), servida pelo site, sem Google Fonts. A Cormorant do protótipo foi recusada:
+desenha o circunflexo alto e solto ("você", "experiência").
+
+A história 3D anterior (`ScrollBookStory`, Three.js) foi removida em 23/11 (`570bdad`; dependência retirada em `f6967e6`). As seções
+datadas mais abaixo ficam como histórico dela.
 
 ## Acessibilidade e comportamento
 
@@ -51,13 +63,15 @@ Não substituir a cena por uma imagem, GIF ou vídeo. Não criar livros paralelo
 
 ## Validação
 
-Testes de marketing e cinematografia ficam em `scripts/test-marketing*.cjs` e `scripts/test-cinematic-book.cjs`. A validação deve separar:
+Testes: `test:marketing` (SSR, repouso impresso, medalha, fonte própria, script do `<head>` com prazo) e `test:marketing:web`
+(Chromium sobre o `dist/` exportado: sem JS, abertura e capturas por fase em `.expo/landing-validation`, memória da sessão,
+pular/Esc/rever, leitura que acende, fichas, 9 larguras 320–1920 sem estouro, movimento reduzido, menu, FAQ, Auth, catálogo, rotas
+legais). A validação deve separar:
 
 1. typecheck e export Web;
 2. HTML/SEO, navegação e acessibilidade em Chromium;
-3. cenas, poses, reversão e fallback WebGL;
-4. desempenho com o orçamento adaptativo;
-5. preview Vercel, quando solicitado.
+3. abertura, efeitos de rolagem e larguras;
+4. preview Vercel, quando solicitado.
 
 Um preview Web ou ensaio Chromium não comprova o comportamento do aplicativo Android. Não declarar validação física sem aparelho e build correspondentes.
 
