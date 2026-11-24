@@ -50,6 +50,7 @@ const FEATURES = [
   { id: 'desktop-reader-spread', pedido: '23/11: leitor do PC com duas paginas lado a lado (janela >= 1100, modo pagina) e atalhos Espaco/Page Up/Page Down', markers: ['reader-spread', 'PageDown'] },
   { id: 'desktop-reader-side-panels', pedido: '23/11: no PC, sumario a esquerda e ajustes, busca e marcacoes a direita em altura inteira, sem mudar a pagina', markers: ['desktopSheetStyles'] },
   { id: 'desktop-periodic-sync', pedido: '23/11: no site aberto e visivel, a biblioteca busca mudancas a cada 90 s (sem aba oculta ou offline)', markers: ['busca mudanças sozinha a cada 90 segundos'] },
+  { id: 'landing-press-opening', pedido: '23/11: landing com a abertura da prensa: medalha cunhada que voa ao cabecalho, tipos que compoem o titulo, folha que imprime e livro que se monta; leitura que acende e fichas empilhadas', markers: [], webMarkers: ['Pular abertura', 'Ver a abertura', 'al-intro-wait', 'data-read-mark'] },
   { id: 'desktop-study-community-columns', pedido: '23/11: no PC, Estudo com decks numa coluna a direita e Comunidade com cartoes em duas colunas', markers: ['DesktopSplit', 'DesktopGrid'] },
   { id: 'status-bar-scrim', pedido: '23/11: Biblioteca e Conta nao passam mais por baixo da barra de status no Android (de ponta a ponta)', markers: ['no-hide-descendants'] },
   { id: 'discover-catalog-tab', pedido: '19/11: aba Descobrir vira o catalogo (vitrine, Sortear um livro, Suas fontes); sem Gutendex/BibliON/MEC', markers: ['Sortear um livro', 'abrir seus arquivos por aqui', 'Calculado neste aparelho'] },
@@ -133,8 +134,9 @@ function checkSource() {
   for (const feature of FEATURES) {
     if (ids.has(feature.id)) missing.push(`${feature.id}: id repetido`); ids.add(feature.id);
     // Only-Android items (a native module) carry androidMarkers alone: checked in the APK, never required in the site.
-    if (!feature.markers.length && !feature.androidMarkers?.length) missing.push(`${feature.id}: sem marcador`);
-    for (const marker of [...feature.markers, ...(feature.androidMarkers ?? [])]) if (!has(corpus, marker)) missing.push(`${feature.id} (${feature.pedido}): texto "${marker}" não está no código`);
+    // Only-Web items (the public landing, a .web.tsx route) carry webMarkers alone: checked in the site, never required in the APK.
+    if (!feature.markers.length && !feature.androidMarkers?.length && !feature.webMarkers?.length) missing.push(`${feature.id}: sem marcador`);
+    for (const marker of [...feature.markers, ...(feature.androidMarkers ?? []), ...(feature.webMarkers ?? [])]) if (!has(corpus, marker)) missing.push(`${feature.id} (${feature.pedido}): texto "${marker}" não está no código`);
     for (const route of feature.routes ?? []) if (!fs.existsSync(path.join(root, 'app', `${route}.tsx`))) missing.push(`${feature.id}: rota app/${route}.tsx não existe`);
   }
   if (missing.length) return fail(missing);
@@ -144,7 +146,7 @@ function checkSource() {
 function checkBundle(buffer, label, android) {
   const missing = [];
   for (const feature of FEATURES) {
-    for (const marker of [...feature.markers, ...(android ? feature.androidMarkers ?? [] : [])]) if (!has(buffer, marker)) missing.push(`${feature.id} (${feature.pedido}): "${marker}" não está no ${label}`);
+    for (const marker of [...feature.markers, ...(android ? feature.androidMarkers ?? [] : feature.webMarkers ?? [])]) if (!has(buffer, marker)) missing.push(`${feature.id} (${feature.pedido}): "${marker}" não está no ${label}`);
     for (const route of feature.routes ?? []) if (!has(buffer, routeMarker(route))) missing.push(`${feature.id} (${feature.pedido}): rota ${route} não está no ${label}`);
   }
   return missing;

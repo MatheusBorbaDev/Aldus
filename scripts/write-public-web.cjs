@@ -4,6 +4,7 @@ const load=require('./community-test-loader.cjs')();
 const React=require('react'),{renderToStaticMarkup}=require('react-dom/server');
 const {LandingDocument}=load('src/marketing/LandingDocument.tsx');
 const {landingTitle,landingDescription,publicSiteUrl}=load('src/marketing/seo.ts');
+const {pressIntroHeadScript}=load('src/marketing/PressHero.tsx');
 const escape=s=>s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function buildPublicHtml(html,{siteUrl,contact}={}){
  html=html.replaceAll('You need to enable JavaScript to run this app.','Ative o JavaScript para utilizar o aplicativo.');
@@ -20,6 +21,7 @@ function buildPublicHtml(html,{siteUrl,contact}={}){
  html=html.replace('</head>',[
   `<meta name="description" content="${escape(landingDescription)}">`,
   '<style>html,body{margin:0;padding:0}#root{height:100vh}</style>',
+  pressIntroHeadScript,
   '<meta name="robots" content="index,follow">',
   `<meta property="og:title" content="${escape(landingTitle)}">`,
   `<meta property="og:description" content="${escape(landingDescription)}">`,

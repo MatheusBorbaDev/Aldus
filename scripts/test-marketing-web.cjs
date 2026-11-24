@@ -2,9 +2,6 @@
 // synthetic Auth/catalog responses; no production accounts, writes or telemetry.
 const fs=require('fs'),path=require('path'),os=require('os'),http=require('http'),cp=require('child_process'),assert=require('assert/strict');
 const {initialCatalogReference:plans}=require('./community-test-loader.cjs')()('src/marketing/catalogReference.generated.ts');
-const {bookStops,bookStoryViewports}=require('./community-test-loader.cjs')()('src/marketing/bookMotion.ts');
-const pageTurns=bookStops.slice(1,5).map((stop,index)=>(stop+bookStops[index+2])/2);
-const poseSamples=[0,.1,bookStops[1],pageTurns[0],bookStops[2],pageTurns[1],bookStops[3],pageTurns[2],bookStops[4],pageTurns[3],bookStops[5],1];
 const angle=process.env.CINEMATIC_CHROME_ANGLE||'swiftshader';assert(['swiftshader','d3d11'].includes(angle));
 const wait=ms=>new Promise(r=>setTimeout(r,ms));
 async function cdp(url){
@@ -17,7 +14,7 @@ async function cdp(url){
  return{command,errors,close:()=>ws.close(),evaluate:async expression=>{const result=await command('Runtime.evaluate',{expression,returnByValue:true,awaitPromise:true});if(result.exceptionDetails)throw Error(result.exceptionDetails.exception?.description||result.exceptionDetails.text);return result.result.value;}};
 }
 (async()=>{
- const dist=path.resolve('dist'),shots=path.resolve('.expo/cinematic-validation');fs.mkdirSync(shots,{recursive:true});
+ const dist=path.resolve('dist'),shots=path.resolve('.expo/landing-validation');fs.mkdirSync(shots,{recursive:true});
  const bundle=fs.readFileSync(path.join(dist,'_expo/static/js/web',fs.readdirSync(path.join(dist,'_expo/static/js/web')).find(n=>n.startsWith('entry-'))),'utf8');
  const project=bundle.match(/https:\/\/([a-z0-9-]+)\.supabase\.co/)?.[1];assert.ok(project);
  const server=http.createServer((req,res)=>{try{const pathname=decodeURIComponent(new URL(req.url,'http://localhost').pathname);let file=path.resolve(dist,'.'+pathname);if(file!==dist&&!file.startsWith(dist+path.sep)){res.writeHead(403);res.end();return;}if(!fs.existsSync(file)||fs.statSync(file).isDirectory())file=path.join(dist,pathname==='/'?'index.html':'app.html');res.setHeader('Content-Type',({'.html':'text/html','.js':'text/javascript','.png':'image/png','.svg':'image/svg+xml','.ttf':'font/ttf','.json':'application/json','.txt':'text/plain'})[path.extname(file)]||'application/octet-stream');fs.createReadStream(file).pipe(res);}catch{res.writeHead(500);res.end();}});
@@ -52,147 +49,84 @@ async function cdp(url){
   const navigate=async route=>{await client.command('Page.navigate',{url:origin+route});};
   const shot=async name=>{await wait(250);const r=await client.command('Page.captureScreenshot',{format:'png',captureBeyondViewport:false});fs.writeFileSync(path.join(shots,name+'.png'),Buffer.from(r.data,'base64'));};
 
-  const bookState=()=>client.evaluate('(()=>{const root=document.querySelector("[data-landing-scroll]"),story=document.querySelector("[data-book-story]"),scene=story.querySelector("[data-book-scene]"),copy=story.querySelector(".al-story-intro"),caption=story.querySelector(".al-book-caption");const rect=e=>{const r=e.getBoundingClientRect();return{left:r.left,top:r.top,right:r.right,bottom:r.bottom,width:r.width,height:r.height}};return{progress:Number(scene.dataset.bookProgress),chapter:Number(scene.dataset.bookChapter),renderState:scene.dataset.renderState,metrics:scene.aldusBookMetrics,motion:story.dataset.motion,canvas:scene.querySelectorAll("canvas").length,copy:rect(copy),copyOpacity:Number(getComputedStyle(copy).opacity),copyVisible:getComputedStyle(copy).visibility!=="hidden",caption:rect(caption),captionOpacity:Number(getComputedStyle(caption).opacity),captionText:caption.querySelector("h2").textContent,scene:rect(scene),story:rect(story),sticky:rect(story.querySelector(".al-book-sticky")),root:rect(root),rootViewport:root.clientHeight,header:rect(document.querySelector(".al-header")),windowY:window.scrollY};})()');
-  const bookAt=async progress=>{await client.evaluate('(()=>{const root=document.querySelector("[data-landing-scroll]"),story=document.querySelector("[data-book-story]"),sticky=story.querySelector(".al-book-sticky"),start=root.scrollTop+story.getBoundingClientRect().top-root.getBoundingClientRect().top-document.querySelector(".al-header").offsetHeight;root.scrollTop=Math.max(0,start+(story.offsetHeight-sticky.offsetHeight)*'+progress+');})()');await until('Math.abs(Number(document.querySelector("[data-book-scene]").dataset.bookProgress)-'+progress+')<.01 && document.querySelector("[data-book-scene]").dataset.bookSettled==="true"','settled actual scroll pose '+progress);await wait(120);return bookState();};
-  const assertPose=(s,label)=>{
-    assert.equal(s.renderState,'ready',label+' actual GPU rendering');assert.equal(s.canvas,1);assert.equal(s.windowY,0);
-    assert(Math.abs(s.story.height-s.rootViewport*bookStoryViewports)<2,label+' actual scroll track uses the configured slower length');
-    if(s.metrics.visualProgress>=.065){assert.equal(s.metrics.particlesVisible,false,label+' page sequence has no particle draw');assert.equal(s.metrics.particleOpacity,0);}
-    for(const key of ['left','right','top','bottom','coverAngle','particleMorph','cameraDistance'])assert(Number.isFinite(s.metrics[key]),label+' finite '+key);
-    assert(s.metrics.left>=-2&&s.metrics.right<=s.scene.width+2&&s.metrics.top>=-2&&s.metrics.bottom<=s.scene.height+2,label+' projected hardcover fits canvas '+JSON.stringify(s));
-    const book={left:s.scene.left+s.metrics.left,right:s.scene.left+s.metrics.right,top:s.scene.top+s.metrics.top,bottom:s.scene.top+s.metrics.bottom};
-    const separate=copy=>book.left>=copy.right-2||book.right<=copy.left+2||book.top>=copy.bottom-2||book.bottom<=copy.top+2;
-    if(s.copyVisible&&s.copyOpacity>.2)assert(separate(s.copy),label+' solid book must not cover the introduction');
-    if(s.progress>=.1&&s.captionOpacity>.2)assert(separate(s.caption),label+' solid book must not cover the caption/CTA');
-  };
-  await client.command('Emulation.setDeviceMetricsOverride',{width:1440,height:1000,deviceScaleFactor:1,mobile:false});await client.command('Emulation.setScriptExecutionDisabled',{value:true});await navigate('/');await until('!!document.querySelector("[data-aldus-landing] h1")','semantic HTML without JavaScript');assert.equal(await client.evaluate('document.querySelectorAll("canvas").length'),0);assert.ok(await client.evaluate('getComputedStyle(document.querySelector("[data-book-cover]")).display!=="none"'));assert.ok((await text()).includes('Comunidade em desenvolvimento'));await shot('nojs-initial');
-  await client.command('Emulation.setScriptExecutionDisabled',{value:false});await navigate('/');await landing();await until('document.querySelector("[data-book-scene]").dataset.renderState==="ready"','actual GPU initialization');
-  const first=await bookAt(0);assertPose(first,'Initial desktop');assert.equal(Math.abs(first.metrics.coverAngle),0);const geometry=first.metrics.particleGeometryId;const gpuDriver=await client.evaluate('(()=>{const gl=document.querySelector("canvas[data-cinematic-canvas]").getContext("webgl2"),e=gl.getExtension("WEBGL_debug_renderer_info");return e?gl.getParameter(e.UNMASKED_RENDERER_WEBGL):gl.getParameter(gl.RENDERER)})()');
-  await client.command('Input.dispatchMouseEvent',{type:'mouseWheel',x:1080,y:500,deltaY:160,deltaX:0});await until('Number(document.querySelector("[data-book-scene]").dataset.bookProgress)>0','native wheel drives actual nested scroll');await client.command('Input.dispatchMouseEvent',{type:'mouseWheel',x:1080,y:500,deltaY:-160,deltaX:0});await until('Number(document.querySelector("[data-book-scene]").dataset.bookProgress)<.002','native wheel reverses');
-  await bookAt(0);
-  const scrollCatchup=await client.evaluate(`(async()=>{
-    const root=document.querySelector('[data-landing-scroll]'),story=document.querySelector('[data-book-story]'),sticky=story.querySelector('.al-book-sticky'),host=story.querySelector('[data-book-scene]');
-    const start=root.scrollTop+story.getBoundingClientRect().top-root.getBoundingClientRect().top-document.querySelector('.al-header').offsetHeight,range=story.offsetHeight-sticky.offsetHeight;
-    async function sample(target){const began=performance.now(),values=[];root.scrollTop=start+target*range;
-      for(let i=0;i<80;i++){await new Promise(requestAnimationFrame);values.push(host.aldusBookMetrics.progress);if(host.dataset.bookSettled==='true'&&Math.abs(values.at(-1)-target)<.001)break;}
-      return {target,values,settled:host.dataset.bookSettled==='true',durationMs:performance.now()-began};}
-    return {forward:await sample(.34),reverse:await sample(.08)};
-  })()`);
-  for(const [direction,sample]of Object.entries(scrollCatchup)){
-    assert(sample.settled&&sample.values.length<60,'Bounded scroll catch-up '+direction);
-    assert(sample.values.some(p=>p>.001&&p<.33),'Intermediate poses are actually rendered');
-    assert(Math.abs(sample.values.at(-1)-sample.target)<.001,'Catch-up reaches real scroll');
-    for(let i=1;i<sample.values.length;i++)assert(direction==='forward'?sample.values[i]>=sample.values[i-1]-1e-8:sample.values[i]<=sample.values[i-1]+1e-8,'No overshoot on '+direction);
+  const state=()=>client.evaluate(`(()=>{const hero=document.querySelector('[data-press-hero]'),landing=document.querySelector('[data-aldus-landing]'),root=document.querySelector('[data-landing-scroll]');
+   return{wait:document.documentElement.classList.contains('al-intro-wait'),playing:!!hero?.hasAttribute('data-playing'),intro:!!landing?.hasAttribute('data-intro'),brandIn:!!landing?.hasAttribute('data-brand-in'),
+    seen:sessionStorage.getItem('@kindle/landing-intro.v1'),dark:getComputedStyle(document.querySelector('.al-press-dark')).display,seal:getComputedStyle(document.querySelector('.al-seal')).display,
+    h1:getComputedStyle(document.querySelector('.al-press h1')).color,font:document.fonts.check('400 1em "Aldus Garamond"'),scrollTop:root?.scrollTop,windowY:window.scrollY};})()`);
+  const settled=()=>until('!document.querySelector("[data-press-hero]").hasAttribute("data-playing")&&!document.querySelector("[data-aldus-landing]").hasAttribute("data-intro")&&!document.documentElement.classList.contains("al-intro-wait")','press opening settled');
+  const viewport=async(width,height)=>{await client.command('Emulation.setDeviceMetricsOverride',{width,height,deviceScaleFactor:1,mobile:width<=850});await wait(200);};
+
+  console.log('Checking the no-JavaScript printed page');
+  await viewport(1440,1000);await client.command('Emulation.setScriptExecutionDisabled',{value:true});await navigate('/');await until('!!document.querySelector("[data-press-hero] h1")','prerendered press hero');
+  const nojs=await client.evaluate('({wait:document.documentElement.classList.contains("al-intro-wait"),dark:getComputedStyle(document.querySelector(".al-press-dark")).display,h1:document.querySelector(".al-press h1").getAttribute("aria-label"),visible:getComputedStyle(document.querySelector(".al-press h1")).visibility,medals:document.querySelectorAll(".al-medal").length,defs:document.querySelectorAll("#al-medal").length,canvas:document.querySelectorAll("canvas").length})');
+  assert.deepEqual({wait:nojs.wait,dark:nojs.dark,visible:nojs.visible,canvas:nojs.canvas,defs:nojs.defs},{wait:false,dark:'none',visible:'visible',canvas:0,defs:1},'Without JavaScript the page is already printed and readable');
+  assert.equal(nojs.h1,'Muito mais que uma biblioteca.');assert(nojs.medals>=4,'Medal in header, book cover, final call and footer');
+  assert.doesNotMatch(await text(),/You need to enable JavaScript/);await shot('nojs');
+  await client.command('Emulation.setScriptExecutionDisabled',{value:false});
+
+  console.log('Checking the press opening on the first load');
+  await client.evaluate('sessionStorage.clear()');await navigate('/');
+  await until('document.documentElement.classList.contains("al-intro-wait")||!!document.querySelector("[data-press-hero][data-playing]")','dark screen held before hydration');
+  await until('!!document.querySelector("[data-press-hero][data-playing]")','opening starts once the app is interactive');
+  const timeline=[];const started=Date.now();
+  for(const [at,name] of [[500,'press-1-seal'],[2600,'press-2-composing'],[4900,'press-3-printing'],[6400,'press-4-book']]){await wait(Math.max(0,at-(Date.now()-started)));timeline.push({at:Date.now()-started,...await state()});await shot(name);}
+  assert.equal(timeline[0].playing,true);assert.equal(timeline[0].dark,'block');assert.equal(timeline[0].seal,'block','Medal is struck first');assert.equal(timeline[0].seen,'1','Opening is remembered for this browser session');
+  assert(timeline.some(s=>s.brandIn),'Medal reaches the header');
+  await settled();const rest=await state();
+  assert.equal(rest.dark,'none');assert.equal(rest.seal,'none');assert.equal(rest.h1,'rgb(37, 61, 53)','Title ends printed in ink');assert.equal(rest.font,true,'Self-hosted display face loaded');
+  assert.equal(rest.windowY,0,'Opening never scrolls the window');await shot('press-5-rest');
+  assert.ok(!(await client.evaluate('performance.getEntriesByType("resource").map(r=>r.name)')).some(n=>/fonts\.(googleapis|gstatic)\.com/.test(n)),'No third-party font request');
+
+  console.log('Checking session memory, skip and replay');
+  await navigate('/');await landing();await wait(600);const again=await state();assert.equal(again.wait,false);assert.equal(again.playing,false,'Second visit in the same session opens printed');
+  await client.evaluate('document.querySelector(".al-press-replay").click()');await until('!!document.querySelector("[data-press-hero][data-playing]")','replay');
+  await wait(900);await client.evaluate('document.querySelector(".al-press-skip").click()');await settled();
+  assert.equal(await client.evaluate('getComputedStyle(document.querySelector(".al-press h1")).visibility'),'visible','Skip leaves the printed page');
+  await client.evaluate('document.querySelector(".al-press-replay").click()');await until('!!document.querySelector("[data-press-hero][data-playing]")','replay again');
+  await client.command('Input.dispatchKeyEvent',{type:'keyDown',key:'Escape',code:'Escape',windowsVirtualKeyCode:27});await settled();
+
+  console.log('Checking reading that lights up and stacked resource cards');
+  const read=async()=>client.evaluate('({on:document.querySelectorAll("[data-read-text] .al-read-word[data-on]").length,all:document.querySelectorAll("[data-read-text] .al-read-word").length,mark:document.querySelector("[data-read-mark]").hasAttribute("data-on")})');
+  await client.evaluate('(()=>{const root=document.querySelector("[data-landing-scroll]"),t=document.querySelector("[data-read-text]");root.scrollTop+=t.getBoundingClientRect().top-root.getBoundingClientRect().top-root.clientHeight;})()');await wait(300);
+  const dim=await read();assert(dim.all>=15,'Paragraph split into words');assert(dim.on<dim.all,'Words start dim before the reader arrives');assert.equal(dim.mark,false);
+  await client.evaluate('(()=>{const root=document.querySelector("[data-landing-scroll]"),t=document.querySelector("[data-read-text]");root.scrollTop+=t.getBoundingClientRect().top-root.getBoundingClientRect().top-root.clientHeight*.15;})()');await wait(300);
+  const type=await client.evaluate('({read:parseFloat(getComputedStyle(document.querySelector("[data-read-text]")).fontSize),ribbon:parseFloat(getComputedStyle(document.querySelector(".al-ribbon-track")).fontSize),ribbonCase:getComputedStyle(document.querySelector(".al-ribbon-track")).textTransform})');
+  assert(type.read>=26&&type.ribbon>=19&&type.ribbonCase==='none','Lit paragraph and moving ribbon use the display type, not the old small caps '+JSON.stringify(type));
+  const lit=await read();assert.equal(lit.on,lit.all,'All words lit after scrolling past');assert.equal(lit.mark,true,'Highlight painted on "o que marca"');await shot('read-lit');
+  await client.evaluate('document.getElementById("recursos").scrollIntoView()');await wait(200);
+  await client.evaluate('(()=>{const root=document.querySelector("[data-landing-scroll]"),cards=document.querySelectorAll("[data-stack]>article");root.scrollTop+=cards[2].getBoundingClientRect().top-root.getBoundingClientRect().top-200;})()');await wait(300);
+  const stack=await client.evaluate('[...document.querySelectorAll("[data-stack]>article")].map(c=>({pos:getComputedStyle(c).position,top:Math.round(c.getBoundingClientRect().top),transform:c.style.transform}))');
+  assert(stack.every(c=>c.pos==='sticky'),'Resource cards are sticky');assert(stack.some(c=>/scale\(0\.9/.test(c.transform)),'Covered card recedes');await shot('stacked-cards');
+
+  console.log('Checking layouts');
+  const layouts=[];for(const [width,height]of [[320,568],[360,800],[390,844],[430,932],[768,1024],[1024,800],[1440,1000],[1920,1080],[844,390]]){
+    await viewport(width,height);await client.evaluate('document.querySelector("[data-landing-scroll]").scrollTop=0');await wait(150);
+    const sizes=await client.evaluate('(()=>{const root=document.querySelector("[data-landing-scroll]"),h1=document.querySelector(".al-press h1").getBoundingClientRect(),book=document.querySelector(".al-press-book").getBoundingClientRect();return{width:innerWidth,document:document.documentElement.scrollWidth,scroll:root.scrollWidth,client:root.clientWidth,h1Right:h1.right,bookLeft:book.left,bookRight:book.right,words:[...document.querySelectorAll(".al-press h1 .al-w")].map(w=>w.getBoundingClientRect().right)}})()');
+    assert(sizes.document<=sizes.width&&sizes.scroll<=sizes.client,`No horizontal overflow at ${width}x${height} `+JSON.stringify(sizes));
+    assert(Math.max(...sizes.words)<=sizes.client+1,`Title words fit at ${width}px`);assert(sizes.bookLeft>=-1&&sizes.bookRight<=sizes.client+1,`Book fits at ${width}px`);
+    layouts.push({width,height,...sizes,words:undefined});if([320,390,1440].includes(width))await shot(`layout-${width}`);
+    if(width===390){await client.evaluate('document.querySelector(".al-mobile-menu summary").click()');assert(await client.evaluate('document.querySelector(".al-mobile-menu").open'));await client.command('Input.dispatchKeyEvent',{type:'keyDown',key:'Escape'});assert.equal(await client.evaluate('document.querySelector(".al-mobile-menu").open'),false);await client.evaluate('document.querySelector(".al-mobile-menu summary").click();[...document.querySelectorAll(".al-mobile-menu a")].find(a=>a.hash==="#recursos").click()');await until('location.hash==="#recursos"&&!document.querySelector(".al-mobile-menu").open','mobile native anchor and menu close');}
   }
-  const turnMotion={};
-  for(const [direction,from,to]of [['forward',bookStops[2],bookStops[3]],['reverse',bookStops[3],bookStops[2]]]){
-    await bookAt(from);
-    turnMotion[direction]=await client.evaluate(`(async()=>{
-      const root=document.querySelector('[data-landing-scroll]'),story=document.querySelector('[data-book-story]'),sticky=story.querySelector('.al-book-sticky'),host=story.querySelector('[data-book-scene]');
-      const start=root.scrollTop+story.getBoundingClientRect().top-root.getBoundingClientRect().top-document.querySelector('.al-header').offsetHeight,range=story.offsetHeight-sticky.offsetHeight,samples=[];
-      for(let frame=0;frame<100;frame++){
-        if(frame<48&&frame%4===0)root.scrollTop=start+(${from}+(${to}-${from})*(frame+4)/48)*range;
-        await new Promise(requestAnimationFrame);
-        samples.push({at:performance.now(),scroll:Number(host.dataset.bookProgress),angle:host.aldusBookMetrics.leafAngle1,frames:host.aldusBookMetrics.frames});
-        if(frame>=48&&host.dataset.bookSettled==='true')break;
-      }
-      return samples;
-    })()`);
-    const values=turnMotion[direction];assert(values.length<100,'Finite settling after the scroll gesture');
-    assert(new Set(values.filter(s=>s.angle<-.5&&s.angle>-170.5).map(s=>s.angle.toFixed(3))).size>=12,'A full turn renders many distinct intermediate angles');
-    for(let i=1;i<values.length;i++){
-      const delta=values[i].angle-values[i-1].angle;
-      assert(direction==='forward'?delta<=1e-8:delta>=-1e-8,'A turn follows the gesture without overshoot or reversal');
-      assert(Math.abs(delta)<12,'Discrete scroll input cannot skip a large portion of the turn in one frame');
-    }
-  }
-  await bookAt(.44);const pausedTurn=await bookState();await wait(650);assert.equal((await bookState()).metrics.frames,pausedTurn.metrics.frames,'Stopping midway through a turn stops rendering exactly');
-  const desktop=[];for(const p of [0,.1,.25,.4,.55,.7,.85,1]){const s=await bookAt(p);assertPose(s,'Desktop '+p);assert.equal(s.metrics.particleGeometryId,geometry,'One stable GPU particle buffer');desktop.push({p,...s.metrics});await shot('desktop-'+Math.round(p*100));}
-  assert.equal(Math.abs(desktop.at(-1).coverAngle),0,'Final reconstruction closes the same book');assert(desktop[1].coverAngle<0&&desktop[1].coverAngle>-174);assert(desktop[3].particleFrom!==desktop[5].particleFrom,'Different actual target structures');
-  const held=await bookState();await wait(700);const heldAfter=await bookState();assert.equal(heldAfter.metrics.frames,held.metrics.frames,'No animation clock while scroll is stopped');
-  const reversed=await bookAt(.4);assert(Math.abs(reversed.metrics.coverAngle-desktop[3].coverAngle)<.05);assert(Math.abs(reversed.metrics.particleMorph-desktop[3].particleMorph)<.005,'Reverse scroll reproduces actual GPU uniforms');
-  for(const p of pageTurns){const cleanTurn=await bookAt(p);assertPose(cleanTurn,'Mid-page turn without particles '+p);if(p===pageTurns[1])await shot('clean-page-turn');}
-  const continuousScenes=[];
-  const poseSignature=s=>({visual:s.metrics.visualProgress,cover:s.metrics.coverAngle,leaf0:s.metrics.leafAngle0,leaf1:s.metrics.leafAngle1,camera:s.metrics.cameraDistance,bounds:[s.metrics.left,s.metrics.top,s.metrics.right,s.metrics.bottom],caption:s.captionText,opacity:s.captionOpacity});
-  const canvasDigest=async s=>{const clip={x:s.scene.left+16,y:s.scene.top,width:s.scene.width-32,height:s.scene.height,scale:1};const image=await client.command('Page.captureScreenshot',{format:'png',clip,captureBeyondViewport:false});return require('crypto').createHash('sha256').update(image.data).digest('hex');};
-  for(let index=1;index<bookStops.length-1;index++){
-    const before=await bookAt(bookStops[index]),signature=poseSignature(before),pixels=await canvasDigest(before);
-    for(let i=0;i<3;i++)await client.command('Input.dispatchMouseEvent',{type:'mouseWheel',x:1080,y:500,deltaY:120,deltaX:0});
-    await until('Number(document.querySelector("[data-book-scene]").dataset.bookProgress)>'+String(before.progress+.005)+' && document.querySelector("[data-book-scene]").dataset.bookSettled==="true"','wheel advances through the scene without a reading plateau');
-    const after=await bookState(),afterPixels=await canvasDigest(after);
-    assert(after.progress<bookStops[index+1]);assert(after.metrics.visualProgress>before.metrics.visualProgress,'Real wheel advances the visual pose continuously');
-    assert.notDeepEqual(poseSignature(after),signature,'Camera and book no longer freeze while the visitor keeps scrolling');
-    assert.notEqual(afterPixels,pixels,'Rendered book pixels actually change on continued scrolling');
-    assert(after.metrics.frames>before.metrics.frames,'Moving through the scene redraws the GPU');
-    await wait(350);const paused=await bookState();assert.equal(paused.metrics.frames,after.metrics.frames,'Only stopping real scroll pauses the renderer');assert.equal(await canvasDigest(paused),afterPixels,'The exact stopped pose remains cached');
-    await client.command('Input.dispatchMouseEvent',{type:'mouseWheel',x:1080,y:500,deltaY:-240,deltaX:0});
-    await until('Number(document.querySelector("[data-book-scene]").dataset.bookProgress)<'+String(after.progress-.005)+' && document.querySelector("[data-book-scene]").dataset.bookSettled==="true"','reverse wheel moves the visual scene back');
-    const reversedScene=await bookState();assert(reversedScene.metrics.visualProgress<after.metrics.visualProgress);assert.notDeepEqual(poseSignature(reversedScene),poseSignature(after));assert.notEqual(await canvasDigest(reversedScene),afterPixels);assert(reversedScene.metrics.frames>after.metrics.frames);
-    continuousScenes.push({chapter:index,rawBefore:before.progress,rawAfter:after.progress,rawReversed:reversedScene.progress,visualBefore:signature.visual,visualAfter:after.metrics.visualProgress,visualReversed:reversedScene.metrics.visualProgress,pixelBeforeSha256:pixels,pixelAfterSha256:afterPixels,framesWhileStopped:paused.metrics.frames-after.metrics.frames});
-    await shot('continuous-scene-'+index);
-  }
-  const beforeDpr=await bookAt(.36);await client.command('Emulation.setDeviceMetricsOverride',{width:1440,height:1000,deviceScaleFactor:1.25,mobile:false});
-  // This CDP driver changes DPR silently (no resize or resolution media event).
-  // Supply the browser resize signal explicitly; automatic media subscription
-  // and its rearming/cleanup are exercised by the controlled component test.
-  await client.evaluate('window.dispatchEvent(new Event("resize"))');
-  const afterDpr=await bookAt(.36);assert(afterDpr.metrics.frames>beforeDpr.metrics.frames&&afterDpr.metrics.dpr>beforeDpr.metrics.dpr,'DPR invalidates a cached stopped pose '+JSON.stringify({before:beforeDpr.metrics,after:afterDpr.metrics}));assertPose(afterDpr,'DPR resize at a stopped scene');
-  await client.command('Emulation.setDeviceMetricsOverride',{width:1440,height:1000,deviceScaleFactor:1,mobile:false});await client.evaluate('window.dispatchEvent(new Event("resize"))');await bookAt(.36);
-  await bookAt(0);
-  const navigationMotion=await client.evaluate(`(async()=>{
-    const root=document.querySelector('[data-landing-scroll]'),story=document.querySelector('[data-book-story]'),host=document.querySelector('[data-book-scene]'),samples=[];
-    const start=root.scrollTop+story.getBoundingClientRect().top-root.getBoundingClientRect().top-document.querySelector('.al-header').offsetHeight;
-    const target=start+${bookStops[1]}*(story.offsetHeight-story.querySelector('.al-book-sticky').offsetHeight);
-    document.querySelector('[aria-label="Próxima etapa do livro"]').click();
-    for(let i=0;i<120;i++){await new Promise(requestAnimationFrame);samples.push(Number(host.dataset.bookProgress));if(Math.abs(root.scrollTop-target)<2&&Math.abs(samples.at(-1)-${bookStops[1]})<.001&&host.dataset.bookSettled==='true')break;}
-    return {samples,scrollTop:root.scrollTop,target};
-  })()`);
-  assert(navigationMotion.samples.length<120&&Math.abs(navigationMotion.samples.at(-1)-bookStops[1])<.001&&Math.abs(navigationMotion.scrollTop-navigationMotion.target)<2,'Native chapter scroll reaches its actual destination and exact reading interval');
-  assert(navigationMotion.samples.some(p=>p>.002&&p<bookStops[1]-.002),'The next button actually animates through intermediate poses');
-  for(let i=1;i<navigationMotion.samples.length;i++)assert(navigationMotion.samples[i]>=navigationMotion.samples[i-1]-1e-8,'Button navigation has no reverse jumps');
-  await bookAt(0);
-  const navigationReversal=await client.evaluate(`(async()=>{
-    const root=document.querySelector('[data-landing-scroll]'),story=document.querySelector('[data-book-story]'),host=document.querySelector('[data-book-scene]'),previous=document.querySelector('[aria-label="Etapa anterior do livro"]'),samples=[];
-    const start=Math.max(0,root.scrollTop+story.getBoundingClientRect().top-root.getBoundingClientRect().top-document.querySelector('.al-header').offsetHeight);
-    let interruptedAt=null;
-    document.querySelector('[aria-label="Próxima etapa do livro"]').click();
-    for(let i=0;i<120;i++){
-      await new Promise(requestAnimationFrame);const progress=Number(host.dataset.bookProgress);samples.push({progress,scrollTop:root.scrollTop});
-      if(interruptedAt===null&&!previous.disabled&&progress>.002&&progress<${bookStops[1]}-.01){interruptedAt=progress;previous.click();}
-      if(interruptedAt!==null&&progress<.001&&host.dataset.bookSettled==='true'&&Math.abs(root.scrollTop-start)<2)break;
-    }
-    await new Promise(requestAnimationFrame);await new Promise(requestAnimationFrame);
-    return {samples,interruptedAt,start,scrollTop:root.scrollTop,progress:Number(host.dataset.bookProgress),settled:host.dataset.bookSettled};
-  })()`);
-  assert(navigationReversal.interruptedAt>0&&navigationReversal.interruptedAt<bookStops[1]-.01,'Previous can interrupt next before it finishes');
-  assert(navigationReversal.samples.length<120&&navigationReversal.progress<.001&&navigationReversal.settled==='true'&&Math.abs(navigationReversal.scrollTop-navigationReversal.start)<2,'Reversed chapter navigation returns and stays at the actual initial scroll position');
-  assert(navigationReversal.samples.some((s,i,a)=>i>0&&s.progress<a[i-1].progress-.00001),'Interrupted navigation really reverses its visual trajectory');
-  await bookAt(1);const finalTop=(await bookState()).sticky.top;await client.evaluate('document.querySelector("[data-landing-scroll]").scrollTop+=innerHeight');await wait(200);assert((await bookState()).sticky.top<finalTop-20,'Pinned section releases naturally');const off=(await bookState()).metrics.frames;await wait(600);assert.equal((await bookState()).metrics.frames,off,'Offscreen scene does not keep rendering');
-  const layouts=[];for(const [width,height]of [[360,800],[390,844],[430,932],[768,1024],[1024,800],[1440,1000],[1920,1080],[320,568],[844,390]]){
-    await client.command('Emulation.setDeviceMetricsOverride',{width,height,deviceScaleFactor:1,mobile:width<=850});await wait(180);await bookAt(0);console.log('Checking viewport '+width+'x'+height);
-    const sizes=await client.evaluate('({width:innerWidth,document:document.documentElement.scrollWidth,scroll:document.querySelector("[data-landing-scroll]").scrollWidth,client:document.querySelector("[data-landing-scroll]").clientWidth})');assert(sizes.document<=sizes.width+2&&sizes.scroll<=sizes.client+2,'No horizontal overflow '+JSON.stringify(sizes));
-    for(const p of poseSamples){const s=await bookAt(p);assertPose(s,width+'x'+height+' '+p);assert(s.metrics.dpr<=(width<=850?1.25:1.5));assert(s.metrics.particles<=(width<=850?1600:4096));layouts.push({width,height,p,trackHeight:s.story.height,viewportHeight:s.rootViewport,quality:s.metrics.quality,particles:s.metrics.particles,book:{left:s.metrics.left,right:s.metrics.right,top:s.metrics.top,bottom:s.metrics.bottom},scene:s.scene,caption:s.caption});await shot(width+'x'+height+'-'+Math.round(p*100));}
-    if(width===390){await bookAt(0);await client.evaluate('document.querySelector(".al-mobile-menu summary").click()');assert(await client.evaluate('document.querySelector(".al-mobile-menu").open'));await client.command('Input.dispatchKeyEvent',{type:'keyDown',key:'Escape'});assert.equal(await client.evaluate('document.querySelector(".al-mobile-menu").open'),false);await client.evaluate('document.querySelector(".al-mobile-menu summary").click();[...document.querySelectorAll(".al-mobile-menu a")].find(a=>a.hash==="#recursos").click()');await until('location.hash==="#recursos"&&!document.querySelector(".al-mobile-menu").open','mobile native anchor and menu close');}
-  }
-  await client.command('Emulation.setDeviceMetricsOverride',{width:1440,height:1000,deviceScaleFactor:1,mobile:false});await bookAt(.36);
+  await viewport(390,844);await client.evaluate('sessionStorage.clear()');await navigate('/');await until('!!document.querySelector("[data-press-hero][data-playing]")','phone opening');await wait(2600);await shot('phone-composing');await settled();await shot('phone-rest');
+  await viewport(1440,1000);
+
+  console.log('Checking FAQ, plans and reduced motion');
   await client.command('Page.bringToFront');await client.evaluate('document.querySelector(".al-faq summary").focus()');
   assert.ok(await client.evaluate('document.activeElement===document.querySelector(".al-faq summary")'),'FAQ focus before key');
   await client.command('Input.dispatchKeyEvent',{type:'keyDown',key:'Enter',code:'Enter',text:'\r',unmodifiedText:'\r',windowsVirtualKeyCode:13,nativeVirtualKeyCode:13});await client.command('Input.dispatchKeyEvent',{type:'keyUp',key:'Enter',code:'Enter',windowsVirtualKeyCode:13,nativeVirtualKeyCode:13});await until('document.querySelector(".al-faq details").open','native FAQ keyboard');
   await client.evaluate('document.getElementById("planos").scrollIntoView()');await wait(900);assert.equal(await client.evaluate('getComputedStyle(document.querySelector("[data-reveal][data-visible=true]")).opacity'),'1');await shot('landing-plans');
   assert.ok(await client.evaluate('document.querySelector(".al-plan-pro button").disabled'),'No fake purchase');
+  await client.command('Emulation.setEmulatedMedia',{features:[{name:'prefers-reduced-motion',value:'reduce'}]});await client.evaluate('sessionStorage.clear()');await navigate('/');await landing();await wait(800);
+  const reduced=await state();assert.deepEqual([reduced.wait,reduced.playing,reduced.dark],[false,false,'none'],'Reduced motion opens printed, with no opening');
+  assert.equal(await client.evaluate('document.querySelector("[data-read-text]").hasAttribute("data-armed")'),false,'Reduced motion keeps the paragraph fully visible');
+  assert.equal(await client.evaluate('getComputedStyle(document.querySelector("[data-stack]>article")).position'),'static','Reduced motion does not pin cards');await shot('reduced-motion');
+  await client.command('Emulation.setEmulatedMedia',motionBaseline);
 
-  console.log('Checking reduced motion, GPU failure and preserved public flows');
-  await client.command('Emulation.setEmulatedMedia',{features:[{name:'prefers-reduced-motion',value:'reduce'}]});await until('document.querySelector("[data-book-story]").dataset.motion==="reduce"','runtime reduced motion');await client.evaluate('document.querySelector("[data-landing-scroll]").scrollTop=0');await wait(150);let reduced=await bookState();assert.equal(reduced.canvas,0,'GPU canvas disposed on preference change');assert.equal(reduced.metrics.disposed,true);assert(reduced.metrics.geometriesDisposed>0&&reduced.metrics.materialsDisposed>0&&reduced.metrics.texturesDisposed>0);assert(reduced.story.height<reduced.root.height*3,'No tall empty track in reduced motion');await shot('reduced-motion');
-  await navigate('/');await landing();await until('document.querySelector("[data-book-story]").dataset.motion==="reduce"','initial reduced motion');assert.equal(await client.evaluate('performance.getEntriesByType("resource").filter(x=>x.name.includes("/BookScene-")).length'),0,'Reduced motion never requests the GPU chunk');await client.evaluate('[...document.querySelectorAll("[aria-label]")].find(e=>e.getAttribute("aria-label")==="Próxima etapa do livro").focus()');await client.command('Input.dispatchKeyEvent',{type:'keyDown',key:'Enter',code:'Enter',text:'\r',unmodifiedText:'\r',windowsVirtualKeyCode:13});await client.command('Input.dispatchKeyEvent',{type:'keyUp',key:'Enter',code:'Enter',windowsVirtualKeyCode:13});await until('document.querySelector("[data-book-story]").dataset.chapter==="1"','static keyboard next');
-  await client.command('Emulation.setEmulatedMedia',motionBaseline);await until('document.querySelector("[data-book-scene]").dataset.renderState==="ready"','GPU reinitialized after reduced motion');assert.equal((await bookState()).canvas,1,'One canvas after remount');
-  assert(await client.evaluate('(()=>{const c=document.querySelector("canvas[data-cinematic-canvas]"),gl=c.getContext("webgl2"),ext=gl.getExtension("WEBGL_lose_context");if(!ext)return false;ext.loseContext();return true})()'),'Actual context-loss extension available');await until('document.querySelector("[data-book-scene]").dataset.renderState==="context-lost"','actual WebGL loss falls back');assert.equal((await bookState()).canvas,0);await shot('webgl-context-lost');
-  const failure=await client.command('Page.addScriptToEvaluateOnNewDocument',{source:'const originalCanvasContext=HTMLCanvasElement.prototype.getContext;HTMLCanvasElement.prototype.getContext=function(kind,...args){if(kind==="webgl2")throw Error("controlled WebGL initialization failure");return originalCanvasContext.call(this,kind,...args)};'});await navigate('/');await landing();await until('document.querySelector("[data-book-scene]").dataset.renderState==="webgl-unavailable"','GPU initialization failure');assert.equal((await bookState()).canvas,0);assert(await client.evaluate('getComputedStyle(document.querySelector("[data-book-cover]")).display!=="none"'));await shot('webgl-unavailable');await client.command('Page.removeScriptToEvaluateOnNewDocument',{identifier:failure.identifier});
-  const constrained=await client.command('Page.addScriptToEvaluateOnNewDocument',{source:'Object.defineProperty(navigator,"deviceMemory",{value:2,configurable:true});Object.defineProperty(navigator,"hardwareConcurrency",{value:2,configurable:true});'});await navigate('/');await landing();await until('document.querySelector("[data-book-scene]").dataset.renderState==="constrained-device"','constrained profile uses static fallback');assert.equal((await bookState()).canvas,0);await shot('constrained-profile');await client.command('Page.removeScriptToEvaluateOnNewDocument',{identifier:constrained.identifier});
-  console.log('Checking skip, accessibility and Auth routes');
-  await client.evaluate('document.querySelector(".al-book-skip").click()');await until('location.hash==="#experiencia"','skip illustration');
+  console.log('Checking skip link, accessibility and Auth routes');
   await client.evaluate('document.querySelector(".al-skip").focus()');await client.command('Input.dispatchKeyEvent',{type:'keyDown',key:'Tab',code:'Tab',windowsVirtualKeyCode:9});assert.ok(await client.evaluate('document.activeElement.matches("a,button,summary")'));
-  await client.command('Accessibility.enable');const ax=await client.command('Accessibility.getFullAXTree');assert.ok(ax.nodes.some(n=>n.role?.value==='heading'&&n.name?.value.includes('Muito mais')));
-  assert.ok(ax.nodes.some(n=>n.role?.value==='heading'&&n.name?.value.includes('Reader')),'Semantic book story is available outside hidden faces');assert.ok(ax.nodes.some(n=>n.role?.value==='button'&&n.name?.value==='Próxima etapa do livro'),'Named book navigation in accessibility tree');
+  await client.command('Accessibility.enable');const ax=await client.command('Accessibility.getFullAXTree');
+  assert.ok(ax.nodes.some(n=>n.role?.value==='heading'&&n.name?.value==='Muito mais que uma biblioteca.'),'Split title keeps one readable heading name');
+  assert.ok(ax.nodes.some(n=>n.role?.value==='button'&&n.name?.value==='Ver a abertura'),'Named replay button');
   await client.evaluate('document.querySelector(".al-header-actions a").click()');await until('location.pathname.includes("/auth/login") && !!document.querySelector("input")','real login route');
   await navigate('/');await landing();await client.evaluate('document.querySelector(".al-hero-actions a").click()');await until('location.pathname.includes("/auth/signup") && !!document.querySelector("input")','real signup route');
   console.log('Checking protected routes and authenticated catalog');
@@ -202,13 +136,13 @@ async function cdp(url){
   assert.ok(!(await client.evaluate('window.fixtureRemotePaths')).some(p=>p.includes('aldus_admin')||p.includes('saas_account_snapshot')||p.includes('saas_quota_snapshot')),'Marketing reads catalog only');
   await client.evaluate('document.querySelector(".al-hero-actions a").click()');await until('location.pathname==="/library" && !!document.querySelector("input[aria-label=\\"Buscar livros por metadados\\"]")','authenticated Library route');
   await navigate('/admin');await until('document.body.innerText.includes("Acesso administrativo indisponível")','ordinary user direct admin denied');assert.ok(!(await text()).includes('Usuários cadastrados'));
-
-  console.log('Checking legal routes and final no-JS state');
+  console.log('Checking legal routes');
   for(const [route,label] of [['/legal/privacy','Privacidade'],['/legal/terms','Termos de Uso'],['/legal/copyright','Direitos Autorais e Conteúdo']]){await navigate(route);await until('location.pathname==='+JSON.stringify(route)+'&&document.body.innerText.includes('+JSON.stringify(label)+')','legal route '+route);}
-  await client.command('Emulation.setEmulatedMedia',{features:[{name:'prefers-reduced-motion',value:'reduce'}]});await client.command('Emulation.setScriptExecutionDisabled',{value:true});await navigate('/');await until('!!document.querySelector("[data-book-cover]")','prerender static cover');assert.equal(await client.evaluate('document.querySelectorAll("canvas").length'),0);assert.doesNotMatch(await text(),/You need to enable JavaScript/);assert(await client.evaluate('getComputedStyle(document.querySelector(".al-book-sticky")).position!=="sticky"'));assert(await client.evaluate('getComputedStyle(document.querySelector(".al-book-outline")).clipPath==="none"'));await shot('nojs-reduced-motion');await client.command('Emulation.setScriptExecutionDisabled',{value:false});
-  assert.deepEqual(client.errors,[],'No unhandled browser exceptions');fs.writeFileSync(path.join(shots,'results.json'),JSON.stringify({at:new Date().toISOString(),platform:'Chromium ANGLE/'+angle+'; geometry QA forces rendering; production budget tested separately; HTTP fixtures, no remote writes or physical mobile proof',gpuDriver,desktop,layouts,scrollCatchup,turnMotion,continuousScenes,navigationMotion,navigationReversal,webglCompiled:true,reverse:true,stopsOnlyWithScroll:true,contextLost:true,initializationFailure:true,constrainedProfile:true,reducedMotion:true,noJavaScript:true,existingPublicFlows:true},null,2));console.log('PASS Chromium cinematic story: GPU rendering, five continuously moving scenes with real wheel and changed book pixels, stopped-pose caching, clean page turns, scroll/stop/reverse, 108 viewport/pose samples, resource disposal, context failure, constrained profile, reduced motion/no-JS, menu/FAQ/keyboard/Auth/catalog/legal-route regressions. Software-rendered measurements are not hardware GPU or physical phone proof.');
+  assert.deepEqual(client.errors,[],'No unhandled browser exceptions');
+  fs.writeFileSync(path.join(shots,'results.json'),JSON.stringify({at:new Date().toISOString(),platform:'Chromium headless; HTTP fixtures, no remote writes or physical phone proof',timeline,layouts,nojs,reduced},null,2));
+  console.log('PASS Chromium press opening: no-JS printed page, held dark screen before hydration, medal struck and flown to the header, title composed and printed, self-hosted face, session memory, skip/Escape/replay, words lighting and highlight, sticky receding cards, 9 viewports without overflow (320–1920), reduced motion, menu/FAQ/keyboard/Auth/catalog/legal regressions. Headless Chromium is not physical phone proof.');
  }catch(error){
-  if(client)try{const image=await client.command('Page.captureScreenshot',{format:'png',captureBeyondViewport:false});fs.writeFileSync(path.join(shots,'book-failure.png'),Buffer.from(image.data,'base64'));const state=await client.evaluate(`(()=>{const root=document.querySelector('[data-landing-scroll]'),story=document.querySelector('[data-book-story]'),scene=document.querySelector('[data-book-scene]'),sticky=document.querySelector('.al-book-sticky');const rect=node=>{if(!node)return null;const r=node.getBoundingClientRect();return{top:r.top,left:r.left,right:r.right,bottom:r.bottom,height:r.height,width:r.width};};return{path:location.pathname,viewport:{width:innerWidth,height:innerHeight},root:rect(root),scrollTop:root?.scrollTop,windowY:window.scrollY,motion:story?.dataset.motion,progress:scene?.dataset.bookProgress,chapter:scene?.dataset.bookChapter,story:rect(story),sticky:rect(sticky),scene:rect(scene),caption:document.querySelector('.al-book-caption h2')?.textContent};})()`);fs.writeFileSync(path.join(shots,'book-failure.json'),JSON.stringify(state,null,2));console.error('Browser failure state '+JSON.stringify(state)+'; screenshots .expo/cinematic-validation/book-failure.png');}catch{}
+  if(client)try{const image=await client.command('Page.captureScreenshot',{format:'png',captureBeyondViewport:false});fs.writeFileSync(path.join(shots,'failure.png'),Buffer.from(image.data,'base64'));console.error('Failure screenshot .expo/landing-validation/failure.png');}catch{}
   throw error;
  }finally{client?.close();chrome.kill();await wait(500);server.closeAllConnections();await new Promise(r=>server.close(r));if(fs.existsSync(profile)&&path.dirname(fs.realpathSync(profile)).toLowerCase()===fs.realpathSync(os.tmpdir()).toLowerCase()&&path.basename(profile).startsWith('aldus-marketing-browser-'))try{fs.rmSync(profile,{recursive:true,maxRetries:5,retryDelay:100})}catch{}}
 })().catch(e=>{console.error(e);process.exitCode=1;});
