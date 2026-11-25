@@ -28,3 +28,29 @@ assert.throws(() => v.validSuggestion({ vestibularId: null, message: 'oi' }), /E
 assert.throws(() => v.validSuggestion({ vestibularId: null, message: 'x'.repeat(601) }), /até 600/);
 assert.throws(() => v.validSuggestion({ vestibularId: 'A B', message: 'Faltou um livro' }));
 console.log('PASS vestibular readings: upcoming (nearest first) and past (newest first) per vestibular, target year pending said instead of invented, strict contract with official https source, bounded suggestions.');
+
+// Data layer: server first, device copy when offline, copy re-validated, suggestions mapped to readable errors.
+(async () => {
+  const { VestibularReadingsService, VESTIBULAR_CACHE_KEY, VESTIBULAR_CHOICE_KEY } = load('src/data/study/VestibularReadingsService.ts');
+  const store = new Map(); let failWrite = false;
+  const storage = { getItem: async k => store.get(k) ?? null, setItem: async (k, val) => { if (failWrite) throw Error('quota'); store.set(k, val); } };
+  const vrows = [{ id: 'fuvest', name: 'Fuvest', institution: 'USP', official_url: 'https://www.fuvest.br' }];
+  let online = true, answer = { ok: true }, sent = [];
+  const remote = { readVestibulares: async () => { if (!online) throw Error('offline'); return vrows; }, readLists: async () => { if (!online) throw Error('offline'); return [row(2027)]; }, suggest: async (id, m) => { sent.push([id, m]); return answer; } };
+  const service = new VestibularReadingsService(remote, storage, () => new Date('2026-11-25T12:00:00Z'));
+  let r = await service.read(); assert.equal(r.source, 'server'); assert.equal(r.snapshot.lists[0].books[0].title, 'Iracema'); assert.ok(store.has(VESTIBULAR_CACHE_KEY));
+  online = false; r = await service.read(); assert.equal(r.source, 'copy', 'offline uses the device copy'); assert.equal(r.snapshot.savedAt, '2026-11-25T12:00:00.000Z'); assert.equal(r.snapshot.lists[0].sourceUrl, 'https://www.fuvest.br/edital-2027');
+  store.set(VESTIBULAR_CACHE_KEY, JSON.stringify({ savedAt: 'x', vestibulares: [], lists: [{ vestibularId: 'fuvest', examYear: 2027, sourceUrl: 'http://bad', books: [] }] }));
+  r = await service.read(); assert.equal(r.source, 'unavailable', 'a tampered copy is not shown');
+  online = true; failWrite = true; r = await service.read(); assert.equal(r.source, 'server', 'a failed copy write still shows the list'); failWrite = false;
+  assert.equal((await new VestibularReadingsService(null, new Map() && { getItem: async () => null, setItem: async () => undefined }).read()).source, 'unavailable');
+  // Choice stays on the device and is validated.
+  await service.saveChoice('unicamp'); assert.equal(await service.readChoice(), 'unicamp'); store.set(VESTIBULAR_CHOICE_KEY, '../x'); assert.equal(await service.readChoice(), null);
+  // Suggestions.
+  await service.suggest({ vestibularId: 'fuvest', message: '  Faltou um livro  ' }); assert.deepEqual(sent.at(-1), ['fuvest', 'Faltou um livro']);
+  answer = { ok: false, code: 'rate' }; await assert.rejects(service.suggest({ vestibularId: null, message: 'Incluir UERJ' }), /5 sugestões hoje/);
+  answer = { ok: false, code: 'account' }; await assert.rejects(service.suggest({ vestibularId: null, message: 'Incluir UERJ' }), /Entre na sua conta/);
+  await assert.rejects(service.suggest({ vestibularId: null, message: 'oi' }), /Escreva um pouco mais/);
+  remote.suggest = async () => { throw Error('net'); }; await assert.rejects(service.suggest({ vestibularId: null, message: 'Incluir UERJ' }), /Confira a internet/);
+  console.log('PASS vestibular data: server first with device copy, offline copy with its date, tampered copy refused, failed copy write still shows, device-only choice, suggestion errors in plain language.');
+})().catch(error => { console.error(error); process.exitCode = 1; });
