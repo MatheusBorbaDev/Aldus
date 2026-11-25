@@ -41,7 +41,8 @@ AsyncStorage; flashcards `@kindle/flashcards.v1:<UUID>` / `kindle-flashcards.db`
 ## 3. Estado atual (25/11/2026)
 
 - Produção Vercel = `f6967e6` (landing "A prensa"). Cloudflare: configuração no repositório (25/11), testada só localmente
-  (`wrangler dev`); falta o dono ligar o repositório e o domínio no painel (passos em §7).
+  (`wrangler dev`). Zona `aldusreader.com.br` criada na Cloudflare (plano Free) e nameservers trocados no Registro.br em 25/11
+  (`cruz`/`lex.ns.cloudflare.com`; propagação pendente). Worker ainda NÃO criado (ver §7).
 - Último APK: **v18** `4a0cc73`, chave do dono (`CN=Aldus Reader`, `a8ee8ec1…`), em `G:\Meu Drive\Aldus APK\Aldus-1.0.0-beta.2-18-4a0cc73.apk`.
   Lista de entrega: 74 recursos (`scripts/verify-release-features.cjs`). `test:critical`: 144 suítes.
 - Aparelhos: Redmi 23117RA68G e Note 14 (Android 16), só por USB. Nada de v13 a v18 foi exercitado num aparelho por mim, salvo o
@@ -149,8 +150,10 @@ Teste no PC não comprova Android físico, sessão real nem deploy.
 ## 7. Pendências
 
 - **Cloudflare (painel do dono; decidido em 25/11: Worker só com arquivos estáticos, deploy automático pelo Git, Vercel no ar até
-  validar):** (1) domínio `aldusreader.com.br` na Cloudflare com os nameservers trocados no Registro.br; (2) Workers & Pages →
-  importar `matheusbitlab/Aldus`, nome `aldus-reader`, build `npm run build`, deploy `npx wrangler@4.160.1 deploy`; (3) build
+  validar):** (1) FEITO 25/11: zona na Cloudflare (Free; registros MX nulo/SPF/DMARC "sem e-mail" importados; "Bot Preference
+  Sync" desligado para o `robots.txt` ficar igual) e nameservers no Registro.br; (2) Workers & Pages → importar `matheusbitlab/Aldus`
+  — BLOQUEADO: o GitHub logado no Chrome é `MatheusBorbaDev`, mas o repositório é da conta `matheusbitlab` (a do `gh` deste PC); o
+  app da Cloudflare foi autorizado em `MatheusBorbaDev`, sem instalar. Nome `aldus-reader`, build `npm run build`, deploy `npx wrangler@4.160.1 deploy`; (3) build
   variables: as 7 `EXPO_PUBLIC_*` da Production da Vercel, com `EXPO_PUBLIC_SITE_URL=https://aldusreader.com.br`; (4) testar no
   `*.workers.dev`; (5) domínio próprio no Worker; (6) Supabase Auth: URLs de retorno do domínio novo; (7) Google Cloud: domínio novo
   na marca do OAuth (e na chave do Books, se tiver restrição por site); (8) só então desligar a Vercel.
