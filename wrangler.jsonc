@@ -1,0 +1,12 @@
+// Hospedagem do site na Cloudflare: Worker só com arquivos estáticos (sem script), conectado ao GitHub pelo Workers Builds.
+// Build: `npm run build` (gera dist/ e os arquivos _headers/_redirects). Deploy: `npx wrangler@4.160.1 deploy`.
+// Rotas do app → /app via dist/_redirects (scripts/write-cloudflare-assets.cjs). Variáveis EXPO_PUBLIC_* ficam no painel, como
+// "Build variables" (são embutidas no build; nenhuma é segredo). A Vercel continua no ar até o dono validar esta versão.
+{
+  "name": "aldus-reader",
+  "compatibility_date": "2026-11-12",
+  "assets": {
+    "directory": "./dist",
+    "html_handling": "auto-trailing-slash"
+  }
+}

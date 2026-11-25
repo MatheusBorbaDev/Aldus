@@ -23,7 +23,28 @@ assert.equal(config.cleanUrls, true);
 assert.ok(config.rewrites.some(rule => rule.source === '/(.*)' && rule.destination === '/app'), 'SPA fallback uses the clean /app path');
 assert.ok(!config.rewrites.some(rule => rule.source !== '/' && /\.html$/.test(rule.destination)), 'no .html rewrite target under cleanUrls');
 assert.ok(!JSON.stringify(config).includes('unsafe-inline'));
+// Cloudflare (25/11/2026): mesma checagem de produção pelo Workers Builds; prévia de outra branch não exige identidade legal.
+assert.throws(() => validate({ ...env, WORKERS_CI: '1', WORKERS_CI_BRANCH: 'main' }), 'produção na Cloudflare exige controlador e contato');
+validate({ ...env, WORKERS_CI: '1', WORKERS_CI_BRANCH: 'main', EXPO_PUBLIC_LEGAL_CONTROLLER_NAME: 'Verified fixture', EXPO_PUBLIC_LEGAL_CONTACT_EMAIL: 'legal@example.invalid' });
+validate({ ...env, WORKERS_CI: '1', WORKERS_CI_BRANCH: 'preview-x' });
+assert.throws(() => validate({ WORKERS_CI: '1' }), 'build na Cloudflare sem Supabase falha');
+// Site estático na Cloudflare: Worker sem script, só a pasta dist; nada de segredo na configuração versionada.
+const wrangler = JSON.parse(fs.readFileSync('wrangler.jsonc', 'utf8').replace(/^\s*\/\/.*$/gm, ''));
+assert.equal(wrangler.assets.directory, './dist'); assert.ok(!('main' in wrangler), 'sem script de Worker');
+assert.ok(!('vars' in wrangler) && !/token|secret|key/i.test(JSON.stringify(wrangler)), 'variáveis ficam no painel');
+const { appRouteSegments, cloudflareFiles } = require('./write-cloudflare-assets.cjs');
+const segments = appRouteSegments();
+for (const route of ['library', 'reader', 'auth', 'legal', 'beta', 'community', 'catalog']) assert.ok(segments.includes(route), route);
+assert.ok(!segments.some(segment => /^(index|_layout|\(tabs\)|\+native-intent)$/.test(segment)), 'landing e layouts não viram regra');
+const cf = cloudflareFiles({ vercelConfig: config, segments, distEntries: ['index.html', 'app.html', '_expo', 'assets', 'fonts'] });
+assert.match(cf.redirects, /^\/reader\/\* \/app 200$/m); assert.match(cf.redirects, /^\/library \/app 200$/m);
+assert.doesNotMatch(cf.redirects, /^\/ |^\/\* /m, 'a landing e os arquivos do export não são reescritos');
+assert.ok(cf.redirects.indexOf('/library /app') < cf.redirects.indexOf('/library/* /app'), 'regras estáticas antes das dinâmicas');
+for (const rule of config.headers) for (const h of rule.headers) assert.ok(cf.headers.includes(`  ${h.key}: ${h.value}`), h.key);
+assert.match(cf.headers, /^\/build-info\.json\n  Cache-Control: no-store$/m); assert.match(cf.headers, /^\/\*\n  X-Content-Type-Options: nosniff$/m);
+assert.throws(() => cloudflareFiles({ vercelConfig: config, segments: ['fonts'], distEntries: ['fonts'] }), 'rota com nome de pasta do export');
 if (process.argv.includes('--exported')) {
+  for (const file of ['_headers', '_redirects', '.assetsignore']) assert.ok(fs.existsSync(`dist/${file}`), file);
   const metadata = JSON.parse(fs.readFileSync('dist/build-info.json', 'utf8'));
   assert.match(metadata.commit, /^[a-f0-9]{40}$/); assert.match(metadata.contentSha256, /^[a-f0-9]{64}$/);
   assert.ok(metadata.webFiles > 0); assert.doesNotMatch(JSON.stringify(metadata), /token|secret|apikey|supabase/i);

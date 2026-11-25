@@ -18,7 +18,9 @@ async function cdp(url){
  const bundle=fs.readFileSync(path.join(dist,'_expo/static/js/web',fs.readdirSync(path.join(dist,'_expo/static/js/web')).find(n=>n.startsWith('entry-'))),'utf8');
  const project=bundle.match(/https:\/\/([a-z0-9-]+)\.supabase\.co/)?.[1];assert.ok(project);
  const server=http.createServer((req,res)=>{try{const pathname=decodeURIComponent(new URL(req.url,'http://localhost').pathname);let file=path.resolve(dist,'.'+pathname);if(file!==dist&&!file.startsWith(dist+path.sep)){res.writeHead(403);res.end();return;}if(!fs.existsSync(file)||fs.statSync(file).isDirectory())file=path.join(dist,pathname==='/'?'index.html':'app.html');res.setHeader('Content-Type',({'.html':'text/html','.js':'text/javascript','.png':'image/png','.svg':'image/svg+xml','.ttf':'font/ttf','.json':'application/json','.txt':'text/plain'})[path.extname(file)]||'application/octet-stream');fs.createReadStream(file).pipe(res);}catch{res.writeHead(500);res.end();}});
- await new Promise(r=>server.listen(0,'127.0.0.1',r));const origin=`http://127.0.0.1:${server.address().port}`;
+ // LANDING_WEB_ORIGIN: roda a mesma suíte contra outro servidor do dist/ (ex.: `wrangler dev`, a hospedagem da Cloudflare em modo local).
+ const external=process.env.LANDING_WEB_ORIGIN;if(external)assert.match(external,/^http:\/\/(127\.0\.0\.1|localhost):\d+$/,'só servidor local');
+ if(!external)await new Promise(r=>server.listen(0,'127.0.0.1',r));const origin=external||`http://127.0.0.1:${server.address().port}`;
  const profile=fs.mkdtempSync(path.join(os.tmpdir(),'aldus-marketing-browser-'));
  const chrome=cp.spawn(process.env.SOURCE_LIBRARY_CHROME||'C:/Program Files/Google/Chrome/Application/chrome.exe',['--headless=new','--use-gl=angle','--use-angle='+angle,'--enable-unsafe-swiftshader','--no-first-run','--no-default-browser-check','--disable-background-networking','--remote-debugging-port=0','--window-size=1440,1000',`--user-data-dir=${profile}`,'about:blank'],{windowsHide:true,stdio:'ignore'});let client;
  try{

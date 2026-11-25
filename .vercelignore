@@ -20,3 +20,4 @@ modules/*/android/
 # Documentation and test fixtures (not used by the Web export)
 docs/
 tests/
+.wrangler/

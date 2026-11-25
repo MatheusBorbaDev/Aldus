@@ -30,15 +30,18 @@ Batalha + Supabase (§4). `node scripts/validate-ai-instructions.cjs` ao editar 
 Leitor EPUB/PDF e estudo, Android + Web (PC e celular), pt-BR. `aldus-reader` 1.0.0-beta.2, Android `com.aldus.reader`,
 **versionCode 18** (`app.json` e `android/app/build.gradle`). Expo ~57, React Native 0.86, React 19, expo-router, Zustand,
 expo-sqlite, WebView, pdfjs-dist, jszip; UI com StyleSheet + `src/ui` + `src/theme`. TypeScript ~6, Node 24. iOS não é alvo.
-Backend: Supabase (Auth, Postgres/RLS, Storage, Edge Functions `username-login` e `account-delete`). Web: Vercel, projeto
-`kindle-reader` (sem Git ligado; deploy pela CLI) em https://kindle-reader-two.vercel.app. Git: `origin` = `matheusbitlab/Aldus`, `main`.
+Backend: Supabase (Auth, Postgres/RLS, Storage, Edge Functions `username-login` e `account-delete`). Web (landing + app Web, um só
+export estático em `dist/`): hoje Vercel, projeto `kindle-reader` (sem Git; deploy pela CLI) em https://kindle-reader-two.vercel.app;
+**migração para a Cloudflare em andamento** (Worker só com arquivos estáticos, `wrangler.jsonc`, deploy pelo Git; domínio
+registrado `aldusreader.com.br`). A Vercel fica no ar até o dono validar a Cloudflare. Git: `origin` = `matheusbitlab/Aldus`, `main`.
 Persistência (não renomear `kindle-*`/`@kindle/*`): SQLite `kindle-reader.db` (migrations em
 `src/data/database/migrations/MigrationRunner.ts`), IndexedDB `kindle-reader-web` (`src/data/database/connection/webLibraryStore.ts`),
 AsyncStorage; flashcards `@kindle/flashcards.v1:<UUID>` / `kindle-flashcards.db` / IndexedDB `kindle-flashcards`.
 
 ## 3. Estado atual (25/11/2026)
 
-- HEAD `e6a1429` em `main`, igual ao GitHub. Produção Vercel = `f6967e6` (landing "A prensa"; o commit seguinte é só docs).
+- Produção Vercel = `f6967e6` (landing "A prensa"). Cloudflare: configuração no repositório (25/11), testada só localmente
+  (`wrangler dev`); falta o dono ligar o repositório e o domínio no painel (passos em §7).
 - Último APK: **v18** `4a0cc73`, chave do dono (`CN=Aldus Reader`, `a8ee8ec1…`), em `G:\Meu Drive\Aldus APK\Aldus-1.0.0-beta.2-18-4a0cc73.apk`.
   Lista de entrega: 74 recursos (`scripts/verify-release-features.cjs`). `test:critical`: 144 suítes.
 - Aparelhos: Redmi 23117RA68G e Note 14 (Android 16), só por USB. Nada de v13 a v18 foi exercitado num aparelho por mim, salvo o
@@ -128,7 +131,7 @@ Teste = `scripts/test-<nome>.cjs` (quais estão no `test:critical`: lista em `sc
 | Recurso | Comece por | Também | Teste |
 | --- | --- | --- | --- |
 | Landing (abertura "A prensa", rolagem, medalha) | `src/marketing/LandingDocument.tsx`, `src/marketing/PressHero.tsx` | `pressStyles.ts`, `landingStyles.ts`, `AldusMedal.tsx`, `aldusProfilePath.ts`, `landingScrollEffects.ts`, `seo.ts`, `app/index.web.tsx`, fontes `public/fonts`, script do `<head>` em `scripts/write-public-web.cjs`; histórico `LANDING_PAGE_CONTEXT.md` | `test:marketing`, `test:marketing:web` |
-| Build Web e deploy | `package.json` (`export:web`), `scripts/write-public-web.cjs` | `scripts/{validate-web-env,write-build-metadata}.cjs`, `vercel.json`, `.vercelignore` | web-build |
+| Build Web e deploy | `package.json` (`export:web`), `scripts/write-public-web.cjs` (landing pré-renderizada em `index.html`, app em `app.html`) | `scripts/{validate-web-env,write-build-metadata}.cjs`; Vercel: `vercel.json`, `.vercelignore`; Cloudflare: `wrangler.jsonc`, `scripts/write-cloudflare-assets.cjs` (gera `dist/_headers` a partir do `vercel.json` e `dist/_redirects` a partir de `app/`) | web-build; `test:marketing:web` aceita `LANDING_WEB_ORIGIN` (ex.: `wrangler dev`) |
 | APK e versão | `scripts/build-apk-local.mjs` (`npm run build:apk:archive`) | `app.json` + `android/app/build.gradle` (versionCode), `scripts/{release-signing.cjs,archive-commit-apk.mjs,create-signing-key.ps1}` | signing-key, android-build-command |
 | Lista de entrega (todo recurso pedido entra aqui) | `scripts/verify-release-features.cjs` (`markers`, `androidMarkers`, `webMarkers`) | | release-features |
 | Supabase (migrations, funções) | `supabase/migrations/*` (imutáveis) | `supabase/functions/*`, `supabase/{admin,audit,tests}` | skill backend-operations; **só com pedido** |
@@ -145,6 +148,12 @@ Teste no PC não comprova Android físico, sessão real nem deploy.
 
 ## 7. Pendências
 
+- **Cloudflare (painel do dono; decidido em 25/11: Worker só com arquivos estáticos, deploy automático pelo Git, Vercel no ar até
+  validar):** (1) domínio `aldusreader.com.br` na Cloudflare com os nameservers trocados no Registro.br; (2) Workers & Pages →
+  importar `matheusbitlab/Aldus`, nome `aldus-reader`, build `npm run build`, deploy `npx wrangler@4.160.1 deploy`; (3) build
+  variables: as 7 `EXPO_PUBLIC_*` da Production da Vercel, com `EXPO_PUBLIC_SITE_URL=https://aldusreader.com.br`; (4) testar no
+  `*.workers.dev`; (5) domínio próprio no Worker; (6) Supabase Auth: URLs de retorno do domínio novo; (7) Google Cloud: domínio novo
+  na marca do OAuth (e na chave do Books, se tiver restrição por site); (8) só então desligar a Vercel.
 - **Aparelho (precisa de celular no cabo):** v13–v18 e a landing nunca vistas num celular; Drive não traz livros soltos fora de
   subpastas (não são atalhos; precisa de log); tocar na aba Biblioteca não volta ao topo no Android (`useScrollToTop` não rola).
 - **Decisões do dono:** e-mail de cadastro do beta (senha de app do Gmail ou desligar confirmação); nome/e-mail do controlador
@@ -164,6 +173,9 @@ Teste no PC não comprova Android físico, sessão real nem deploy.
 
 ## 9. Log (mais recente primeiro; máx. 5 entradas de até 3 linhas)
 
+- **25/11** — Cloudflare: o site já é estático (Expo export, sem SSR/API). `wrangler.jsonc` + `write-cloudflare-assets.cjs`
+  (`_headers`, `_redirects` das 23 rotas → `/app`); `validate-web-env`/`build-info` reconhecem o Workers Builds. `wrangler dev` local:
+  rotas, cabeçalhos e `test:marketing:web` inteiro PASS. NÃO publicado; Vercel intacta. Passos do dono em §7.
 - **25/11** — Dono pediu contexto enxuto com mapa de localização. Este arquivo foi reescrito: mapa por recurso (§5), estado e
   pendências atuais, regra de atualizar em toda alteração; versão anterior arquivada em `historico/2026-11-25-project-context-ate-23-11.md`.
 - **23/11** — Landing "A prensa" (`570bdad`, `f6967e6`): abertura com medalha, tipos e livro; EB Garamond própria; 3D e three.js
@@ -171,5 +183,3 @@ Teste no PC não comprova Android físico, sessão real nem deploy.
 - **23/11** — v18 `4a0cc73`: rodapé com tempo por página e para terminar o livro (`dom/reader/readingPace.ts`).
 - **23/11** — v15–v17: arrastar para estender o grifo (`5d236c5`); módulo PC em 5 fases (barra lateral, painel, duas páginas,
   sync 90 s, colunas); largura volta à âncora (`1cba202`); `StatusBarScrim`.
-- **18–20/11** — Catálogo (Google Books + Open Library, vitrine, sortear, Goodreads, livro sem arquivo), Drive sem reconectar, chave
-  de assinatura própria, toque longo nas bordas (v14, confirmado no Note 14), busca no livro vai ao trecho.

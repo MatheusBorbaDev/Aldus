@@ -30,3 +30,6 @@ credentials.json
 !android/app/debug.keystore
 .vercel
 .env*
+
+# Estado local do wrangler dev (Cloudflare)
+.wrangler/

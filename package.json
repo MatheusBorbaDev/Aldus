@@ -26,7 +26,7 @@
     "test:auth:web": "node scripts/test-auth-ui-web.cjs",
     "audit:supabase:public": "node scripts/audit-supabase-public.cjs",
     "audit:auth:redirects": "node scripts/audit-google-redirects.cjs",
-    "export:web": "node scripts/validate-web-env.cjs && node scripts/generate-public-catalog.cjs --check && expo export --platform web && node scripts/copy-books-to-dist.mjs && node scripts/write-public-web.cjs && node scripts/write-build-metadata.cjs",
+    "export:web": "node scripts/validate-web-env.cjs && node scripts/generate-public-catalog.cjs --check && expo export --platform web && node scripts/copy-books-to-dist.mjs && node scripts/write-public-web.cjs && node scripts/write-cloudflare-assets.cjs && node scripts/write-build-metadata.cjs",
     "test:critical": "node scripts/test-critical.cjs",
     "test:reader:concentration:web": "node scripts/test-reader-concentration-web.cjs",
     "test:reader:settings:web": "node scripts/test-reader-settings-web.cjs",
