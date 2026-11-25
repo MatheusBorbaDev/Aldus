@@ -41,7 +41,7 @@ AsyncStorage; flashcards `@kindle/flashcards.v1:<UUID>` / `kindle-flashcards.db`
 
 ## 3. Estado atual (25/11/2026)
 
-- E-mail do domínio (25/11, grátis): Cloudflare Email Routing; `contato@`, `suporte@`, `financeiro@`, `adm@aldusreader.com.br` → `aldusreader@gmail.com` (destino verificado). MX nulo e SPF `-all` antigos removidos; MX/SPF/DKIM da Cloudflare ativos. Só recebe; enviar como `contato@` (SMTP grátis) PENDENTE.
+- E-mail do domínio (25/11, grátis): Cloudflare Email Routing; `contato@`, `suporte@`, `financeiro@`, `adm@aldusreader.com.br` → `aldusreader@gmail.com` (destino verificado). MX nulo e SPF `-all` antigos removidos; MX/SPF/DKIM da Cloudflare ativos. Envio: conta Brevo grátis (login Google de `aldusreader@gmail.com`), domínio autenticado (TXT `brevo-code`, CNAME `brevo1/2._domainkey`, DMARC p=none); SMTP `smtp-relay.brevo.com:587`. PENDENTE (dono): verificar celular na Brevo, gerar chave SMTP e concluir "Enviar e-mail como" no Gmail.
 - Produção Vercel = `f6967e6` (landing "A prensa"). Cloudflare: configuração no repositório (25/11), testada só localmente
   (`wrangler dev`). Zona `aldusreader.com.br` criada na Cloudflare (plano Free) e nameservers trocados no Registro.br em 25/11
   (`cruz`/`lex.ns.cloudflare.com`; propagação pendente). Worker `aldus-reader` no ar em https://aldus-reader.matheusborbaifc.workers.dev (build `4c802da`, 25/11; rotas, cabeçalhos e
