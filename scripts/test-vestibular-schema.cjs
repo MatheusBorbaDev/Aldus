@@ -76,17 +76,35 @@ const a = '00000000-0000-4000-8000-000000000001', admin = '00000000-0000-4000-80
     const respond = async (status, html) => { const ids = (await db.query('select id from net.requests where id not in (select id from net._http_response)')).rows; for (const r of ids) await db.query('insert into net._http_response values ($1,$2,$3)', [r.id, status, html]); };
     const cycle = async (status, html) => { await db.exec('select aldus_admin_private.vestibular_watch_send()'); await respond(status, html); await db.exec('select aldus_admin_private.vestibular_watch_collect()'); };
     const alerts = async () => { await as(admin); const r = (await one('select public.vestibular_admin_read() as r')).r.alerts; await db.exec('reset role'); return r; };
-    await cycle(200, '<a href="/edital-2027.pdf">Edital</a> hoje é 25/11');
+    await cycle(200, '<a href="/edital-2027.pdf">Edital</a> hoje é 25/11/2026. Vestibular 2027');
     assert.deepEqual(await alerts(), [], 'first read is only the baseline');
-    await cycle(200, '<a href="/EDITAL-2027.pdf">Edital</a> hoje é 26/11 <script>token=9</script>');
+    await cycle(200, '<a href="/EDITAL-2027.pdf">Edital</a> hoje é 26/11/2026. Vestibular 2027 <script>token=9</script>');
     assert.deepEqual(await alerts(), [], 'date, token or letter case do not alert');
     await cycle(503, 'fora do ar');
+    assert.deepEqual(await alerts(), [], 'outage');
+    // A new year in a table without any new PDF (Comvest-style page) alerts too.
+    await cycle(200, '<a href="/edital-2027.pdf">Edital</a> hoje é 27/11/2026. Vestibular 2027 <table><tr><td>Vestibular Unicamp 2030</td></tr></table>');
+    let yearAlert = await alerts(); assert.equal(yearAlert.length, 1, 'new year on the page alerts');
+    await as(admin); await one(change, ['alert_seen', 'fuvest', null, '{}', 'Conferido no site oficial']); await db.exec('reset role');
+    await cycle(200, '<a href="/edital-2027.pdf">Edital</a> hoje é 28/11/2026. Vestibular 2027 e 2030');
     assert.deepEqual(await alerts(), [], 'an outage does not alert nor erase the baseline');
-    await cycle(200, `<a href="/edital-2027.pdf">Edital</a> <a href='/leituras-2028.pdf'>Leituras 2028</a>`);
+    await cycle(200, `<a href="/edital-2027.pdf">Edital</a> <a href='/leituras-2028.pdf'>Leituras</a> 28/11/2026. Vestibular 2027 e 2030`);
     const alert = await alerts(); assert.equal(alert.length, 1); assert.equal(alert[0].vestibular_id, 'fuvest');
     await as(admin); assert.equal((await one(change, ['alert_seen', 'fuvest', null, '{}', 'Conferido no site oficial'])).r.ok, true);
     assert.deepEqual(await alerts(), [], 'seen alert leaves the panel');
     await as(a); await fails('select aldus_admin_private.vestibular_watch_send()', [], /permission denied/);
+    // Initial load (25/11/2026): every list valid for the app contract, official https source, UEL inactive (list not verified).
+    await db.exec('reset role');
+    const { seedSql } = require('./write-vestibular-seed.cjs');
+    await db.exec(seedSql());
+    const { parseReadingLists } = require('./community-test-loader.cjs')({})('src/domain/study/vestibularReadings.ts');
+    await as(null, 'anon');
+    const loaded = (await db.query('select vestibular_id, exam_year, source_url, books from public.vestibular_reading_lists order by vestibular_id, exam_year')).rows;
+    const parsed = parseReadingLists(loaded);
+    assert.deepEqual(parsed.map(l => `${l.vestibularId}:${l.examYear}:${l.books.length}`), ['fuvest:2026:9', 'fuvest:2027:9', 'fuvest:2028:9', 'fuvest:2029:9', 'ufpr:2027:8', 'ufrgs:2027:12', 'unicamp:2027:9', 'unicamp:2028:9', 'unicamp:2029:9']);
+    assert.ok(parsed.every(l => /^https:\/\/(www\.)?(fuvest\.br|comvest\.unicamp\.br|ufrgs\.br|ufpr\.br)\//.test(l.sourceUrl)), 'official university sources only');
+    assert.deepEqual((await db.query('select id from public.vestibulares order by sort')).rows.map(r => r.id), ['fuvest', 'unicamp', 'ufrgs', 'ufpr'], 'UEL hidden until its list is verified');
+    await db.exec('reset role'); await db.exec(seedSql()); assert.equal((await db.query('select count(*)::int n from public.vestibular_reading_lists')).rows[0].n, 9, 'idempotent');
     console.log('PASS vestibular schema (PGlite): public read without account, no direct writes, hidden watch URL; suggestions bounded and rate limited for active accounts; admin publish/correct/remove needs access, MFA and a reason, validates books and https source, audited; robot: baseline first, alert only on new PDF links (not on dates, tokens, case or outages), seen alerts leave, not callable by users.');
   } finally { await db.close(); }
 })().catch(error => { console.error(error); process.exitCode = 1; });

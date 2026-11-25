@@ -6,11 +6,14 @@ begin;
 create extension if not exists pg_net;
 create extension if not exists pg_cron;
 
--- Impressão da página: links .pdf distintos, ordenados. Página dinâmica (data, token) não gera aviso falso; PDF novo gera.
+-- Impressão da página: links .pdf distintos e os anos (2020–2099) citados, ordenados. Data do dia, token ou caixa das letras não geram
+-- aviso falso; PDF novo ou um ano novo na página (ex.: "Vestibular 2030" numa tabela de obras) geram.
 create function aldus_admin_private.vestibular_fingerprint(p_content text) returns text
 language sql immutable set search_path = '' as $$
- select md5(coalesce(string_agg(link, '|' order by link), ''))
- from (select distinct lower(m[1]) as link from regexp_matches(coalesce(p_content, ''), 'href\s*=\s*["'']([^"'']+\.pdf)', 'gi') as m) links;
+ select md5(coalesce((select string_agg(link, '|' order by link) from (select distinct lower(m[1]) as link
+   from regexp_matches(coalesce(p_content, ''), 'href\s*=\s*["'']([^"'']+\.pdf)', 'gi') as m) links), '')
+  || '#' || coalesce((select string_agg(y, ',' order by y) from (select distinct m[1] as y
+   from regexp_matches(coalesce(p_content, ''), '(?:^|[^0-9])(20[2-9][0-9])(?![0-9])', 'g') as m) years), ''));
 $$;
 
 create function aldus_admin_private.vestibular_watch_send() returns integer

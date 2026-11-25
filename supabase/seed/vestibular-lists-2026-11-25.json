@@ -1,0 +1,52 @@
+{
+  "_comment": "Carga inicial das leituras de vestibular (25/11/2026). Cada lista copiada da página oficial indicada em source_url, conferida na própria página. UEL fica inativa: a lista oficial só existe em PDF que não pôde ser lido; o dono confere e publica pelo Admin. Notas: ano de publicação (Fuvest) ou trecho exigido.",
+  "watch": {
+    "fuvest": "https://www.fuvest.br/",
+    "unicamp": "https://www.comvest.unicamp.br/lista-de-obras/",
+    "ufrgs": "https://www.ufrgs.br/coperse/concurso-vestibular/",
+    "uel": "https://sites.uel.br/vestibular/",
+    "ufpr": null
+  },
+  "inactive": ["uel"],
+  "lists": [
+    { "vestibular_id": "fuvest", "exam_year": 2026, "source_url": "https://www.fuvest.br/fuvest-renova-sua-lista-de-leituras-obrigatorias-para-o-vestibular-2026-2029/", "books": [
+      ["Opúsculo Humanitário", "Nísia Floresta", "1853"], ["Nebulosas", "Narcisa Amália", "1872"], ["Memórias de Martha", "Julia Lopes de Almeida", "1899"],
+      ["Caminho de pedras", "Rachel de Queiroz", "1937"], ["O Cristo Cigano", "Sophia de Mello Breyner Andresen", "1961"], ["As meninas", "Lygia Fagundes Telles", "1973"],
+      ["Balada de amor ao vento", "Paulina Chiziane", "1990"], ["Canção para ninar menino grande", "Conceição Evaristo", "2018"], ["A visão das plantas", "Djaimilia Pereira de Almeida", "2019"] ] },
+    { "vestibular_id": "fuvest", "exam_year": 2027, "source_url": "https://www.fuvest.br/fuvest-renova-sua-lista-de-leituras-obrigatorias-para-o-vestibular-2026-2029/", "books": [
+      ["Opúsculo Humanitário", "Nísia Floresta", "1853"], ["Nebulosas", "Narcisa Amália", "1872"], ["Memórias de Martha", "Julia Lopes de Almeida", "1899"],
+      ["Caminho de pedras", "Rachel de Queiroz", "1937"], ["A paixão segundo G. H.", "Clarice Lispector", "1964"], ["Geografia", "Sophia de Mello Breyner Andresen", "1967"],
+      ["Balada de amor ao vento", "Paulina Chiziane", "1990"], ["Canção para ninar menino grande", "Conceição Evaristo", "2018"], ["A visão das plantas", "Djaimilia Pereira de Almeida", "2019"] ] },
+    { "vestibular_id": "fuvest", "exam_year": 2028, "source_url": "https://www.fuvest.br/fuvest-renova-sua-lista-de-leituras-obrigatorias-para-o-vestibular-2026-2029/", "books": [
+      ["Conselhos à minha filha", "Nísia Floresta", "1842"], ["Nebulosas", "Narcisa Amália", "1872"], ["Memórias de Martha", "Julia Lopes de Almeida", "1899"],
+      ["João Miguel", "Rachel de Queiroz", "1932"], ["A paixão segundo G. H.", "Clarice Lispector", "1964"], ["Geografia", "Sophia de Mello Breyner Andresen", "1967"],
+      ["Balada de amor ao vento", "Paulina Chiziane", "1990"], ["Canção para ninar menino grande", "Conceição Evaristo", "2018"], ["A visão das plantas", "Djaimilia Pereira de Almeida", "2019"] ] },
+    { "vestibular_id": "fuvest", "exam_year": 2029, "source_url": "https://www.fuvest.br/fuvest-renova-sua-lista-de-leituras-obrigatorias-para-o-vestibular-2026-2029/", "books": [
+      ["Conselhos à minha filha", "Nísia Floresta", "1842"], ["Nebulosas", "Narcisa Amália", "1872"], ["D. Casmurro", "Machado de Assis", "1899"],
+      ["João Miguel", "Rachel de Queiroz", "1932"], ["Nós matamos o cão tinhoso!", "Luís Bernardo Honwana", "1964"], ["Geografia", "Sophia de Mello Breyner Andresen", "1967"],
+      ["Incidente em Antares", "Érico Veríssimo", "1970"], ["Canção para ninar menino grande", "Conceição Evaristo", "2018"], ["A visão das plantas", "Djaimilia Pereira de Almeida", "2019"] ] },
+    { "vestibular_id": "unicamp", "exam_year": 2027, "source_url": "https://www.comvest.unicamp.br/lista-de-obras/", "books": [
+      ["Prosas seguidas de odes mínimas", "José Paulo Paes", null], ["Canções escolhidas", "Paulo César Pinheiro", "Canções selecionadas (ver edital)"],
+      ["Os funerais da Mamãe Grande", "Gabriel García Márquez", null], ["Morangos mofados", "Caio Fernando Abreu", "Contos escolhidos (ver edital)"],
+      ["Olhos d’água", "Conceição Evaristo", null], ["No seu pescoço", "Chimamanda Ngozi Adichie", null], ["Vida e morte de M.J. Gonzaga de Sá", "Lima Barreto", null],
+      ["Memórias Póstumas de Brás Cubas", "Machado de Assis", null], ["A vida não é útil", "Ailton Krenak", null] ] },
+    { "vestibular_id": "unicamp", "exam_year": 2028, "source_url": "https://www.comvest.unicamp.br/lista-de-obras/", "books": [
+      ["Prosas seguidas de odes mínimas", "José Paulo Paes", null], ["Canções escolhidas", "Paulo César Pinheiro", "Canções selecionadas (ver edital)"],
+      ["No seu pescoço", "Chimamanda Ngozi Adichie", null], ["Os funerais da Mamãe Grande", "Gabriel García Márquez", null], ["Vida e morte de M.J. Gonzaga de Sá", "Lima Barreto", null],
+      ["Memórias Póstumas de Brás Cubas", "Machado de Assis", null], ["O quinze", "Rachel de Queiroz", null], ["Quarenta dias", "Maria Valéria Rezende", null],
+      ["O direito à literatura", "Antonio Candido", "Capítulo de Vários escritos"] ] },
+    { "vestibular_id": "unicamp", "exam_year": 2029, "source_url": "https://www.comvest.unicamp.br/lista-de-obras/", "books": [
+      ["Broquéis", "Cruz e Souza", null], ["Canções escolhidas", "Paulo César Pinheiro", "Canções selecionadas (ver edital)"], ["Os funerais da Mamãe Grande", "Gabriel García Márquez", null],
+      ["Chá do príncipe", "Olinda Beja", null], ["Memórias Póstumas de Brás Cubas", "Machado de Assis", null], ["O quinze", "Rachel de Queiroz", null],
+      ["Quarenta dias", "Maria Valéria Rezende", null], ["Lésbia", "Maria Benedita Bormann (Délia)", null], ["O direito à literatura", "Antonio Candido", "Capítulo de Vários escritos"] ] },
+    { "vestibular_id": "ufrgs", "exam_year": 2027, "source_url": "https://www.ufrgs.br/site/noticias/ufrgs-divulga-lista-de-leituras-obrigatorias-para-o-vestibular-2027/", "books": [
+      ["Quincas Borba", "Machado de Assis", null], ["O Demônio Familiar", "José de Alencar", null], ["Mrs. Dalloway", "Virginia Woolf", null],
+      ["A Visão das Plantas", "Djaimilia Pereira de Almeida", null], ["Niketche: uma história de poligamia", "Paulina Chiziane", null], ["O avesso da pele", "Jeferson Tenório", null],
+      ["Mas em que mundo tu vive", "José Falero", null], ["Seleta de Canções", "Lupicínio Rodrigues", "Canções selecionadas (ver edital)"], ["Ideias para adiar o fim do mundo", "Ailton Krenak", null],
+      ["Macunaíma", "Mário de Andrade", null], ["A fúria", "Silvina Ocampo", null], ["A teus pés", "Ana Cristina César", null] ] },
+    { "vestibular_id": "ufpr", "exam_year": 2027, "source_url": "https://ufpr.br/entre-classicos-e-novos-debates-lista-de-literatura-do-vestibular-busca-ampliar-repertorios/", "books": [
+      ["A falência", "Julia Lopes de Almeida", null], ["Eu", "Augusto dos Anjos", null], ["Noite na taverna", "Álvares de Azevedo", null],
+      ["O demônio familiar", "José de Alencar", null], ["O drible", "Sérgio Rodrigues", null], ["O Quinze", "Rachel de Queiroz", null],
+      ["O sol na cabeça", "Geovani Martins", null], ["Poema sujo", "Ferreira Gullar", null] ] }
+  ]
+}
