@@ -1,7 +1,7 @@
 <!doctype html>
 <!--
   Convite para quem se candidatou à beta do Aldus (25/11/2026, pedido do dono: "bonito, elegante, como um convite de casamento").
-  Personalização no formato da Brevo: {{ contact.FIRSTNAME | default : "leitora, leitor" }}. NÃO ENVIAR sem aprovação do dono.
+  Personalização no formato da Brevo em pt-BR: {{ contact.NOME | default : "você" }} (o atributo de nome se chama NOME). Teste enviado a 3 contas em 25/11/2026; lista completa só com aprovação do dono.
   HTML de e-mail: tabelas e estilo inline; a única imagem é a medalha do próprio site.
 -->
 <html lang="pt-BR">
@@ -31,7 +31,7 @@
               </div>
 
               <div style="font-family:Georgia,'Times New Roman',serif;font-size:34px;line-height:42px;color:#1B1C30;padding-top:14px;">
-                {{ contact.FIRSTNAME | default : "você" }}
+                {{ contact.NOME | default : "você" }}
               </div>
 
               <div style="font-family:Georgia,'Times New Roman',serif;font-size:15px;font-style:italic;color:#6E5A47;padding-top:14px;line-height:24px;">
