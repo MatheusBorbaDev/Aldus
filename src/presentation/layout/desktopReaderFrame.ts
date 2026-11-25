@@ -6,9 +6,10 @@
 export type DesktopReaderLayout = "spread" | "single" | "scroll";
 
 /** Margem em volta da folha. Em cima e embaixo fica um respiro; dos lados, o resto da janela. */
-export const DESKTOP_PAGE_MARGIN = { top: 36, bottom: 36, side: 48 } as const;
+// 25/11/2026 (dono: "as margens estão muito grandes"): respiro curto em volta; a margem do texto continua no ajuste "Margens".
+export const DESKTOP_PAGE_MARGIN = { top: 14, bottom: 14, side: 24 } as const;
 /** Largura máxima da folha: duas páginas, uma página e a rolagem (linha confortável de ler). */
-export const DESKTOP_PAGE_WIDTH: Record<DesktopReaderLayout, number> = { spread: 1240, single: 720, scroll: 760 };
+export const DESKTOP_PAGE_WIDTH: Record<DesktopReaderLayout, number> = { spread: 1440, single: 820, scroll: 860 };
 
 export interface DesktopReaderFrameInput {
   /** Área livre para o documento (janela menos os painéis encaixados ao lado). */

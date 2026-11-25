@@ -178,7 +178,7 @@ Teste no PC não comprova Android físico, sessão real nem deploy.
 ## 9. Log (mais recente primeiro; máx. 5 entradas de até 3 linhas)
 
 - **25/11** — Leitor no PC (EPUB e Leitura Livre): folha centralizada com margem e sombra; "Páginas na tela": duas ou uma; rolar
-  centralizado, também com margem em cima e embaixo. Cada página repete o respiro de cima/baixo (`box-decoration-break`, vale também no Android, NÃO TESTADO lá).
+  centralizado, com margem curta (14 px em cima/embaixo, 24 dos lados; dono achou 36/48 grande demais). Cada página repete o respiro de cima/baixo (`box-decoration-break`, vale também no Android, NÃO TESTADO lá).
   Testes de navegador do leitor PASS; NÃO TESTADO logado no site.
 - **25/11** — Leitor no PC: abria as duas páginas dentro da moldura de celular (430 px), espremido e cortado (captura do dono).
   A moldura agora só vale fora do PC (`useFormFactor` em `app/_layout.tsx`). NÃO TESTADO logado no navegador; dono confere.
