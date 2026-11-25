@@ -123,7 +123,7 @@ Teste = `scripts/test-<nome>.cjs` (quais estão no `test:critical`: lista em `sc
 | Login, cadastro, Google, username | `src/presentation/contexts/AuthContext.tsx`, `comp/AuthForm.tsx` | `data/remote/auth*.ts`, `dom/auth/authRules.ts`, `app/auth/*`, `supabase/functions/username-login` | auth, `test:auth:web`; `docs/context/auth.md` |
 | Conta, excluir conta | `app/account/*` | `data/remote/accountDeletionService.ts`, `dom/account/accountDeletion.ts`, `supabase/functions/account-delete` | account-delete |
 | Ajustes, preferências, versão | `src/presentation/screens/SettingsScreen.tsx`, `app/(tabs)/settings.tsx`, `app/preferences.tsx` | versão/commit `src/legal/appMetadata.ts` | settings-navigation, preference-persistence |
-| Abertura do app (frases), novidades, página da beta | `comp/AppLoadingScreen.tsx`, `comp/ReleaseNotesModal.tsx`, `app/beta.tsx` | `dom/brand/releaseNotes.ts`, `src/legal/beta{Feedback,Limitations}.ts` | release-notes, beta-preparation |
+| Abertura do app (frases), novidades, página da beta | `comp/AppLoadingScreen.tsx`, `comp/ReleaseNotesModal.tsx`, `app/beta.tsx`; quais páginas do site abrem sem a frase: `src/presentation/services/publicWebRoutes.ts` (legal, beta, auth) | `dom/brand/releaseNotes.ts`, `src/legal/beta{Feedback,Limitations}.ts` | release-notes, beta-preparation |
 | Navegação, abas, design system | `app/(tabs)/_layout.tsx`, `src/ui/*` (`Screen` com `StatusBarScrim`) | `src/theme/{tokens,appUi}.ts`, `comp/{AppUi,SettingsLayout,TopHeader}.tsx` | ui-primitives, app-design; `docs/context/design-system.md` |
 | Flashcards, Estudo, Batalha | `app/(tabs)/study.tsx`, `src/presentation/screens/FlashcardStudyScreen.tsx` | `dom/study/*`, `comp/flashcards/*`, `data/local/Flashcard*`, `data/remote/FlashcardBattleRepository.ts`, `app/battle.tsx`, `app/decks`, `app/study`, lembrete `src/presentation/services/reviewReminder.ts` | flashcards, flashcard-*; skill study-flashcards |
 | Comunidade (perfil, pessoas, clubes, fóruns) | `src/community/presentation/*`, `app/community/*`, `app/(tabs)/community.tsx` | `src/community/{domain,application,data}/*`, migrations `*community*` | community-*; `docs/context/community-estudo.md` |
@@ -177,6 +177,8 @@ Teste no PC não comprova Android físico, sessão real nem deploy.
 
 ## 9. Log (mais recente primeiro; máx. 5 entradas de até 3 linhas)
 
+- **25/11** — Site: login, cadastro e demais páginas `auth` abrem direto no formulário, sem a frase de abertura (dono: "Sim, tirar");
+  `publicWebRoutes.ts` + `test-release-notes`. Android inalterado. Após entrar, o app abre com a frase como antes.
 - **25/11** — Cloudflare: o site já é estático (Expo export, sem SSR/API). `wrangler.jsonc` + `write-cloudflare-assets.cjs`
   (`_headers`, `_redirects` das 23 rotas → `/app`); `validate-web-env`/`build-info` reconhecem o Workers Builds. `wrangler dev` local:
   rotas, cabeçalhos e `test:marketing:web` inteiro PASS. NÃO publicado; Vercel intacta. Passos do dono em §7.
@@ -185,5 +187,3 @@ Teste no PC não comprova Android físico, sessão real nem deploy.
 - **23/11** — Landing "A prensa" (`570bdad`, `f6967e6`): abertura com medalha, tipos e livro; EB Garamond própria; 3D e three.js
   removidos. Produção `f6967e6`. NÃO TESTADO em celular. Detalhes em `LANDING_PAGE_CONTEXT.md`.
 - **23/11** — v18 `4a0cc73`: rodapé com tempo por página e para terminar o livro (`dom/reader/readingPace.ts`).
-- **23/11** — v15–v17: arrastar para estender o grifo (`5d236c5`); módulo PC em 5 fases (barra lateral, painel, duas páginas,
-  sync 90 s, colunas); largura volta à âncora (`1cba202`); `StatusBarScrim`.

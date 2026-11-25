@@ -86,6 +86,8 @@ const flush = () => act(async () => { for (let i = 0; i < 5; i++) await Promise.
   const { opensWithoutQuote } = load('src/presentation/services/publicWebRoutes.ts');
   assert.equal(opensWithoutQuote('web', 'legal'), true, 'privacy/terms link opens on the text');
   assert.equal(opensWithoutQuote('web', 'beta'), true);
+  assert.equal(opensWithoutQuote('web', 'auth'), true, '25/11: site login and sign-up open on the form');
+  assert.equal(opensWithoutQuote('android', 'auth'), false, 'the Android login keeps the quote');
   assert.equal(opensWithoutQuote('web', 'library'), false, 'the app on the Web keeps the quote');
   assert.equal(opensWithoutQuote('web', undefined), false);
   assert.equal(opensWithoutQuote('android', 'legal'), false, 'the Android app keeps the quote everywhere');
