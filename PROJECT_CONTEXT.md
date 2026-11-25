@@ -178,7 +178,7 @@ Teste no PC não comprova Android físico, sessão real nem deploy.
 ## 9. Log (mais recente primeiro; máx. 5 entradas de até 3 linhas)
 
 - **25/11** — Aviso da versão: sem lista de novidades durante a beta; título "Boas-vindas ao Aldus", guia de 6 itens "Como o Aldus
-  funciona" e o bloco da beta com o link. Id `2026-11-25.1` (aparece de novo para todos). Texto público: aguardando o dono aprovar.
+  funciona" e o bloco da beta com o link. Id `2026-11-25.1` (aparece de novo para todos). Texto aprovado pelo dono e publicado no site.
 - **25/11** — Leitor no PC (EPUB e Leitura Livre): folha centralizada com margem e sombra; "Páginas na tela": duas ou uma; rolar
   centralizado, com margem curta (14 px em cima/embaixo, 24 dos lados; dono achou 36/48 grande demais). Cada página repete o respiro de cima/baixo (`box-decoration-break`, vale também no Android, NÃO TESTADO lá).
   Testes de navegador do leitor PASS; NÃO TESTADO logado no site.
