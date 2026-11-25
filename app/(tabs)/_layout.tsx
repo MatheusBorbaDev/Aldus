@@ -54,7 +54,7 @@ export default function TabsLayout() {
     >
       <Tabs.Screen name="library" options={{ title: "Biblioteca", tabBarIcon: icon("library-outline", "library") }} />
       <Tabs.Screen name="search" options={{ title: "Descobrir", tabBarIcon: icon("compass-outline", "compass") }} />
-      <Tabs.Screen name="study" options={{ title: "Estudo", href: flashcards.allowed ? undefined : null, tabBarIcon: icon("school-outline", "school") }} />
+      <Tabs.Screen name="study" options={{ title: "Estudo", tabBarIcon: icon("school-outline", "school") }} />
       <Tabs.Screen name="community" options={{ title: "Comunidade", tabBarIcon: icon("people-outline", "people") }} />
       <Tabs.Screen name="settings" options={{ title: "Conta", tabBarIcon: icon("person-circle-outline", "person-circle") }} />
     </Tabs>

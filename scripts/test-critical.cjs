@@ -8,7 +8,7 @@ const tests = [
   'saas-quotas', 'saas-quota-client', 'saas-quota-driver',
   'saas-schema', 'saas-client', 'saas-compatibility', 'saas-experience', 'saas-ui',
   'auth', 'auth-flows', 'auth-callback', 'auth-native-callback', 'username-login', 'account-delete', 'account-delete-ui', 'integrated-security', 'battle-account',
-  'vestibular-readings', 'vestibular-schema', 'flashcards', 'flashcard-scoring', 'flashcard-storage', 'flashcard-sessions', 'flashcard-ui', 'flashcard-battles',
+  'vestibular-readings', 'vestibular-schema', 'vestibular-ui', 'flashcards', 'flashcard-scoring', 'flashcard-storage', 'flashcard-sessions', 'flashcard-ui', 'flashcard-battles',
   'library-account', 'library-sync', 'library-remote', 'library-cancellation', 'library-files', 'library-reading-sync', 'library-coordinator', 'library-restart', 'library-rls', 'library-ui', 'library-organization', 'library-last-read',
   'google-drive', 'drive-renewal', 'drive-folder-picker', 'drive-tree', 'drive-download', 'source-catalog', 'source-library-actions', 'source-indexing', 'source-ownership', 'source-preparation', 'source-performance', 'source-ui', 'auth-native-pkce',
   'book-covers', 'catalog', 'catalog-records', 'file-hash', 'book-organization-modal', 'goodreads-import', 'record-books-sql', 'reflow-assembly-scaling', 'reflow-preview', 'cover-thumbnails', 'epub-resources', 'epub-native-read', 'epub-image-readiness', 'book-import', 'import-duplicates', 'download-import', 'catalogs', 'reading-anchors', 'study-storage',

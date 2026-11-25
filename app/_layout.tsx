@@ -129,6 +129,7 @@ function AppShell() {
                 <Stack.Screen name="study/[deckId]" />
                 <Stack.Screen name="decks/[deckId]" />
                 <Stack.Screen name="battle" />
+                <Stack.Screen name="vestibular" />
                 <Stack.Screen name="services/[provider]" />
                 <Stack.Screen name="account/index" />
                 <Stack.Screen name="account/edit-profile" />

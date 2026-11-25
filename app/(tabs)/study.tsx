@@ -24,7 +24,6 @@ import {
   useAuth,
   useFeatureAccess,
 } from "@/src/presentation/contexts/AuthContext";
-import { FeatureDenied } from "@/src/presentation/components/FeatureDenied";
 import { AuthGuard } from "@/src/presentation/components/AuthGuard";
 import { generateLocalFlashcardCandidates } from "@/src/domain/study/flashcardGeneration";
 import { reviewSummary } from "@/src/domain/study/flashcardSrs";
@@ -48,7 +47,25 @@ import { getBookCover } from '@/src/utils/coverHelper';
 export default function Study() {
   const { allowed } = useFeatureAccess("flashcards");
   return (
-    <AuthGuard>{allowed ? <StudyContent /> : <FeatureDenied />}</AuthGuard>
+    <AuthGuard>{allowed ? <StudyContent /> : <StudyWithoutFlashcards />}</AuthGuard>
+  );
+}
+
+/** 25/11/2026 (dono): leituras de vestibular aparecem para todas as contas, mesmo sem flashcards. */
+function VestibularEntry() {
+  return (
+    <ListGroup>
+      <ListRow title="Leituras de vestibular" description="Fuvest, Unicamp, UFRGS, UEL e UFPR: as obras de cada prova" icon="school-outline" onPress={() => router.push("/vestibular" as never)} />
+    </ListGroup>
+  );
+}
+
+function StudyWithoutFlashcards() {
+  return (
+    <Screen inTabs header={<ScreenHeader title="Estudo" subtitle="Leituras para provas e revisão do que você leu." large />}>
+      <VestibularEntry />
+      <AppText variant="bodySmall" tone="secondary">Flashcards não estão disponíveis para esta conta.</AppText>
+    </Screen>
   );
 }
 
@@ -280,6 +297,7 @@ function StudyContent() {
   return (
     <Screen inTabs width={desktop ? "content" : "narrow"} header={<ScreenHeader title="Estudo" subtitle="Revise o que você leu, no seu ritmo." large />}>
       <DesktopSplit desktop={desktop} main={<>
+      <VestibularEntry />
       {review && snapshot?.decks.length ? (
         <View accessibilityLabel="Para revisar hoje" style={[styles.review, { backgroundColor: palette.surface, borderColor: palette.border }]}>
           <AppText variant="overline" tone="secondary">Para revisar hoje</AppText>
