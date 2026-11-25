@@ -92,8 +92,8 @@ async function cdp(url) {
     await navigate('/auth/login'); await until('Bem-vindo'); await press('Entrar'); await until('Informe usuário ou email e senha.');
     check(await client.evaluate(`[...document.querySelectorAll('[role=alert]')].some(e => e.textContent.includes('Informe usuário ou email e senha.'))`), 'login error is an alert');
     await screenshot('login-error');
-    await navigate('/auth/signup'); await until('Sua biblioteca local'); await type('Nome', 'Leitor'); await type('Senha', 'abcdefgh'); await type('Confirmar senha', 'abcdefgx'); await press('Criar conta'); await until('As senhas não coincidem.');
-    check(await client.evaluate(`[...document.querySelectorAll('[role=alert]')].some(e => e.textContent.includes('As senhas não coincidem.'))`), 'signup error is an alert');
+    await navigate('/auth/signup'); await until('Sua biblioteca local'); await type('Nome', 'Leitor'); await type('Nome de usuário', 'Leitor Teste'); await type('Email', 'leitor@example.invalid'); await type('Senha', 'abcdefgh'); await type('Confirmar senha', 'abcdefgx'); await press('Criar conta'); await until('Confirmar senha: as duas senhas não são iguais.'); await until('Confira o campo marcado em vermelho.');
+    check(await client.evaluate(`[...document.querySelectorAll('[role=alert]')].some(e => e.textContent.includes('Confirmar senha: as duas senhas não são iguais.')) && [...document.querySelectorAll('[aria-invalid=true]')].length === 1`), 'signup error is an alert under its field, only that field marked');
     await screenshot('signup-error');
     await client.evaluate(`localStorage.setItem('@kindle/appTheme','dark')`); await navigate('/auth/login'); await until('Bem-vindo'); await press('Entrar'); await until('Informe usuário ou email e senha.'); await screenshot('login-error-dark');
     if (violations.length) console.log(`REPORT ${violations.length} violation(s):\n- ` + violations.join('\n- '));
