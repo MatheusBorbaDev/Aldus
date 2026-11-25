@@ -103,6 +103,7 @@ function harness(options = {}) {
     async press(title) { await act(async () => { tree.root.findAllByType('AuthButton').find(n => n.props.title === title).props.onPress(); await Promise.resolve(); }); },
     async logout() { await act(async () => { await state.signOut(); await pause(); }); },
     async emitSessions(sessions){await act(async()=>{for(const next of sessions){currentSession=next;callback?.(next?'SIGNED_IN':'SIGNED_OUT',next);}await pause();});},
+    fieldError: label => tree.root.findAllByType('AuthInput').find(n => n.props.label === label)?.props.error ?? undefined,
     error: () => tree.root.findAllByType('AuthError').map(n => n.props.message).filter(Boolean).join('|'),
     allowed: () => tree.root.findAllByType('AuthorizedApp').length > 0,
     redirects: () => tree.root.findAllByType('Redirect').map(n => n.props.href),
@@ -233,8 +234,13 @@ async function run() {
     assert.equal(h.events.includes('signUp'), false);
   }
   h = harness({ signup: true }); await h.mount();
-  await h.input('Nome','Test'); await h.input('Senha','synthetic-only'); await h.input('Confirmar senha','different-fixture');
-  await h.press('Criar conta'); assert.match(h.error(),/não coincidem/); assert.equal(h.events.includes('signUp'),false); await h.unmount();
+  await h.input('Nome','Test'); await h.input('Nome de usuário','reader_test'); await h.input('Email','reader@example.invalid');
+  await h.input('Senha','synthetic-only'); await h.input('Confirmar senha','different-fixture');
+  await h.press('Criar conta'); assert.match(h.error(),/Confira o campo marcado/); assert.equal(h.events.includes('signUp'),false);
+  // 25/11/2026 (owner): the problem sits under its own field, naming it; the other fields stay clean.
+  assert.match(h.fieldError('Confirmar senha'), /^Confirmar senha: as duas senhas não são iguais/);
+  for (const label of ['Nome', 'Nome de usuário', 'Email', 'Senha']) assert.equal(h.fieldError(label), undefined, label + ' stays clean');
+  await h.unmount();
   console.log('PASS local validation: username/email/short password/confirmation rejected at the right stage');
 
   for (const profile of [{ ...account, account_status:'disabled' }, { ...account, username:null }]) {

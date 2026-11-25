@@ -1,7 +1,7 @@
 import { Platform } from "react-native";
 import * as Linking from "expo-linking";
 import { requireSupabase } from "./supabase";
-import { normalizeUsername, validUsername } from "@/src/domain/auth/authRules";
+import { normalizeUsername, USERNAME_RULE, validUsername } from "@/src/domain/auth/authRules";
 import { AuthOperationError, authFailureDetails } from "./authErrors";
 import { authDiagnostic, finishAuthDiagnostic } from "@/src/utils/authDiagnostics";
 import { buildAuthCallback, validateGoogleAuthorizationUrl } from "./authRedirect";
@@ -46,7 +46,7 @@ export async function loginWithIdentifier(identifier: string, password: string, 
 
 export async function registerAccount(name: string, username: string, email: string, password: string, operationId?: string) {
   const client = requireSupabase();
-  if (!validUsername(username)) throw new Error("Use 3 a 24 caracteres: letras, números ou _; comece por uma letra.");
+  if (!validUsername(username)) throw new Error(USERNAME_RULE);
   if (!/^\S+@\S+\.\S+$/.test(email.trim())) throw new Error("Informe um email válido.");
   if (password.length < 8) throw new Error("A senha precisa ter pelo menos 8 caracteres.");
   if (Platform.OS !== 'web') nativeAuthCallbacks.reset();

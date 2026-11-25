@@ -2,7 +2,7 @@ import { useState } from "react";
 import { router } from "expo-router";
 import { AuthButton, AuthError, AuthForm, AuthInput } from "@/src/presentation/components/AuthForm";
 import { useAuth } from "@/src/presentation/contexts/AuthContext";
-import { normalizeUsername, validUsername } from "@/src/domain/auth/authRules";
+import { normalizeUsername, USERNAME_RULE, validUsername } from "@/src/domain/auth/authRules";
 import { requireSupabase } from "@/src/data/remote/supabase";
 import { AuthGuard } from "@/src/presentation/components/AuthGuard";
 
@@ -13,7 +13,7 @@ export default function EditProfile() {
   const [busy, setBusy] = useState(false); const [error, setError] = useState<string | null>(null);
   const submit = async () => {
     if (!user) return;
-    if (!validUsername(username)) { setError("Use 3 a 24 caracteres: letras, números ou _; comece por uma letra."); return; }
+    if (!validUsername(username)) { setError(USERNAME_RULE); return; }
     if (!name.trim()) { setError("Informe seu nome."); return; }
     setBusy(true); setError(null);
     const result = await requireSupabase().from("profiles").update({ display_name: name.trim().slice(0, 120), username: normalizeUsername(username) }).eq("id", user.id).select("id").single();

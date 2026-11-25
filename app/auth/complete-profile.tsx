@@ -2,7 +2,7 @@ import { Platform } from "react-native";
 import { useEffect, useState } from "react";
 import { Redirect, router } from "expo-router";
 import { AuthButton, AuthError, AuthForm, AuthInput } from "@/src/presentation/components/AuthForm";
-import { normalizeUsername, validUsername } from "@/src/domain/auth/authRules";
+import { normalizeUsername, USERNAME_RULE, usernameAsTyped, validUsername } from "@/src/domain/auth/authRules";
 import { requireSupabase } from "@/src/data/remote/supabase";
 import { useAuth } from "@/src/presentation/contexts/AuthContext";
 import { homeAfterAuth } from "@/src/presentation/services/publicWebRoutes";
@@ -19,7 +19,7 @@ export default function CompleteProfile() {
   if (!session) return <Redirect href={"/auth/login" as never} />;
   if (profile?.username) return <Redirect href={homeAfterAuth(Platform.OS) as never} />;
   const submit = async () => {
-    if (!validUsername(username)) { setError("Use 3 a 24 caracteres: letras, números ou _; comece por uma letra."); return; }
+    if (!validUsername(username)) { setError(USERNAME_RULE); return; }
     setBusy(true); setError(null);
     try {
       const result = await requireSupabase().from("profiles").update({ username: normalizeUsername(username) }).eq("id", session.user.id).select("id").single();
@@ -29,7 +29,7 @@ export default function CompleteProfile() {
     finally { setBusy(false); }
   };
   return <AuthForm title="Escolha seu nome de usuário" subtitle="Ele será usado para entrar e identificar seu perfil.">
-    <AuthInput label="Nome de usuário" value={username} onChangeText={setUsername} autoComplete="username-new" />
+    <AuthInput label="Nome de usuário" value={username} onChangeText={text => setUsername(usernameAsTyped(text))} autoComplete="username-new" />
     <AuthError message={error} />
     <AuthButton title={busy ? "Aguarde…" : "Continuar"} disabled={busy} onPress={() => void submit()} />
   </AuthForm>;

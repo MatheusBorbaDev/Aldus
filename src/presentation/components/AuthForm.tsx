@@ -32,7 +32,7 @@ export function AuthForm({ title, subtitle, children }: { title: string; subtitl
   );
 }
 
-export function AuthInput({ label, value, onChangeText, secureTextEntry, keyboardType, autoCapitalize, autoComplete, icon, hint }: {
+export function AuthInput({ label, value, onChangeText, secureTextEntry, keyboardType, autoCapitalize, autoComplete, icon, hint, error }: {
   label: string; value: string; onChangeText: (value: string) => void; secureTextEntry?: boolean;
   keyboardType?: React.ComponentProps<typeof TextInput>["keyboardType"];
   autoCapitalize?: React.ComponentProps<typeof TextInput>["autoCapitalize"];
@@ -40,23 +40,25 @@ export function AuthInput({ label, value, onChangeText, secureTextEntry, keyboar
   icon?: React.ComponentProps<typeof Ionicons>["name"];
   /** Regra curta exibida sob o campo (ex.: formato do nome de usuário). */
   hint?: string;
+  /** 25/11/2026 (dono: o aviso "ficou meio em aberto, não dava pra saber se era na senha"): erro deste campo, mostrado logo abaixo dele. */
+  error?: string | null;
 }) {
   const { palette } = useAppTheme();
   const [show, setShow] = React.useState(false);
   return (
     <View style={styles.field}>
       <AppText variant="label">{label}</AppText>
-      <View style={[styles.inputBox, { borderColor: palette.border, backgroundColor: palette.input }]}>
+      <View style={[styles.inputBox, { borderColor: error ? palette.danger : palette.border, borderWidth: error ? 2 : 1, backgroundColor: palette.input }]}>
         {icon ? <Ionicons name={icon} size={18} color={palette.secondaryText} /> : null}
         {/* Sem placeholder: o rótulo visível já nomeia o campo (repetir confundia campo vazio com preenchido). */}
-        <TextInput accessibilityLabel={label} accessibilityHint={hint} value={value} onChangeText={onChangeText} secureTextEntry={secureTextEntry && !show} keyboardType={keyboardType} autoCapitalize={autoCapitalize ?? "none"} autoComplete={autoComplete} autoCorrect={false} style={[styles.input, typography.body, { color: palette.text }]} />
+        <TextInput accessibilityLabel={label} accessibilityHint={error ?? hint} aria-invalid={!!error} value={value} onChangeText={onChangeText} secureTextEntry={secureTextEntry && !show} keyboardType={keyboardType} autoCapitalize={autoCapitalize ?? "none"} autoComplete={autoComplete} autoCorrect={false} style={[styles.input, typography.body, { color: palette.text }]} />
         {secureTextEntry ? (
           <Pressable accessibilityRole="button" accessibilityLabel={show ? "Ocultar senha" : "Mostrar senha"} onPress={() => setShow(!show)} android_ripple={{ color: palette.separator, borderless: true }} style={styles.reveal}>
             <Ionicons name={show ? "eye-off-outline" : "eye-outline"} size={20} color={palette.secondaryText} />
           </Pressable>
         ) : null}
       </View>
-      {hint ? <AppText variant="caption" tone="secondary">{hint}</AppText> : null}
+      {error ? <AppText variant="caption" tone="danger" accessibilityRole="alert">{error}</AppText> : hint ? <AppText variant="caption" tone="secondary">{hint}</AppText> : null}
     </View>
   );
 }

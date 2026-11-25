@@ -12,6 +12,18 @@ function load(file, dependencies = {}) {
 const rules = load('src/domain/auth/authRules.ts');
 const profile = { id: 'a', username: 'reader_a', display_name: 'A', avatar_url: null, role: 'user', account_status: 'active' };
 assert.equal(rules.normalizeUsername('  Matheus  '), 'matheus');
+// 25/11/2026: the field shows the accepted form while typing (owner's sign-up with "matheus teste").
+for (const [typed, shown] of [['matheus teste', 'matheus_teste'], ['João Silva', 'joao_silva'], ['@Ana-Clara', 'ana_clara'], ['x'.repeat(30), 'x'.repeat(24)]]) assert.equal(rules.usernameAsTyped(typed), shown, typed);
+assert.ok(rules.validUsername(rules.usernameAsTyped('matheus teste')));
+// 25/11/2026 (owner): each sign-up problem is tied to its field and names it, so a username error is never read as a password error.
+const ok = { name: 'Matheus', username: 'matheus_teste', email: 'm@exemplo.com', password: 'segredo123', confirmation: 'segredo123' };
+assert.deepEqual(rules.signupFieldErrors(ok), {});
+assert.deepEqual(Object.keys(rules.signupFieldErrors({ ...ok, username: 'matheus teste' })), ['username']);
+assert.match(rules.signupFieldErrors({ ...ok, username: 'matheus teste' }).username, /^Nome de usuário:/);
+assert.deepEqual(Object.keys(rules.signupFieldErrors({ ...ok, confirmation: 'outra' })), ['confirmation']);
+assert.deepEqual(Object.keys(rules.signupFieldErrors({ ...ok, password: 'curta', confirmation: 'curta' })), ['password']);
+assert.deepEqual(Object.keys(rules.signupFieldErrors({ name: ' ', username: '1x', email: 'x', password: '', confirmation: '' })), ['name', 'username', 'email', 'password']);
+for (const f of ['app/auth/signup.tsx', 'app/auth/complete-profile.tsx']) assert.match(require('fs').readFileSync(f, 'utf8'), /onChangeText=\{text => setUsername\(usernameAsTyped\(text\)\)\}/, f);
 assert.equal(rules.validUsername(' Matheus '), true);
 assert.equal(rules.validUsername('a'), false);
 assert.equal(rules.validUsername('a.b'), false);
