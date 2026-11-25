@@ -132,24 +132,21 @@ sem acessar livros/contas do usuário. PASS controlado/Web não comprova Android
 
 Estes são procedimentos humanos, não contextos extras de IA nem prova de implantação.
 
-### Vercel e GitHub
+### Cloudflare e GitHub
 
-No projeto kindle-reader e equipe corretos, conectar MatheusBorbaDev/Aldus em Settings → Git.
-Revisar a branch de produção (main revisada), sem promover esta integração automaticamente.
-Usar npm ci, npm run build e saída dist, já declarados em vercel.json.
-Configurar as variáveis públicas Supabase; Drive Web e contato de catálogos quando usados;
-produção exige responsável/canal legal verificados. Não colocar tokens administrativos em EXPO_PUBLIC_*.
+O site (landing + app Web) é um Worker da Cloudflare só com arquivos estáticos (`wrangler.jsonc`), ligado a
+MatheusBorbaDev/Aldus: cada push em `main` roda `npm run build` e publica `dist/` em https://aldusreader.com.br.
+As variáveis públicas (Supabase, Drive Web, contato legal e de catálogos, `EXPO_PUBLIC_SITE_URL`) ficam em Settings → Build →
+Variables and secrets do Worker. Não colocar tokens administrativos em EXPO_PUBLIC_*. `vercel.json` continua só como fonte dos
+cabeçalhos e rotas que `scripts/write-cloudflare-assets.cjs` traduz para `_headers`/`_redirects`. A Vercel foi desativada em 25/11/2026.
 
 O workflow Aldus validation é somente CI, sem deployment secrets nem publicação. Habilitar
 branch protection e os Deployment Checks correspondentes ao resultado real desse workflow.
 Conferir dist/build-info.json e /build-info.json do deployment: commit, dirty=false e hash
 devem identificar a fonte testada. Isso não substitui smoke tests nem o ID/commit do deployment.
 
-Para logs403: selecionar a conta/equipe proprietária e pedir ao administrador acesso de
-projeto/observabilidade com menor privilégio necessário; reautorizar a integração nessa equipe.
-Consultar [papéis Vercel](https://vercel.com/docs/rbac/access-roles). Não desativar proteção
-ou tentar outro token para contornar uma negação. Validar Auth/Reader/rotas em preview,
-revisar logs sanitizados e aprovar explicitamente a publicação de produção.
+Para logs ou acesso negado na Cloudflare: usar a conta proprietária; não contornar negação com outro token. Validar
+Auth/Reader/rotas em preview e aprovar explicitamente a publicação de produção.
 
 ## Android quando solicitado
 
@@ -255,9 +252,9 @@ java -version
 & "$env:ANDROID_HOME\platform-tools\adb.exe" devices -l
 ```
 
-GitHub e Vercel exigem a autenticação própria do proprietário no novo computador.
+GitHub e Cloudflare exigem a autenticação própria do proprietário no novo computador.
 O preview deve usar o projeto existente `kindle-reader`, sem promoção automática.
-Não copie `.vercel` com estado de autenticação nem use tokens administrativos no app.
+Não copie `.wrangler` ou `.vercel` com estado de autenticação nem use tokens administrativos no app.
 Supabase continua no projeto existente; clone/export não aplicam migrations.
 
 A chave privada de assinatura e a recuperação dos backups EFS/DPAPI exigem transferência

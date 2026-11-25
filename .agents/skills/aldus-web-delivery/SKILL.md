@@ -5,7 +5,7 @@ description: "Exportar, conferir ou publicar o Aldus Web em preview/produção, 
 
 # Entrega Web identificável
 
-Consulte o [README](../../../README.md), `vercel.json`, scripts de export/metadata e os
+Consulte o [README](../../../README.md), `wrangler.jsonc`, `vercel.json` (fonte de cabeçalhos/rotas), scripts de export/metadata e os
 [contexto](../../../PROJECT_CONTEXT.md) e o módulo
 [legal-build-git](../../../docs/context/legal-build-git.md) (Web/CI) e entregas em `docs/context/historico/`. Não suponha
 que a URL de uma entrega antiga aponta para o código atual.
@@ -31,19 +31,16 @@ que a URL de uma entrega antiga aponta para o código atual.
 
 ## Publicação solicitada
 
-1. Leia as skills Vercel de deployment/CLI disponíveis e confirme projeto/equipe/ambiente.
-   O projeto documentado é `kindle-reader`; reconfirme o vínculo, sem criar outro por engano.
-2. Publique somente o destino autorizado. Preview não autoriza promoção de produção.
-   Não execute deploy de trabalho alheio que esteja no mesmo worktree.
-3. Use conector suficiente ou CLI autenticada. Se publicar uma pasta preparada separada,
-   confirme o cwd efetivo (por exemplo, opção `--cwd` suportada), arquivos e configuração.
-   Não deduza que `--prebuilt`/um argumento posicional resolve a raiz por conta própria.
-4. Aguarde estado final e confira ID, origin/alias, revisão e `/build-info.json`. Verifique
-   HTTP/rotas/assets e hashes dos bundles contra o artefato local. READY/HTTP 200 não é smoke.
+1. O site é o Worker Cloudflare `aldus-reader` (só assets, `wrangler.jsonc`), publicado pelo push em `main` (Workers Builds).
+   A Vercel foi excluída em 25/11/2026; não recrie projeto lá sem pedido.
+2. Publique somente o destino autorizado. Preview de outra branch não autoriza produção.
+   Não envie trabalho alheio que esteja no mesmo worktree.
+3. Antes do push rode os gates; `export:web` gera `_headers`, `_redirects` e `.assetsignore` para a Cloudflare.
+4. Aguarde o build e confira `/build-info.json` em https://aldusreader.com.br: commit, `host: cloudflare`, ambiente. Verifique
+   HTTP/rotas/assets e hashes dos bundles contra o artefato local. HTTP 200 não é smoke.
 5. Faça os fluxos do pedido na URL publicada. Landing/biblioteca/Reader/Auth/Admin exigem
    evidência própria conforme o escopo. Bundle disponível não comprova Reader pronto ou login.
-6. Se houver Deployment Protection, use acesso autorizado e a skill específica disponível;
-   não desative proteção nem confunda tela de login Vercel com o app.
+6. Variáveis de build ficam no painel do Worker; segredos nunca em EXPO_PUBLIC_*.
 7. Origin novo pode precisar de allowlist/callback/recovery. Inventarie e registre a lacuna;
    não mude OAuth/Auth geral automaticamente. Não recicle token de recovery de uma captura.
 
