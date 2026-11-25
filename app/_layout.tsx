@@ -18,6 +18,7 @@ import { opensWithoutQuote } from "@/src/presentation/services/publicWebRoutes";
 import { ReleaseNotesModal } from "@/src/presentation/components/ReleaseNotesModal";
 import { nativeAuthCallbacks } from '@/src/data/remote/nativeAuthCallback';
 import { startWebPeriodicSync } from "@/src/presentation/services/webPeriodicSync";
+import { useFormFactor } from "@/src/presentation/layout/useFormFactor";
 
 /**
  * Fronteira de erro da raiz (BUG 14): uma exceção de renderização em qualquer tela mostra uma
@@ -69,8 +70,10 @@ function AppShell() {
   const { loading, session, profile } = useAuth();
   const publicLanding = Platform.OS === 'web' && (!segments.length || String(segments[0]) === 'index');
   const publicDocument = opensWithoutQuote(Platform.OS, segments.length ? String(segments[0]) : undefined);
-  // Preserve the tested Reader viewport; other task screens own their responsive width.
-  const usePhoneFrame = Platform.OS === "web" && width > 480 && String(segments[0]) === 'reader';
+  // Preserve the tested Reader viewport on tablets and narrow windows; other task screens own their responsive width.
+  // 25/11/2026: not on the PC, where the reader opens two pages by the window width; inside the 430 px frame that squeezed two columns.
+  const formFactor = useFormFactor();
+  const usePhoneFrame = Platform.OS === "web" && width > 480 && formFactor !== "desktop" && String(segments[0]) === 'reader';
   const appReady = !loading && !!session && !!profile?.username && profile.account_status === "active";
   // Uma vez por abertura do app: a frase de abertura espera o toque em Continuar.
   const [welcomed, setWelcomed] = useState(false);

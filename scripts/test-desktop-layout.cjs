@@ -151,5 +151,7 @@ const load = require('./community-test-loader.cjs')({
   assert.equal(syncButton.props.accessibilityHint, 'Com o site aberto, a biblioteca busca mudanças sozinha a cada 90 segundos.');
   await act(async () => syncButton.props.onPress());assert.equal(pushed.at(-1), '/settings');
   await act(async () => tree.unmount());
+  // 25/11/2026 (owner's screenshot): on the PC the reader opened two pages inside the 430 px phone frame. The frame is for non-PC windows only.
+  assert.match(require('fs').readFileSync('app/_layout.tsx','utf8'), /usePhoneFrame = Platform\.OS === "web" && width > 480 && formFactor !== "desktop" && String\(segments\[0\]\) === 'reader'/);
   console.log('PASS desktop layout: Android status bar scrim (height of the bar, background colour, no touch; none on Web or without a bar); Study/Community columns (grid skips empty children, split aside 420 px, phone keeps one column); periodic web sync (90 s, visible and online only, stops); reader side sheets (contents left, others right, full height); reader keys (Space/PageDown/Shift+Space/PageUp, not while typing); Ctrl/Shift selection (range both ways, stale anchor), double click window, Cmd as Ctrl; PC only for Web + window >= 1024 + mouse (narrow PC window, touch tablet, phone site and Android keep the touch layout); sidebar with labelled sections, hidden Estudo, search to the catalog, honest sync status. Component test, not a browser capture.');
 })().catch(error => { console.error(error); process.exitCode = 1; });
