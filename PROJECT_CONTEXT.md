@@ -41,9 +41,9 @@ AsyncStorage; flashcards `@kindle/flashcards.v1:<UUID>` / `kindle-flashcards.db`
 
 ## 3. Estado atual (25/11/2026)
 
-- E-mail do domínio (25/11, grátis): Cloudflare Email Routing; `contato@`, `suporte@`, `financeiro@`, `adm@aldusreader.com.br` → `aldusreader@gmail.com` (destino verificado). MX nulo e SPF `-all` antigos removidos; MX/SPF/DKIM da Cloudflare ativos. Envio: conta Brevo grátis (login Google de `aldusreader@gmail.com`), domínio autenticado (TXT `brevo-code`, CNAME `brevo1/2._domainkey`, DMARC p=none); SMTP `smtp-relay.brevo.com:587`. PENDENTE (dono): verificar celular na Brevo, gerar chave SMTP e concluir "Enviar e-mail como" no Gmail.
+- E-mail do domínio (25/11, grátis): Cloudflare Email Routing; `contato@`, `suporte@`, `financeiro@`, `adm@aldusreader.com.br` → `aldusreader@gmail.com` (destino verificado). MX nulo e SPF `-all` antigos removidos; MX/SPF/DKIM da Cloudflare ativos. Envio: conta Brevo grátis (login Google de `aldusreader@gmail.com`), domínio autenticado (TXT `brevo-code`, CNAME `brevo1/2._domainkey`, DMARC p=none); SMTP `smtp-relay.brevo.com:587`. PENDENTE (dono): verificar celular na Brevo, gerar chave SMTP, colá-la no Supabase Auth → SMTP (formulário já preenchido: remetente `contato@`, `smtp-relay.brevo.com:587`, login Brevo; autorizado 25/11) e concluir "Enviar e-mail como" no Gmail.
 - Site no ar em https://aldusreader.com.br (Cloudflare Worker `aldus-reader`, deploy automático a cada push em `main`) e na Vercel
-  (CLI, mesmo commit). HTTPS ok nos dois; "Always Use HTTPS" ainda desligado (http:// abre com aviso no Chrome). Drive no site configurado em 25/11, conexão NÃO TESTADA.
+  (CLI, mesmo commit). HTTPS ok nos dois; "Always Use HTTPS" ligado em 25/11 (http:// → 301 https). Drive no site configurado em 25/11, conexão NÃO TESTADA.
 - Último APK: **v18** `4a0cc73`, chave do dono (`CN=Aldus Reader`, `a8ee8ec1…`), em `G:\Meu Drive\Aldus APK\Aldus-1.0.0-beta.2-18-4a0cc73.apk`.
   Lista de entrega: 75 recursos (`scripts/verify-release-features.cjs`). `test:critical`: 146 suítes. Desde a v18, mudanças que também valem no Android (tema claro padrão, erros do cadastro por campo, respiro em cada página, aviso de boas-vindas) ainda não estão em APK.
 - Aparelhos: Redmi 23117RA68G e Note 14 (Android 16), só por USB. Nada de v13 a v18 foi exercitado num aparelho por mim, salvo o
@@ -156,15 +156,14 @@ Teste no PC não comprova Android físico, sessão real nem deploy.
   Sync" desligado para o `robots.txt` ficar igual) e nameservers no Registro.br; (2) FEITO: Worker importando `MatheusBorbaDev/Aldus`
   (app da Cloudflare só nesse repositório). Nome `aldus-reader`, build `npm run build`, deploy `npx wrangler@4.160.1 deploy`; (3) build
   variables: FEITO `SUPABASE_URL`, `LEGAL_CONTROLLER_NAME`, `LEGAL_CONTACT_EMAIL`, `SITE_URL=https://aldusreader.com.br`; dono colou as 3 restantes (7/7); (4) FEITO: `*.workers.dev` testado; (5) FEITO: domínio raiz e `www` no Worker, à espera da
-  delegação .br; (6) FEITO: Supabase Auth com as 4 URLs de retorno de `aldusreader.com.br` e `www` (8→12; Site URL intacta); (7) FEITO 25/11: cliente Web OAuth com as 4 origens JS (domínio, www, workers.dev, Vercel) e `EXPO_PUBLIC_GOOGLE_DRIVE_WEB_CLIENT_ID` na Cloudflare e na Vercel (Drive no site nunca tinha sido configurado); FALTA: domínio novo
-  na marca do OAuth (e na chave do Books, se tiver restrição por site); (8) só então desligar a Vercel.
+  delegação .br; (6) FEITO: Supabase Auth com as 4 URLs de retorno de `aldusreader.com.br` e `www` (8→12; Site URL intacta); (7) FEITO 25/11: cliente Web OAuth com as 4 origens JS (domínio, www, workers.dev, Vercel) e `EXPO_PUBLIC_GOOGLE_DRIVE_WEB_CLIENT_ID` na Cloudflare e na Vercel (Drive no site nunca tinha sido configurado); domínio já na marca do OAuth (confirmado 25/11); (8) dono mandou desligar a Vercel (25/11): aguardando confirmar a exclusão do projeto.
 - **Leituras de vestibular:** no ar (Fuvest 2026–29, Unicamp 2027–29, UFRGS 2027, UFPR 2027, fontes oficiais). PENDENTE: UEL
   inativa (lista oficial só em PDF que não abriu; dono confere e publica pelo Admin, depois `active=true`); UFPR sem `watch_url`; robô
   não obteve resposta da página da UFRGS na 1ª leitura (rever em alguns dias); NÃO TESTADO logado no app nem no Android (precisa APK).
 - **Comunidade:** dono pediu repaginação completa (25/11: "botões sem sentido", confusa); não iniciada, mostrar proposta antes.
 - **Aparelho (precisa de celular no cabo):** v13–v18 e a landing nunca vistas num celular; Drive não traz livros soltos fora de
   subpastas (não são atalhos; precisa de log); tocar na aba Biblioteca não volta ao topo no Android (`useScrollToTop` não rola).
-- **Decisões do dono:** e-mail de cadastro do beta (agora possível pelo SMTP da Brevo no Supabase Auth, com autorização); ligar "Always Use HTTPS"; nome/e-mail do controlador
+- **Decisões do dono:**  nome/e-mail do controlador
   (LGPD); renomear a URL da Vercel; moderação da Comunidade ou desligá-la; página de instruções e convite do beta; conta Android de
   distribuição limitada; importar do Skoob; leitor de ISBN pela câmera.
 - **Planejado, sem pedido:** encaixe lateral que estreita a página no PC (exige redimensionar preservando a posição); fila de
