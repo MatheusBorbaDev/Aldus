@@ -1,6 +1,6 @@
 // Modelos de e-mail do Supabase Auth em português, com a identidade do Aldus (25/11/2026, dono: "tem como fazer uns emails
 // bonitinhos?"). Um layout único gera os seis modelos em supabase/templates/. HTML de e-mail: tabelas e estilo inline (Gmail/Outlook),
-// sem fonte externa nem script; a medalha vem do próprio site. Os textos foram mostrados ao dono antes de irem para o Supabase.
+// sem fonte externa nem script; a medalha vem do próprio site. Textos aprovados pelo dono em 25/11/2026.
 const fs = require('node:fs'), path = require('node:path');
 const SITE = 'https://aldusreader.com.br';
 const OUT = path.join(__dirname, '..', 'supabase', 'templates');
