@@ -10,3 +10,8 @@ export const PUBLIC_DOCUMENT_ROUTES: readonly string[] = ["legal", "beta", "auth
 export function opensWithoutQuote(platform: string, firstSegment: string | undefined): boolean {
   return platform === "web" && !!firstSegment && PUBLIC_DOCUMENT_ROUTES.includes(firstSegment);
 }
+
+/** After authenticating: Android goes to "/" (the account entry); the site goes to `/auth/continue`, because its "/" is the public landing. */
+export function homeAfterAuth(platform: string): "/" | "/auth/continue" {
+  return platform === "web" ? "/auth/continue" : "/";
+}

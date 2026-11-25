@@ -1,8 +1,10 @@
+import { Platform } from "react-native";
 import { useState } from "react";
 import { router } from "expo-router";
 import { AuthButton, AuthError, AuthForm, AuthInput } from "@/src/presentation/components/AuthForm";
 import { useAuth } from "@/src/presentation/contexts/AuthContext";
 import { requireSupabase } from "@/src/data/remote/supabase";
+import { homeAfterAuth } from "@/src/presentation/services/publicWebRoutes";
 
 export default function ResetPassword() {
   const { session } = useAuth();
@@ -16,7 +18,7 @@ export default function ResetPassword() {
     try {
       const { error: failure } = await requireSupabase().auth.updateUser({ password });
       if (failure) { setError("Não foi possível atualizar a senha. Solicite um novo link."); return; }
-      router.replace("/");
+      router.replace(homeAfterAuth(Platform.OS) as never);
     } catch {
       setError("Não foi possível atualizar a senha. Verifique a conexão e tente novamente.");
     } finally { setBusy(false); }

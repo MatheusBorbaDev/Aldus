@@ -1,3 +1,4 @@
+import { Platform } from "react-native";
 import { useState } from "react";
 import { Redirect, router } from "expo-router";
 import { AuthButton, AuthError, AuthForm, AuthInput, AuthLegalNotice, AuthLink } from "@/src/presentation/components/AuthForm";
@@ -5,13 +6,14 @@ import { loginWithGoogle, registerAccount } from "@/src/data/remote/authService"
 import { useAuth } from "@/src/presentation/contexts/AuthContext";
 import { validUsername } from "@/src/domain/auth/authRules";
 import { authDiagnostic, beginAuthDiagnostic, finishAuthDiagnostic } from "@/src/utils/authDiagnostics";
+import { homeAfterAuth } from "@/src/presentation/services/publicWebRoutes";
 
 export default function Signup() {
   const { session, profile } = useAuth();
   const [name, setName] = useState(""); const [username, setUsername] = useState("");
   const [email, setEmail] = useState(""); const [password, setPassword] = useState(""); const [confirmation, setConfirmation] = useState("");
   const [busy, setBusy] = useState(false); const [sent, setSent] = useState(false); const [error, setError] = useState<string | null>(null);
-  if (session && profile) return <Redirect href="/" />;
+  if (session && profile) return <Redirect href={homeAfterAuth(Platform.OS) as never} />;
   const submit = async () => {
     const operationId = beginAuthDiagnostic();
     authDiagnostic("SIGNUP_STARTED", { operationId, result: "started", passwordLength: password.length,
@@ -25,7 +27,7 @@ export default function Signup() {
     setBusy(true); setError(null);
     try {
       const result = await registerAccount(name, username, email, password, operationId);
-      if (result.needsEmailConfirmation) setSent(true); else router.replace("/");
+      if (result.needsEmailConfirmation) setSent(true); else router.replace(homeAfterAuth(Platform.OS) as never);
       authDiagnostic("SIGNUP_UI_RESULT", { operationId, result: "success", stage: result.needsEmailConfirmation ? "confirmation" : "navigation", errorShown: false, navigationExecuted: !result.needsEmailConfirmation });
     } catch (failure) {
       setError(failure instanceof Error ? failure.message : "Não foi possível criar a conta.");

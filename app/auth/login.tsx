@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { Redirect, router, useLocalSearchParams } from "expo-router";
-import { Text } from "react-native";
+import { Text, Platform } from "react-native";
 import { useAppTheme } from "@/src/presentation/contexts/AppThemeContext";
 import { AuthButton, AuthDivider, AuthError, AuthForm, AuthInput, AuthLegalNotice, AuthLink } from "@/src/presentation/components/AuthForm";
 import { loginWithGoogle, loginWithIdentifier } from "@/src/data/remote/authService";
 import { useAuth } from "@/src/presentation/contexts/AuthContext";
 import { authDiagnostic, beginAuthDiagnostic, finishAuthDiagnostic } from "@/src/utils/authDiagnostics";
+import { homeAfterAuth } from "@/src/presentation/services/publicWebRoutes";
 
 export default function Login() {
   const { session, profile } = useAuth();
@@ -15,7 +16,7 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  if (session && profile) return <Redirect href="/" />;
+  if (session && profile) return <Redirect href={homeAfterAuth(Platform.OS) as never} />;
   const run = async () => {
     const operationId = beginAuthDiagnostic();
     authDiagnostic("LOGIN_ATTEMPT_STARTED", { operationId, session: !!session, previousUuid: session?.user.id, result: "started" });
@@ -28,7 +29,7 @@ export default function Login() {
     }
     // Authentication has completed. A router failure must not be attributed to credentials.
     try {
-      router.replace("/");
+      router.replace(homeAfterAuth(Platform.OS) as never);
       authDiagnostic("LOGIN_UI_RESULT", { operationId, result: "success", stage: "navigation", errorShown: false, navigationExecuted: true });
     } catch {
       setError("A autenticação foi concluída, mas não foi possível abrir o aplicativo. Tente continuar.");

@@ -8,6 +8,7 @@ import { nativeAuthCallbacks } from '@/src/data/remote/nativeAuthCallback';
 import { readAuthCallback, callbackFailureMessage } from "@/src/data/remote/authCallback";
 import { isExpectedAuthCallback } from "@/src/data/remote/authRedirect";
 import { diagnoseAuthCallback, finishAuthOAuthOperation } from "@/src/utils/authOAuthDiagnostics";
+import { homeAfterAuth } from "@/src/presentation/services/publicWebRoutes";
 
 export default function Callback() {
   const params = useLocalSearchParams<{
@@ -56,7 +57,7 @@ export default function Callback() {
     void exchangeCallbackCode(effectiveCode, operationId)
       .then(() => {
         if (active) {
-          router.replace((next === "reset-password" ? "/auth/reset-password" : "/") as never);
+          router.replace((next === "reset-password" ? "/auth/reset-password" : homeAfterAuth(Platform.OS)) as never);
         }
       })
       .catch((failure) => {

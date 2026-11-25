@@ -42,7 +42,11 @@ assert.doesNotMatch(absent.html,/You need to enable JavaScript/,'Public prerende
 assert.match(absent.appHtml,/noindex,nofollow/);assert.doesNotMatch(absent.appHtml,/<h1/);assert.match(absent.appHtml,/id="root"><\/div>/);assert.match(absent.appHtml,/entry.js/);
 const known=buildPublicHtml(template,{siteUrl:'https://aldus.example.invalid/'});assert.match(known.html,/rel="canonical" href="https:\/\/aldus.example.invalid\/"/);assert.match(known.sitemap,/<loc>https:\/\/aldus.example.invalid\/<\/loc>/);assert.match(known.robots,/Sitemap:/);
 for(const invalid of ['javascript:alert(1)','https://user:secret@example.invalid/','https://example.invalid/?token=secret','https://example.invalid/#token','https://example.invalid/app']){assert.equal(publicSiteUrl(invalid),null);assert.throws(()=>buildPublicHtml(template,{siteUrl:invalid}),/Value redacted/);}
-assert.match(fs.readFileSync('app/index.tsx','utf8'),/Redirect href="\/library"/,'Native entry remains unchanged');
+assert.match(fs.readFileSync('src/presentation/components/AccountEntry.tsx','utf8'),/Redirect href="\/library"/,'Native entry remains unchanged');
+assert.match(fs.readFileSync('app/index.tsx','utf8'),/export default AccountEntry/);
+// 25/11/2026: on the site "/" is the landing, so a finished login (Google included) goes to /auth/continue, which renders the same entry.
+assert.match(fs.readFileSync('app/auth/continue.tsx','utf8'),/export default AccountEntry/);
+for (const f of ['callback','login','signup','complete-profile','reset-password']) assert.doesNotMatch(fs.readFileSync(`app/auth/${f}.tsx`,'utf8'),/replace\("\/"\)|Redirect href="\/"/,f+' uses homeAfterAuth');
 assert.match(fs.readFileSync('app/_layout.tsx','utf8'),/Stack.Protected guard=\{appReady\}/);
 require('child_process').execFileSync(process.execPath,['scripts/generate-public-catalog.cjs','--check'],{stdio:'pipe'});
 // Real Web entry component: an authenticated account still needing a username

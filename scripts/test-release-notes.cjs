@@ -92,5 +92,8 @@ const flush = () => act(async () => { for (let i = 0; i < 5; i++) await Promise.
   assert.equal(opensWithoutQuote('web', undefined), false);
   assert.equal(opensWithoutQuote('android', 'legal'), false, 'the Android app keeps the quote everywhere');
   assert.match(layout, /!publicDocument && !welcomed \? <View/);
+  // 25/11: Google login on the PC returned to the landing; on the site the app entry after authenticating is /auth/continue.
+  const { homeAfterAuth } = load('src/presentation/services/publicWebRoutes.ts');
+  assert.equal(homeAfterAuth('web'), '/auth/continue'); assert.equal(homeAfterAuth('android'), '/');
   console.log('PASS release notes: shown once per version with every item, the beta notice and the link to the beta page; Entendi and the link mark as seen; read failure does not nag, write failure does not trap; beta page has no placeholders and a filled report channel; loading screen shows the Castro Alves quote with credit.');
 })().catch(error => { console.error(error); process.exitCode = 1; });

@@ -1,9 +1,11 @@
+import { Platform } from "react-native";
 import { useEffect, useState } from "react";
 import { Redirect, router } from "expo-router";
 import { AuthButton, AuthError, AuthForm, AuthInput } from "@/src/presentation/components/AuthForm";
 import { normalizeUsername, validUsername } from "@/src/domain/auth/authRules";
 import { requireSupabase } from "@/src/data/remote/supabase";
 import { useAuth } from "@/src/presentation/contexts/AuthContext";
+import { homeAfterAuth } from "@/src/presentation/services/publicWebRoutes";
 
 export default function CompleteProfile() {
   const { session, profile, refreshProfile } = useAuth();
@@ -15,14 +17,14 @@ export default function CompleteProfile() {
     setError(null);
   }, [session?.user.id]);
   if (!session) return <Redirect href={"/auth/login" as never} />;
-  if (profile?.username) return <Redirect href="/" />;
+  if (profile?.username) return <Redirect href={homeAfterAuth(Platform.OS) as never} />;
   const submit = async () => {
     if (!validUsername(username)) { setError("Use 3 a 24 caracteres: letras, números ou _; comece por uma letra."); return; }
     setBusy(true); setError(null);
     try {
       const result = await requireSupabase().from("profiles").update({ username: normalizeUsername(username) }).eq("id", session.user.id).select("id").single();
       if (result.error) { setError(result.error.code === "23505" ? "Este nome de usuário já está em uso. Escolha outro para concluir seu perfil." : "Não foi possível salvar o usuário. Tente novamente."); return; }
-      await refreshProfile(); router.replace("/");
+      await refreshProfile(); router.replace(homeAfterAuth(Platform.OS) as never);
     } catch { setError("Não foi possível salvar seu perfil. Confira a conexão e tente novamente."); }
     finally { setBusy(false); }
   };
