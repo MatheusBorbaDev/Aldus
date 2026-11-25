@@ -27,6 +27,12 @@ assert.deepEqual(v.validSuggestion({ vestibularId: null, message: '  Incluir a U
 assert.throws(() => v.validSuggestion({ vestibularId: null, message: 'oi' }), /Escreva um pouco mais/);
 assert.throws(() => v.validSuggestion({ vestibularId: null, message: 'x'.repeat(601) }), /até 600/);
 assert.throws(() => v.validSuggestion({ vestibularId: 'A B', message: 'Faltou um livro' }));
+// Admin paste: one work per line, numbering ignored, separators accepted, line errors named.
+let pasted = v.parseBookLines('1. Iracema — José de Alencar\n\n2) Dom Casmurro - Machado de Assis\nO cortiço; Aluísio Azevedo');
+assert.deepEqual(pasted.errors, []); assert.deepEqual(pasted.books.map(b => [b.position, b.title, b.author]), [[1, 'Iracema', 'José de Alencar'], [2, 'Dom Casmurro', 'Machado de Assis'], [3, 'O cortiço', 'Aluísio Azevedo']]);
+assert.deepEqual(v.parseBookLines('Iracema — José de Alencar\nSem autor aqui').errors, ['Linha 2: use "Título — Autor".']);
+assert.deepEqual(v.parseBookLines('  ').errors, ['Cole ao menos uma obra.']);
+assert.equal(v.parseBookLines('A-B — C').books[0].title, 'A-B', 'hyphen inside a title is kept');
 console.log('PASS vestibular readings: upcoming (nearest first) and past (newest first) per vestibular, target year pending said instead of invented, strict contract with official https source, bounded suggestions.');
 
 // Data layer: server first, device copy when offline, copy re-validated, suggestions mapped to readable errors.

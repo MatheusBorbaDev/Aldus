@@ -1,7 +1,7 @@
 import { supabase } from '@/src/data/remote/supabase';
 import { libraryAccountScope } from '@/src/data/library/LibraryAccountScope';
 import { throwIfAborted,withAbort } from '@/src/core/utils/cancellation';
-import { AdminChangeResult,AdminCommand,AdminFilters,AdminResults,isAdminMetrics,parseAdminSession } from '../domain/contracts';
+import { AdminChangeResult,AdminCommand,AdminFilters,AdminResults,isAdminMetrics,isAdminVestibularData,parseAdminSession } from '../domain/contracts';
 
 export class AdminError extends Error {
  constructor(readonly code:'denied'|'unavailable'|'invalid',message:string){super(message);}
@@ -29,10 +29,16 @@ export class AdminRepository {
  }
  async session(signal:AbortSignal){const owner=libraryAccountScope.userId;return parseAdminSession(await this.rpc('aldus_admin_session',{},signal),owner??'');}
  async read<K extends keyof AdminResults>(section:K,filters:AdminFilters,signal:AbortSignal):Promise<AdminResults[K]>{
+  if(section==='vestibular'){const value=await this.rpc('vestibular_admin_read',{},signal);if(!isAdminVestibularData(value))throw new AdminError('invalid','Resposta administrativa inválida.');return value as AdminResults[K];}
   const result=await this.rpc('aldus_admin_read',{p_section:section,p_filters:filters},signal) as {version?:number;section?:string;source?:string;data?:unknown}|null;
   if(!result||result.version!==1||result.section!==section||result.source!=='server_database'||!('data' in result))throw new AdminError('invalid','Resposta administrativa inválida.');
   if(['overview','metrics','subscriptions','storage','health'].includes(section)&&!isAdminMetrics(result.data))throw new AdminError('invalid','Dados administrativos incompletos. Atualize para consultar novamente.');
   return result.data as AdminResults[K];
+ }
+ /** Leituras de vestibular: publicar/corrigir/remover lista, sugestão resolvida, aviso do robô visto. Servidor exige MFA recente e motivo. */
+ async vestibularChange(action:'publish'|'remove'|'suggestion_done'|'alert_seen',vestibular:string|null,year:number|null,payload:object,reason:string,signal:AbortSignal):Promise<void>{
+  const result=await this.rpc('vestibular_admin_change',{p_action:action,p_vestibular:vestibular,p_year:year,p_payload:payload,p_reason:reason},signal) as {ok?:boolean}|null;
+  if(!result?.ok)throw new AdminError('invalid','O servidor não confirmou a alteração.');
  }
  async change(requestId:string,target:string,revision:number,command:AdminCommand,reason:string,confirmation:string,signal:AbortSignal):Promise<AdminChangeResult>{
   const result=await this.rpc('aldus_admin_change',{p_request_id:requestId,p_action:command.action,p_target:target,p_expected_revision:revision,p_payload:command.payload,p_reason:reason,p_confirmation:confirmation},signal) as AdminChangeResult;

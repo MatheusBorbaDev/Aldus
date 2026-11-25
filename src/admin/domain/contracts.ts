@@ -1,6 +1,6 @@
 export const ADMIN_PERMISSIONS = ['users.read','users.write','subscriptions.manage','metrics.read','audit.read'] as const;
 export type AdminPermission = typeof ADMIN_PERMISSIONS[number];
-export type AdminSection = 'overview'|'users'|'subscriptions'|'plans'|'storage'|'metrics'|'settings'|'members'|'audit'|'health';
+export type AdminSection = 'overview'|'users'|'subscriptions'|'plans'|'storage'|'metrics'|'settings'|'members'|'audit'|'health'|'vestibular';
 export interface AdminSession { version:1; userId:string; role:'OWNER'|'ADMIN'; permissions:AdminPermission[]; recentMfa:boolean; source:'server_database' }
 export interface AdminUsage { books:number; storageBytes:number|null; objects:number; unknownSizeObjects:number }
 export interface AdminMetrics {
@@ -42,6 +42,18 @@ export interface AdminResults {
  plans:{rows:AdminPlan[];priceHistory:PriceHistory[];proposals:{id:string;proposal:{id:string;name:string;description:string};status:'proposed'}[];chargedPriceSource:'not_integrated'};
  settings:{rows:AdminSetting[];history:{id:number;key:string;value:string|boolean;revision:number;created_at:string}[]};
  members:{rows:AdminMember[]};audit:{rows:AdminAudit[];page:number};
+ /** Leituras de vestibular (25/11/2026): RPC própria `vestibular_admin_read`. */
+ vestibular:AdminVestibularData;
+}
+export interface AdminVestibularData {
+ vestibulares:{id:string;name:string;institution:string;official_url:string|null;watch_url:string|null;active:boolean}[];
+ lists:{vestibular_id:string;exam_year:number;source_url:string;books:{position?:number;title:string;author:string;note?:string|null}[];updated_at:string}[];
+ suggestions:{id:number;vestibular_id:string|null;message:string;created_at:string}[];
+ alerts:{vestibular_id:string;changed_at:string;checked_at:string|null;status:number|null}[];
+}
+export function isAdminVestibularData(value:unknown):value is AdminVestibularData {
+ const v=value as AdminVestibularData|null;
+ return !!v&&['vestibulares','lists','suggestions','alerts'].every(k=>Array.isArray((v as any)[k]));
 }
 export type AdminFilters = {page?:number;search?:string;plan?:string;status?:string;from?:string;until?:string;id?:string};
 export type AdminCommand =
@@ -54,7 +66,7 @@ export type AdminCommand =
  | {action:'setting';payload:{value:string|boolean}}
  | {action:'setting_rollback';payload:{revision:number}};
 export type AdminChangeResult = {ok:true;revision:number}|{ok:false;code:'conflict'|'forbidden_or_mfa'|'invalid'|'rate_limit'};
-export const SECTION_PERMISSION:Record<AdminSection,AdminPermission|'owner'>={overview:'metrics.read',users:'users.read',subscriptions:'metrics.read',plans:'owner',storage:'metrics.read',metrics:'metrics.read',settings:'owner',members:'owner',audit:'audit.read',health:'metrics.read'};
+export const SECTION_PERMISSION:Record<AdminSection,AdminPermission|'owner'>={overview:'metrics.read',users:'users.read',subscriptions:'metrics.read',plans:'owner',storage:'metrics.read',metrics:'metrics.read',settings:'owner',members:'owner',audit:'audit.read',health:'metrics.read',vestibular:'owner'};
 export function canAdmin(session:AdminSession|null,permission:AdminPermission|'owner'):boolean {
  return !!session && (session.role==='OWNER'||(permission!=='owner'&&session.permissions.includes(permission)));
 }

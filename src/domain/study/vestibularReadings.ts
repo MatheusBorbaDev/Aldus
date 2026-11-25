@@ -71,3 +71,23 @@ export function validSuggestion(input: VestibularSuggestion): VestibularSuggesti
   if (input.vestibularId != null && !ID.test(input.vestibularId)) throw new VestibularContractError("vestibular");
   return { vestibularId: input.vestibularId, message };
 }
+
+/**
+ * Admin: lista colada do edital, uma obra por linha, "Título — Autor" (aceita também " - " ou ";"). Numeração no começo e linhas vazias
+ * são ignoradas. Linha sem autor é erro com o número dela: nada é publicado pela metade.
+ */
+export function parseBookLines(text: string): { books: VestibularBook[]; errors: string[] } {
+  const books: VestibularBook[] = [], errors: string[] = [];
+  text.split(/\r?\n/).forEach((raw, index) => {
+    const line = raw.replace(/^\s*\d+\s*[.)-]\s*/, "").trim();
+    if (!line) return;
+    const match = line.match(/^(.+?)\s+(?:—|–|-)\s+(.+)$/) ?? line.match(/^(.+?)\s*;\s*(.+)$/);
+    if (!match) { errors.push(`Linha ${index + 1}: use "Título — Autor".`); return; }
+    const title = match[1].trim(), author = match[2].trim();
+    if (title.length > 200 || author.length > 160) { errors.push(`Linha ${index + 1}: título ou autor longo demais.`); return; }
+    books.push({ position: books.length + 1, title, author, note: null });
+  });
+  if (!books.length && !errors.length) errors.push("Cole ao menos uma obra.");
+  if (books.length > 60) errors.push("No máximo 60 obras por lista.");
+  return { books, errors };
+}

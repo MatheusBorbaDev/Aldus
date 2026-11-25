@@ -13,6 +13,7 @@ import { AdminMetrics } from './AdminMetrics';
 import { AdminUsers } from './AdminUsers';
 import { AdminConfiguration,AdminMembers } from './AdminConfiguration';
 import { AdminCatalog } from './AdminCatalog';
+import { AdminVestibular } from './AdminVestibular';
 import { AdminWebStyles } from './AdminWebStyles';
 import { Button,Card,ConfirmChange,dateLabel,Field,Label,Muted,PendingChange,rowStyle } from './components';
 
@@ -27,11 +28,13 @@ const sections:{id:AdminSection;label:string;icon:React.ComponentProps<typeof Io
  {id:'members',label:'Administradores',icon:'shield-checkmark-outline',description:'Delegações e associações administrativas.'},
  {id:'audit',label:'Auditoria',icon:'list-outline',description:'Rastreabilidade das operações administrativas.'},
  {id:'health',label:'Saúde do Sistema',icon:'pulse-outline',description:'Estado observado e limites da telemetria disponível.'},
+ {id:'vestibular',label:'Leituras de vestibular',icon:'school-outline',description:'Listas dos editais, avisos do robô e sugestões.'},
 ];
 const navigationGroups: { label: string; ids: AdminSection[] }[] = [
  {label:'Visão geral',ids:['overview','metrics']},
  {label:'Contas e comercial',ids:['users','subscriptions','plans']},
  {label:'Operação',ids:['storage','health']},
+ {label:'Conteúdo',ids:['vestibular']},
  {label:'Administração',ids:['settings','members','audit']},
 ];
 export default function AdminScreen(){
@@ -100,6 +103,7 @@ function AdminContent({session,refreshAccess}:{session:AdminSession;refreshAcces
     {!permitted?<Card title="Acesso negado"><Muted>Nenhuma permissão delegada para esta seção.</Muted></Card>:loading?<Card title="Carregando dados"><ActivityIndicator color={palette.accent}/></Card>:error?<Card title="Consulta indisponível"><Text accessibilityRole="alert" style={{color:palette.text}}>{error}</Text><Button title="Tentar consulta novamente" onPress={()=>setReload(v=>v+1)}/></Card>:data?<>
      {['overview','subscriptions','storage','metrics','health'].includes(section)?<AdminMetrics data={data as AdminResults['overview']} kind={section}/>:null}
      {section==='users'?<AdminUsers rows={(data as AdminResults['users']).rows} page={(data as AdminResults['users']).page} filters={filters} onFilters={setFilters} session={session} ask={ask} reload={reload} onDenied={refreshAccess} selected={selectedUser} setSelected={setSelectedUser}/>:null}
+     {section==='vestibular'?<AdminVestibular data={data as AdminResults['vestibular']} enabled={session.recentMfa} onChanged={()=>setReload(v=>v+1)}/>:null}
      {section==='plans'?<AdminCatalog data={data as AdminResults['plans']} enabled={session.recentMfa} ask={ask}/>:null}
      {section==='settings'?<AdminConfiguration data={data as AdminResults['settings']} enabled={session.recentMfa} ask={ask}/>:null}
      {section==='members'?<AdminMembers rows={(data as AdminResults['members']).rows} enabled={session.recentMfa} actor={session.userId} ask={ask}/>:null}
