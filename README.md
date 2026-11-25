@@ -85,7 +85,7 @@ No PC novo: Node.js 24, JDK 17, Android SDK (platform/build-tools 36 e NDK do Gr
 (suítes Chromium). Depois:
 
 ```powershell
-git clone https://github.com/matheusbitlab/Aldus.git KIndle
+git clone https://github.com/MatheusBorbaDev/Aldus.git KIndle
 cd KIndle
 npm ci
 npm run setup:test-tools
@@ -134,7 +134,7 @@ Estes são procedimentos humanos, não contextos extras de IA nem prova de impla
 
 ### Vercel e GitHub
 
-No projeto kindle-reader e equipe corretos, conectar matheusbitlab/Aldus em Settings → Git.
+No projeto kindle-reader e equipe corretos, conectar MatheusBorbaDev/Aldus em Settings → Git.
 Revisar a branch de produção (main revisada), sem promover esta integração automaticamente.
 Usar npm ci, npm run build e saída dist, já declarados em vercel.json.
 Configurar as variáveis públicas Supabase; Drive Web e contato de catálogos quando usados;
@@ -181,7 +181,7 @@ Use `main`. Não é necessário importar o bundle DesignIdeas nem copiar `.expo`
 `node_modules`, bancos pessoais, caches ou livros de usuários.
 
 ```powershell
-git clone https://github.com/matheusbitlab/Aldus.git
+git clone https://github.com/MatheusBorbaDev/Aldus.git
 Set-Location Aldus
 git switch main
 npm ci

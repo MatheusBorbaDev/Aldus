@@ -3,7 +3,7 @@
 ## INSTALAÇÃO 01 — APK baixado do GitHub pelo navegador: "pacote parece ser inválido" (19/11/2026)
 
 - Redmi do dono (23117RA68G, Android 16, instalador do Google). Arquivo `Aldus-1.0.0-beta.2-10.apk` do pré-release
-  `matheusbitlab/aldus-downloads`, baixado pelo navegador do celular. O instalador mostra nome e ícone do Aldus e falha com "Como o pacote
+  `MatheusBorbaDev/aldus-downloads` (era `matheusbitlab`, transferido em 25/11), baixado pelo navegador do celular. O instalador mostra nome e ícone do Aldus e falha com "Como o pacote
   parece ser inválido, o app não foi instalado." Repetiu depois de desinstalar a v9 (chave antiga) — não é conflito de assinatura.
 - Descartado no PC: o asset publicado tem o mesmo tamanho (157.165.047) e SHA-256 (`258d1191…`) do APK local; apksigner verifica (v2,
   chave do dono); `zipalign -c -P 16 4` OK; `.so` e `resources.arsc` sem compressão; minSdk 24/targetSdk 36. O mesmo arquivo instalou por

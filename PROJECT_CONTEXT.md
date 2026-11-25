@@ -33,7 +33,8 @@ expo-sqlite, WebView, pdfjs-dist, jszip; UI com StyleSheet + `src/ui` + `src/the
 Backend: Supabase (Auth, Postgres/RLS, Storage, Edge Functions `username-login` e `account-delete`). Web (landing + app Web, um só
 export estático em `dist/`): hoje Vercel, projeto `kindle-reader` (sem Git; deploy pela CLI) em https://kindle-reader-two.vercel.app;
 **migração para a Cloudflare em andamento** (Worker só com arquivos estáticos, `wrangler.jsonc`, deploy pelo Git; domínio
-registrado `aldusreader.com.br`). A Vercel fica no ar até o dono validar a Cloudflare. Git: `origin` = `matheusbitlab/Aldus`, `main`.
+registrado `aldusreader.com.br`). A Vercel fica no ar até o dono validar a Cloudflare. Git: `origin` = `MatheusBorbaDev/Aldus`, `main`
+(transferido de `matheusbitlab` em 25/11 a pedido do dono, junto com `aldus-downloads`; o Aldus não usa mais a conta bitlab).
 Persistência (não renomear `kindle-*`/`@kindle/*`): SQLite `kindle-reader.db` (migrations em
 `src/data/database/migrations/MigrationRunner.ts`), IndexedDB `kindle-reader-web` (`src/data/database/connection/webLibraryStore.ts`),
 AsyncStorage; flashcards `@kindle/flashcards.v1:<UUID>` / `kindle-flashcards.db` / IndexedDB `kindle-flashcards`.
@@ -151,9 +152,8 @@ Teste no PC não comprova Android físico, sessão real nem deploy.
 
 - **Cloudflare (painel do dono; decidido em 25/11: Worker só com arquivos estáticos, deploy automático pelo Git, Vercel no ar até
   validar):** (1) FEITO 25/11: zona na Cloudflare (Free; registros MX nulo/SPF/DMARC "sem e-mail" importados; "Bot Preference
-  Sync" desligado para o `robots.txt` ficar igual) e nameservers no Registro.br; (2) Workers & Pages → importar `matheusbitlab/Aldus`
-  — BLOQUEADO: o GitHub logado no Chrome é `MatheusBorbaDev`, mas o repositório é da conta `matheusbitlab` (a do `gh` deste PC); o
-  app da Cloudflare foi autorizado em `MatheusBorbaDev`, sem instalar. Nome `aldus-reader`, build `npm run build`, deploy `npx wrangler@4.160.1 deploy`; (3) build
+  Sync" desligado para o `robots.txt` ficar igual) e nameservers no Registro.br; (2) Workers & Pages → importar `MatheusBorbaDev/Aldus`
+  (app da Cloudflare só nesse repositório). Nome `aldus-reader`, build `npm run build`, deploy `npx wrangler@4.160.1 deploy`; (3) build
   variables: as 7 `EXPO_PUBLIC_*` da Production da Vercel, com `EXPO_PUBLIC_SITE_URL=https://aldusreader.com.br`; (4) testar no
   `*.workers.dev`; (5) domínio próprio no Worker; (6) Supabase Auth: URLs de retorno do domínio novo; (7) Google Cloud: domínio novo
   na marca do OAuth (e na chave do Books, se tiver restrição por site); (8) só então desligar a Vercel.
