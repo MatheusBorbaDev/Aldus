@@ -48,7 +48,7 @@ AsyncStorage; flashcards `@kindle/flashcards.v1:<UUID>` / `kindle-flashcards.db`
   Lista de entrega: 75 recursos (`scripts/verify-release-features.cjs`). `test:critical`: 146 suítes. Desde a v18, mudanças que também valem no Android (tema claro padrão, erros do cadastro por campo, respiro em cada página, aviso de boas-vindas) ainda não estão em APK.
 - Aparelhos: Redmi 23117RA68G e Note 14 (Android 16), só por USB. Nada de v13 a v18 foi exercitado num aparelho por mim, salvo o
   toque longo nas bordas (v14, confirmado pelo dono no Note 14).
-- Supabase "Kindle reader" (`cmivracxuihtmsbmtuec`): migrations aplicadas até `20261118120000`; as de vestibular (`20261125120000/120100`) NÃO aplicadas (várias pelo SQL Editor,
+- Supabase "Kindle reader" (`cmivracxuihtmsbmtuec`): migrations aplicadas até `20261118120000`; mais as de vestibular (`20261125120000/120100`, 25/11, pelo SQL Editor com conferência por hash) (várias pelo SQL Editor,
   fora do ledger); `username-login` publicada com Upstash. Acesso só pelo painel no Chrome, com autorização.
 
 ## 4. Arquitetura e invariantes
@@ -125,7 +125,7 @@ Teste = `scripts/test-<nome>.cjs` (quais estão no `test:critical`: lista em `sc
 | Abertura do app (frases), aviso de boas-vindas da beta (guia "Como o Aldus funciona", antes novidades), página da beta | `comp/AppLoadingScreen.tsx`, `comp/ReleaseNotesModal.tsx`, `app/beta.tsx`; quais páginas do site abrem sem a frase: `src/presentation/services/publicWebRoutes.ts` (legal, beta, auth) | `dom/brand/releaseNotes.ts`, `src/legal/beta{Feedback,Limitations}.ts` | release-notes, beta-preparation |
 | Navegação, abas, design system | `app/(tabs)/_layout.tsx`, `src/ui/*` (`Screen` com `StatusBarScrim`) | `src/theme/{tokens,appUi}.ts`, `comp/{AppUi,SettingsLayout,TopHeader}.tsx` | ui-primitives, app-design; `docs/context/design-system.md` |
 | Flashcards, Estudo, Batalha | `app/(tabs)/study.tsx`, `src/presentation/screens/FlashcardStudyScreen.tsx` | `dom/study/*`, `comp/flashcards/*`, `data/local/Flashcard*`, `data/remote/FlashcardBattleRepository.ts`, `app/battle.tsx`, `app/decks`, `app/study`, lembrete `src/presentation/services/reviewReminder.ts` | flashcards, flashcard-*; skill study-flashcards |
-| Leituras de vestibular (em construção, 25/11) | tela `app/vestibular.tsx` (entrada em `app/(tabs)/study.tsx`, aba Estudo visível para todos) | `dom/study/vestibularReadings.ts`, `data/study/{VestibularReadingsService,vestibularDependencies}.ts`, Admin `src/admin/presentation/AdminVestibular.tsx` (seção "Leituras de vestibular", só OWNER), `supabase/migrations/20261125120000_vestibular_readings.sql` (listas, sugestões, RPCs do Admin), `20261125120100_vestibular_watch.sql` (robô pg_net/pg_cron; NÃO aplicadas) | vestibular-readings, vestibular-schema, vestibular-ui, vestibular-admin |
+| Leituras de vestibular (25/11) | tela `app/vestibular.tsx` (entrada em `app/(tabs)/study.tsx`, aba Estudo visível para todos) | `dom/study/vestibularReadings.ts`, `data/study/{VestibularReadingsService,vestibularDependencies}.ts`, Admin `src/admin/presentation/AdminVestibular.tsx` (seção "Leituras de vestibular", só OWNER), `supabase/migrations/20261125120000_vestibular_readings.sql` (listas, sugestões, RPCs do Admin), `20261125120100_vestibular_watch.sql` (robô pg_net/pg_cron); APLICADAS 25/11 + carga `supabase/seed/vestibular-lists-2026-11-25.json` (`scripts/write-vestibular-seed.cjs`) | vestibular-readings, vestibular-schema, vestibular-ui, vestibular-admin |
 | Comunidade (perfil, pessoas, clubes, fóruns) | `src/community/presentation/*`, `app/community/*`, `app/(tabs)/community.tsx` | `src/community/{domain,application,data}/*`, migrations `*community*` | community-*; `docs/context/community-estudo.md` |
 | Planos/cotas e Admin | `src/domain/saas/*`, `app/plan/*`, `src/admin/**`, `app/admin/index.tsx` | `data/saas/SupabaseAccountPlanRepository.ts` | saas-*, admin-* |
 | Textos legais | `src/legal/legalContent.ts`, `app/legal/*` | `src/legal/{legalConfig,thirdPartyNotices.generated}.ts`, `comp/legal/LegalDocumentScreen.tsx` | legal (mostrar texto ao dono antes) |
@@ -158,9 +158,9 @@ Teste no PC não comprova Android físico, sessão real nem deploy.
   variables: FEITO `SUPABASE_URL`, `LEGAL_CONTROLLER_NAME`, `LEGAL_CONTACT_EMAIL`, `SITE_URL=https://aldusreader.com.br`; dono colou as 3 restantes (7/7); (4) FEITO: `*.workers.dev` testado; (5) FEITO: domínio raiz e `www` no Worker, à espera da
   delegação .br; (6) FEITO: Supabase Auth com as 4 URLs de retorno de `aldusreader.com.br` e `www` (8→12; Site URL intacta); (7) FEITO 25/11: cliente Web OAuth com as 4 origens JS (domínio, www, workers.dev, Vercel) e `EXPO_PUBLIC_GOOGLE_DRIVE_WEB_CLIENT_ID` na Cloudflare e na Vercel (Drive no site nunca tinha sido configurado); FALTA: domínio novo
   na marca do OAuth (e na chave do Books, se tiver restrição por site); (8) só então desligar a Vercel.
-- **Leituras de vestibular (em andamento, autorizado 25/11):** partes 1–2 feitas (domínio, migrations testadas em PGlite); faltam aplicar
-  as migrations no Supabase, leitura com cópia no aparelho, editor/avisos no Admin, tela no Estudo (para todos) com sugestões e carga dos editais
-  oficiais (Fuvest, Unicamp, UFRGS, UEL, UFPR) e `watch_url` de cada um.
+- **Leituras de vestibular:** no ar (Fuvest 2026–29, Unicamp 2027–29, UFRGS 2027, UFPR 2027, fontes oficiais). PENDENTE: UEL
+  inativa (lista oficial só em PDF que não abriu; dono confere e publica pelo Admin, depois `active=true`); UFPR sem `watch_url`; robô
+  não obteve resposta da página da UFRGS na 1ª leitura (rever em alguns dias); NÃO TESTADO logado no app nem no Android (precisa APK).
 - **Comunidade:** dono pediu repaginação completa (25/11: "botões sem sentido", confusa); não iniciada, mostrar proposta antes.
 - **Aparelho (precisa de celular no cabo):** v13–v18 e a landing nunca vistas num celular; Drive não traz livros soltos fora de
   subpastas (não são atalhos; precisa de log); tocar na aba Biblioteca não volta ao topo no Android (`useScrollToTop` não rola).
@@ -181,6 +181,8 @@ Teste no PC não comprova Android físico, sessão real nem deploy.
 
 ## 9. Log (mais recente primeiro; máx. 5 entradas de até 3 linhas)
 
+- **25/11** — Leituras de vestibular: tela `app/vestibular.tsx` (Estudo visível a todos), dados com cópia no aparelho, seção no Admin,
+  migrations + robô diário (pg_net/pg_cron) aplicados no Supabase e 9 listas oficiais carregadas. UEL oculta até conferir o PDF.
 - **25/11** — Cadastro: erro preso ao campo e com o nome dele (`signupFieldErrors`, `AuthInput error`); usuário digitado vira
   formato aceito (`usernameAsTyped`: espaço→_, sem acento). Tema: padrão Clássico claro; "system" só se escolhido (`APP_THEME_CHOSEN_KEY`).
 - **25/11** — Aviso da versão: sem lista de novidades durante a beta; título "Boas-vindas ao Aldus", guia de 6 itens "Como o Aldus
@@ -190,5 +192,3 @@ Teste no PC não comprova Android físico, sessão real nem deploy.
   Testes de navegador do leitor PASS; NÃO TESTADO logado no site.
 - **25/11** — Leitor no PC: abria as duas páginas dentro da moldura de celular (430 px), espremido e cortado (captura do dono).
   A moldura agora só vale fora do PC (`useFormFactor` em `app/_layout.tsx`). NÃO TESTADO logado no navegador; dono confere.
-- **25/11** — Site: depois do login (Google, senha ou cadastro) ia para `/`, que no site é a landing. Agora vai para `/auth/continue`,
-  que usa a mesma decisão de entrada do Android (`AccountEntry`: perfil, conta, biblioteca). Android inalterado.
