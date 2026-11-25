@@ -161,7 +161,7 @@ const load = require('./community-test-loader.cjs')({
     const f = desktopReaderFrame({ width, height: 700, layout });
     assert.equal(f.left + f.width + f.right, width, 'fills the row'); assert.ok(Math.abs(f.left - f.right) <= 1, 'centred');
     assert.ok(f.width <= DESKTOP_PAGE_WIDTH[layout] && f.left >= 48, 'margin on the sides');
-    assert.equal(f.top + f.height + f.bottom, 700); assert.ok(layout === 'scroll' ? f.top === 0 : f.top >= 24, 'breathing room above the page');
+    assert.equal(f.top + f.height + f.bottom, 700); assert.ok(f.top >= 24 && f.bottom >= 24, 'breathing room above and below the page, scrolling included');
   }
   assert.ok(desktopReaderFrame({ width: 1366, height: 700, layout: 'single' }).width < desktopReaderFrame({ width: 1366, height: 700, layout: 'spread' }).width);
   console.log('PASS desktop layout: Android status bar scrim (height of the bar, background colour, no touch; none on Web or without a bar); Study/Community columns (grid skips empty children, split aside 420 px, phone keeps one column); periodic web sync (90 s, visible and online only, stops); reader side sheets (contents left, others right, full height); reader keys (Space/PageDown/Shift+Space/PageUp, not while typing); Ctrl/Shift selection (range both ways, stale anchor), double click window, Cmd as Ctrl; PC only for Web + window >= 1024 + mouse (narrow PC window, touch tablet, phone site and Android keep the touch layout); sidebar with labelled sections, hidden Estudo, search to the catalog, honest sync status. Component test, not a browser capture.');

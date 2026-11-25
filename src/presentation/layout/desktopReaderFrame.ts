@@ -24,12 +24,13 @@ export function desktopReaderLayout(flow: "paged" | "scroll", pages: "two" | "on
   return pages === "two" && spreadFits ? "spread" : "single";
 }
 
-/** Posição da folha dentro da área livre. A rolagem usa a altura toda (a folha continua para baixo). */
+/** Posição da folha dentro da área livre; na rolagem o texto corre dentro da folha. */
 export function desktopReaderFrame({ width, height, layout }: DesktopReaderFrameInput): DesktopReaderFrame {
   const room = Math.max(0, width - DESKTOP_PAGE_MARGIN.side * 2);
   const pageWidth = Math.max(0, Math.min(DESKTOP_PAGE_WIDTH[layout], room));
   const side = Math.floor((width - pageWidth) / 2);
-  const top = layout === "scroll" ? 0 : DESKTOP_PAGE_MARGIN.top;
-  const bottom = layout === "scroll" ? 0 : DESKTOP_PAGE_MARGIN.bottom;
+  // 25/11/2026 (dono, na rolagem: "coloca uma margemzinha em cima"): a folha tem respiro em cima e embaixo em todos os modos.
+  const top = DESKTOP_PAGE_MARGIN.top;
+  const bottom = DESKTOP_PAGE_MARGIN.bottom;
   return { left: side, right: width - pageWidth - side, top, bottom, width: pageWidth, height: Math.max(0, height - top - bottom) };
 }
