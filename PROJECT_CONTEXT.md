@@ -43,7 +43,8 @@ AsyncStorage; flashcards `@kindle/flashcards.v1:<UUID>` / `kindle-flashcards.db`
 
 - Produção Vercel = `f6967e6` (landing "A prensa"). Cloudflare: configuração no repositório (25/11), testada só localmente
   (`wrangler dev`). Zona `aldusreader.com.br` criada na Cloudflare (plano Free) e nameservers trocados no Registro.br em 25/11
-  (`cruz`/`lex.ns.cloudflare.com`; propagação pendente). Worker `aldus-reader` criado e ligado ao GitHub em 25/11; builds falham até as 2 chaves entrarem (ver §7).
+  (`cruz`/`lex.ns.cloudflare.com`; propagação pendente). Worker `aldus-reader` no ar em https://aldus-reader.matheusborbaifc.workers.dev (build `4c802da`, 25/11; rotas, cabeçalhos e
+  `build-info` conferidos por curl). `aldusreader.com.br` e `www` já ligados ao Worker; passam a responder quando o .br publicar a delegação.
 - Último APK: **v18** `4a0cc73`, chave do dono (`CN=Aldus Reader`, `a8ee8ec1…`), em `G:\Meu Drive\Aldus APK\Aldus-1.0.0-beta.2-18-4a0cc73.apk`.
   Lista de entrega: 74 recursos (`scripts/verify-release-features.cjs`). `test:critical`: 144 suítes.
 - Aparelhos: Redmi 23117RA68G e Note 14 (Android 16), só por USB. Nada de v13 a v18 foi exercitado num aparelho por mim, salvo o
@@ -154,8 +155,8 @@ Teste no PC não comprova Android físico, sessão real nem deploy.
   validar):** (1) FEITO 25/11: zona na Cloudflare (Free; registros MX nulo/SPF/DMARC "sem e-mail" importados; "Bot Preference
   Sync" desligado para o `robots.txt` ficar igual) e nameservers no Registro.br; (2) FEITO: Worker importando `MatheusBorbaDev/Aldus`
   (app da Cloudflare só nesse repositório). Nome `aldus-reader`, build `npm run build`, deploy `npx wrangler@4.160.1 deploy`; (3) build
-  variables: FEITO `SUPABASE_URL`, `LEGAL_CONTROLLER_NAME`, `LEGAL_CONTACT_EMAIL`, `SITE_URL=https://aldusreader.com.br`; FALTA o dono colar `EXPO_PUBLIC_SUPABASE_KEY` e `EXPO_PUBLIC_GOOGLE_BOOKS_API_KEY` (e `EXPO_PUBLIC_CATALOG_CONTACT`, opcional); (4) testar no
-  `*.workers.dev`; (5) domínio próprio no Worker; (6) Supabase Auth: URLs de retorno do domínio novo; (7) Google Cloud: domínio novo
+  variables: FEITO `SUPABASE_URL`, `LEGAL_CONTROLLER_NAME`, `LEGAL_CONTACT_EMAIL`, `SITE_URL=https://aldusreader.com.br`; dono colou as 3 restantes (7/7); (4) FEITO: `*.workers.dev` testado; (5) FEITO: domínio raiz e `www` no Worker, à espera da
+  delegação .br; (6) FEITO: Supabase Auth com as 4 URLs de retorno de `aldusreader.com.br` e `www` (8→12; Site URL intacta); (7) FALTA: Google Cloud: domínio novo
   na marca do OAuth (e na chave do Books, se tiver restrição por site); (8) só então desligar a Vercel.
 - **Aparelho (precisa de celular no cabo):** v13–v18 e a landing nunca vistas num celular; Drive não traz livros soltos fora de
   subpastas (não são atalhos; precisa de log); tocar na aba Biblioteca não volta ao topo no Android (`useScrollToTop` não rola).
