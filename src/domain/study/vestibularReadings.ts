@@ -91,3 +91,24 @@ export function parseBookLines(text: string): { books: VestibularBook[]; errors:
   if (books.length > 60) errors.push("No máximo 60 obras por lista.");
   return { books, errors };
 }
+
+/**
+ * 25/11/2026 (dono: "dar prioridade, aparecer se o livro tem domínio público e está disponível para download"): dos resultados das
+ * fontes de arquivo (Project Gutenberg e as fontes da pessoa), fica só o que é de fato aquela obra: o título bate (sem acento, caixa e
+ * pontuação) e, quando o resultado traz autor, o sobrenome do autor também. Nada de "parecido": livro errado não vira opção de download.
+ */
+const fold = (text: string) => text.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+const STOP = new Set(["o", "a", "os", "as", "de", "da", "do", "das", "dos", "e", "the", "um", "uma"]);
+const words = (text: string) => fold(text).split(" ").filter(word => word && !STOP.has(word));
+export function sameWork(candidate: { title: string; author?: string }, book: { title: string; author: string }): boolean {
+  const wanted = words(book.title), got = words(candidate.title.replace(/\.(?:epub|pdf)$/i, ""));
+  if (!wanted.length || !got.length) return false;
+  // O título pedido inteiro aparece no começo do título encontrado (aceita subtítulo: "Iracema: lenda do Ceará").
+  if (!wanted.every((word, index) => got[index] === word)) return false;
+  if (!candidate.author?.trim()) return true;
+  const surname = words(book.author).at(-1)!, found = words(candidate.author);
+  return found.includes(surname) || found.some(word => word.length > 3 && words(book.author).includes(word));
+}
+export function vestibularDownloadQuery(book: { title: string; author: string }): string {
+  return `${book.title} ${words(book.author).at(-1) ?? ""}`.trim();
+}

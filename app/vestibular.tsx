@@ -7,6 +7,7 @@ import { AppText, Button, Chip, ChipRow, EmptyState, Screen, ScreenHeader, Secti
 import { vestibularReadings } from "@/src/data/study/vestibularDependencies";
 import { VestibularReadResult, VestibularSuggestionError } from "@/src/data/study/VestibularReadingsService";
 import { VestibularReadingList, vestibularReadingsView, SUGGESTION_MAX } from "@/src/domain/study/vestibularReadings";
+import { VestibularBookPanel } from "@/src/presentation/components/study/VestibularBookPanel";
 
 /**
  * Leituras de vestibular (25/11/2026, pedido do dono): escolher o vestibular, ver primeiro a lista da prova que vem pela frente e,
@@ -86,18 +87,23 @@ function VestibularScreen() {
 
 function ReadingList({ list, title }: { list: VestibularReadingList; title?: string }) {
   const { palette } = useAppTheme();
+  // 25/11/2026: tocar numa obra abre, aqui mesmo, o arquivo gratuito em domínio público (quando houver) e a ficha do catálogo.
+  const [open, setOpen] = useState<number | null>(null);
   return (
     <View style={[styles.list, { borderColor: palette.border, backgroundColor: palette.surface }]}>
       {title ? <AppText variant="title">{title}</AppText> : null}
       {list.books.map(book => (
-        <Pressable key={`${book.position}-${book.title}`} accessibilityRole="button" accessibilityLabel={`${book.title}, de ${book.author}. Buscar em Descobrir`}
-          onPress={() => router.push({ pathname: "/catalog", params: { q: `${book.title} ${book.author}` } } as never)} style={styles.book}>
+        <View key={`${book.position}-${book.title}`}>
+        <Pressable accessibilityRole="button" accessibilityState={{ expanded: open === book.position }} accessibilityLabel={`${book.title}, de ${book.author}. Ver se há arquivo em domínio público`}
+          onPress={() => setOpen(open === book.position ? null : book.position)} style={styles.book}>
           <AppText variant="bodySmall" tone="secondary" style={styles.position}>{book.position}.</AppText>
           <View style={{ flex: 1 }}>
             <AppText variant="body">{book.title}</AppText>
             <AppText variant="bodySmall" tone="secondary">{book.author}{book.note ? ` · ${book.note}` : ""}</AppText>
           </View>
         </Pressable>
+        {open === book.position ? <VestibularBookPanel book={book} /> : null}
+        </View>
       ))}
       <Pressable accessibilityRole="link" onPress={() => void Linking.openURL(list.sourceUrl)} style={styles.source}>
         <AppText variant="bodySmall" tone="accent">Fonte: edital oficial</AppText>

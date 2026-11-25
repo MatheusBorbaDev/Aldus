@@ -33,6 +33,15 @@ assert.deepEqual(pasted.errors, []); assert.deepEqual(pasted.books.map(b => [b.p
 assert.deepEqual(v.parseBookLines('Iracema — José de Alencar\nSem autor aqui').errors, ['Linha 2: use "Título — Autor".']);
 assert.deepEqual(v.parseBookLines('  ').errors, ['Cole ao menos uma obra.']);
 assert.equal(v.parseBookLines('A-B — C').books[0].title, 'A-B', 'hyphen inside a title is kept');
+// Download match: the same work only (title prefix, accents/case/punctuation folded, author surname when present).
+const iracema = { title: 'Iracema', author: 'José de Alencar' };
+assert.ok(v.sameWork({ title: 'Iracema: Lenda do Ceará', author: 'Alencar, José Martiniano de' }, iracema));
+assert.ok(v.sameWork({ title: 'iracema.epub' }, iracema), 'file name without author');
+assert.ok(!v.sameWork({ title: 'Iracema', author: 'Outro Autor' }, iracema), 'wrong author');
+assert.ok(!v.sameWork({ title: 'Lenda de Iracema', author: 'José de Alencar' }, iracema), 'title must start with the work');
+assert.ok(v.sameWork({ title: 'Memorias Posthumas de Braz Cubas'.replace('Posthumas','Póstumas').replace('Braz','Brás'), author: 'Machado de Assis' }, { title: 'Memórias Póstumas de Brás Cubas', author: 'Machado de Assis' }));
+assert.ok(!v.sameWork({ title: 'Dom', author: 'Machado de Assis' }, { title: 'Dom Casmurro', author: 'Machado de Assis' }), 'partial title is not the work');
+assert.equal(v.vestibularDownloadQuery({ title: 'O cortiço', author: 'Aluísio Azevedo' }), 'O cortiço azevedo');
 console.log('PASS vestibular readings: upcoming (nearest first) and past (newest first) per vestibular, target year pending said instead of invented, strict contract with official https source, bounded suggestions.');
 
 // Data layer: server first, device copy when offline, copy re-validated, suggestions mapped to readable errors.

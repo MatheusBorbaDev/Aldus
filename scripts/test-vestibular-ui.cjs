@@ -25,6 +25,7 @@ const load = require('./community-test-loader.cjs')({
     suggest: async input => { if (suggestError) throw new VestibularSuggestionError(suggestError); suggestions.push(input); },
   } },
   '@/src/data/study/VestibularReadingsService': { VestibularSuggestionError },
+  '@/src/presentation/components/study/VestibularBookPanel': { VestibularBookPanel: ({ book }) => React.createElement('Panel', { book }) },
 });
 const Screen = load('app/vestibular.tsx').default;
 const raw = node => typeof node === 'string' ? node : (node.children ?? []).map(raw).join(' '); const text = node => raw(node).replace(/\s+/g, ' ');
@@ -44,9 +45,11 @@ const snapshot = { savedAt: '2026-11-20T10:00:00.000Z', vestibulares: [
   assert.ok(!shown.includes('ainda não foi publicada'), 'target year published');
   assert.ok(shown.indexOf(`Unicamp ${year - 1}`) < shown.indexOf(`Unicamp ${year - 2}`), 'past newest first');
   assert.ok(!shown.includes('O cortiço'), 'past lists start collapsed');
-  // Each book searches Descobrir; the source opens the official edital.
+  // Tapping a work opens its panel in place (public-domain download first, then the catalog); tapping again closes it.
   const book = tree.root.findAllByType('Pressable').find(p => p.props.accessibilityLabel?.startsWith('Iracema'));
-  await act(async () => book.props.onPress()); assert.deepEqual(routes.at(-1), { pathname: '/catalog', params: { q: 'Iracema Autor 0' } });
+  await act(async () => book.props.onPress()); assert.equal(tree.root.findAllByType('Panel').length, 1); assert.equal(tree.root.findByType('Panel').props.book.title, 'Iracema');
+  await act(async () => book.props.onPress()); assert.equal(tree.root.findAllByType('Panel').length, 0);
+  // The source opens the official edital.
   const source = tree.root.findAllByType('Pressable').find(p => p.props.accessibilityRole === 'link');
   await act(async () => source.props.onPress()); assert.equal(opened.at(-1), `https://oficial.example/unicamp-${year + 1}`);
   // Opening a past list shows it.
@@ -76,5 +79,5 @@ const snapshot = { savedAt: '2026-11-20T10:00:00.000Z', vestibulares: [
   const fs = require('node:fs');
   assert.doesNotMatch(fs.readFileSync('app/(tabs)/_layout.tsx', 'utf8'), /name="study" options=\{\{[^}]*href: flashcards/);
   assert.match(fs.readFileSync('app/(tabs)/study.tsx', 'utf8'), /allowed \? <StudyContent \/> : <StudyWithoutFlashcards \/>/);
-  console.log('PASS vestibular UI: saved choice, upcoming list first, past lists collapsed newest first, book opens Descobrir, source opens the edital, pending year said, suggestions sent and errors shown, offline copy dated, retry when unavailable; Estudo visible to all.');
+  console.log('PASS vestibular UI: saved choice, upcoming list first, past lists collapsed newest first, book opens its download/catalog panel, source opens the edital, pending year said, suggestions sent and errors shown, offline copy dated, retry when unavailable; Estudo visible to all.');
 })().catch(error => { console.error(error); process.exitCode = 1; });
