@@ -96,7 +96,8 @@ Cada passo precisa da sua própria autorização; uma autorização cumprida nã
    publicar só com pedido.
 5. **Homologação**: aparelho e contas reais. Enquanto não acontecer, o item fica `NÃO TESTADO` ali,
    mesmo com tudo verde no PC.
-6. **Registro** em PROJECT_CONTEXT (§3, §8 e log), no módulo da área e em BUGS_ATUAIS se couber.
+6. **Registro** em PROJECT_CONTEXT (mapa §5 se algum arquivo/recurso mudou, §3, §7 e log curto), no módulo da área e em
+   BUGS_ATUAIS se couber.
 
 Servidor antes do app quando o app novo depende do schema; o app deve continuar funcionando com o
 servidor antigo (mensagem de indisponível), para que a ordem inversa não quebre ninguém.

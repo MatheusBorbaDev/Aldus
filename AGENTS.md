@@ -12,9 +12,10 @@ estas convenções; documentos antigos não ampliam o escopo autorizado.
 2. Execute `node scripts/ai-project-preflight.cjs`. É uma inspeção local somente leitura:
    não instala dependências, não executa testes, não acessa serviços nem usa aparelho.
 3. Leia [PROJECT_CONTEXT.md](PROJECT_CONTEXT.md) inteiro: é a única leitura obrigatória (protocolo,
-   estado atual, mapa tarefa→arquivos, pendências, log recente). Abra os módulos de
-   `docs/context/` só quando o mapa indicar, lendo por seção. Para correções, leia também a
-   entrada pertinente de [BUGS_ATUAIS.md](BUGS_ATUAIS.md). Confira Git/código antes de confiar em registro antigo.
+   estado atual, mapa §5 de onde fica cada recurso, pendências, log curto). **Não explore o projeto:**
+   ache a área no mapa e abra direto os arquivos dela (em arquivo grande, `rg -n` pelo símbolo).
+   Abra módulos de `docs/context/` só quando o mapa indicar, lendo por seção. Para correções, leia
+   também a entrada pertinente de [BUGS_ATUAIS.md](BUGS_ATUAIS.md). Confira Git/código antes de confiar em registro antigo.
 4. Leia a skill [aldus-project-continuity](.agents/skills/aldus-project-continuity/SKILL.md)
    ao iniciar, retomar após interrupção/compactação ou preparar a passagem de trabalho.
    Carregue as demais skills somente quando a tarefa exigir.
@@ -23,8 +24,10 @@ estas convenções; documentos antigos não ampliam o escopo autorizado.
 
 ## Fontes e manutenção do conhecimento
 
-- `PROJECT_CONTEXT.md`: protocolo, estado atual, arquitetura, matriz de recursos (§5), mapa (§6), pendências, regras de proteção e log
-  curto (máx. 5 entradas). `docs/context/*.md`: referência por área; `docs/context/historico/`: cronologia antiga;
+- `PROJECT_CONTEXT.md`: protocolo, estado atual, arquitetura, mapa de onde fica cada recurso (§5), pendências, regras de
+  proteção e log curto (máx. 5 entradas de até 3 linhas). **Em toda alteração de código, no mesmo commit:** arquivo ou recurso
+  novo, movido ou removido → linha do mapa; estado/pendência → §3/§7; entrada no log (a mais antiga vai para
+  `docs/context/historico/`). Mapa desatualizado é defeito: corrija ao notar. `docs/context/*.md`: referência por área; `docs/context/historico/`: cronologia antiga;
   `docs/context/referencias/`: handoffs do ChatGPT e requisitos (hipótese, não prova).
 - `BUGS_ATUAIS.md`: problemas ativos, reprodução, limites de validação e bloqueios.
 - `README.md`: instalação/execução; `package.json`: comandos reais; código e Git: estado real.
