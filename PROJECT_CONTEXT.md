@@ -42,15 +42,13 @@ AsyncStorage; flashcards `@kindle/flashcards.v1:<UUID>` / `kindle-flashcards.db`
 ## 3. Estado atual (25/11/2026)
 
 - E-mail do domínio (25/11, grátis): Cloudflare Email Routing; `contato@`, `suporte@`, `financeiro@`, `adm@aldusreader.com.br` → `aldusreader@gmail.com` (destino verificado). MX nulo e SPF `-all` antigos removidos; MX/SPF/DKIM da Cloudflare ativos. Envio: conta Brevo grátis (login Google de `aldusreader@gmail.com`), domínio autenticado (TXT `brevo-code`, CNAME `brevo1/2._domainkey`, DMARC p=none); SMTP `smtp-relay.brevo.com:587`. PENDENTE (dono): verificar celular na Brevo, gerar chave SMTP e concluir "Enviar e-mail como" no Gmail.
-- Produção Vercel = `f6967e6` (landing "A prensa"). Cloudflare: configuração no repositório (25/11), testada só localmente
-  (`wrangler dev`). Zona `aldusreader.com.br` criada na Cloudflare (plano Free) e nameservers trocados no Registro.br em 25/11
-  (`cruz`/`lex.ns.cloudflare.com`; propagação pendente). Worker `aldus-reader` no ar em https://aldus-reader.matheusborbaifc.workers.dev (build `4c802da`, 25/11; rotas, cabeçalhos e
-  `build-info` conferidos por curl). `aldusreader.com.br` e `www` já ligados ao Worker; passam a responder quando o .br publicar a delegação.
+- Site no ar em https://aldusreader.com.br (Cloudflare Worker `aldus-reader`, deploy automático a cada push em `main`) e na Vercel
+  (CLI, mesmo commit). HTTPS ok nos dois; "Always Use HTTPS" ainda desligado (http:// abre com aviso no Chrome). Drive no site configurado em 25/11, conexão NÃO TESTADA.
 - Último APK: **v18** `4a0cc73`, chave do dono (`CN=Aldus Reader`, `a8ee8ec1…`), em `G:\Meu Drive\Aldus APK\Aldus-1.0.0-beta.2-18-4a0cc73.apk`.
-  Lista de entrega: 74 recursos (`scripts/verify-release-features.cjs`). `test:critical`: 144 suítes.
+  Lista de entrega: 75 recursos (`scripts/verify-release-features.cjs`). `test:critical`: 146 suítes. Desde a v18, mudanças que também valem no Android (tema claro padrão, erros do cadastro por campo, respiro em cada página, aviso de boas-vindas) ainda não estão em APK.
 - Aparelhos: Redmi 23117RA68G e Note 14 (Android 16), só por USB. Nada de v13 a v18 foi exercitado num aparelho por mim, salvo o
   toque longo nas bordas (v14, confirmado pelo dono no Note 14).
-- Supabase "Kindle reader" (`cmivracxuihtmsbmtuec`): todas as migrations de `supabase/migrations` aplicadas (várias pelo SQL Editor,
+- Supabase "Kindle reader" (`cmivracxuihtmsbmtuec`): migrations aplicadas até `20261118120000`; as de vestibular (`20261125120000/120100`) NÃO aplicadas (várias pelo SQL Editor,
   fora do ledger); `username-login` publicada com Upstash. Acesso só pelo painel no Chrome, com autorização.
 
 ## 4. Arquitetura e invariantes
@@ -160,9 +158,13 @@ Teste no PC não comprova Android físico, sessão real nem deploy.
   variables: FEITO `SUPABASE_URL`, `LEGAL_CONTROLLER_NAME`, `LEGAL_CONTACT_EMAIL`, `SITE_URL=https://aldusreader.com.br`; dono colou as 3 restantes (7/7); (4) FEITO: `*.workers.dev` testado; (5) FEITO: domínio raiz e `www` no Worker, à espera da
   delegação .br; (6) FEITO: Supabase Auth com as 4 URLs de retorno de `aldusreader.com.br` e `www` (8→12; Site URL intacta); (7) FEITO 25/11: cliente Web OAuth com as 4 origens JS (domínio, www, workers.dev, Vercel) e `EXPO_PUBLIC_GOOGLE_DRIVE_WEB_CLIENT_ID` na Cloudflare e na Vercel (Drive no site nunca tinha sido configurado); FALTA: domínio novo
   na marca do OAuth (e na chave do Books, se tiver restrição por site); (8) só então desligar a Vercel.
+- **Leituras de vestibular (em andamento, autorizado 25/11):** partes 1–2 feitas (domínio, migrations testadas em PGlite); faltam aplicar
+  as migrations no Supabase, leitura com cópia no aparelho, editor/avisos no Admin, tela no Estudo (para todos) com sugestões e carga dos editais
+  oficiais (Fuvest, Unicamp, UFRGS, UEL, UFPR) e `watch_url` de cada um.
+- **Comunidade:** dono pediu repaginação completa (25/11: "botões sem sentido", confusa); não iniciada, mostrar proposta antes.
 - **Aparelho (precisa de celular no cabo):** v13–v18 e a landing nunca vistas num celular; Drive não traz livros soltos fora de
   subpastas (não são atalhos; precisa de log); tocar na aba Biblioteca não volta ao topo no Android (`useScrollToTop` não rola).
-- **Decisões do dono:** e-mail de cadastro do beta (senha de app do Gmail ou desligar confirmação); nome/e-mail do controlador
+- **Decisões do dono:** e-mail de cadastro do beta (agora possível pelo SMTP da Brevo no Supabase Auth, com autorização); ligar "Always Use HTTPS"; nome/e-mail do controlador
   (LGPD); renomear a URL da Vercel; moderação da Comunidade ou desligá-la; página de instruções e convite do beta; conta Android de
   distribuição limitada; importar do Skoob; leitor de ISBN pela câmera.
 - **Planejado, sem pedido:** encaixe lateral que estreita a página no PC (exige redimensionar preservando a posição); fila de
