@@ -59,4 +59,8 @@ assert.equal((generated.match(/"name": /g) ?? []).length, Object.keys(pkg.depend
 const noticesCheck = spawnSync(process.execPath, [path.join(root, "scripts", "generate-third-party-notices.cjs"), "--check"], { cwd: root, encoding: "utf8" });
 assert.equal(noticesCheck.status, 0, noticesCheck.stderr || noticesCheck.stdout);
 
+// 25/11/2026 (owner): public contacts are @aldusreader.com.br only; the personal address never ships in the app or site.
+{ const walk = d => require('node:fs').readdirSync(d, { withFileTypes: true }).flatMap(e => e.isDirectory() ? walk(`${d}/${e.name}`) : /\.(tsx?|cjs|json)$/.test(e.name) ? [`${d}/${e.name}`] : []);
+  for (const file of [...walk('src'), ...walk('app')]) assert.ok(!/matheusborbaifc/i.test(read(file)), `personal e-mail in ${file}`);
+  assert.match(read('src/legal/legalConfig.ts'), /\|\| "contato@aldusreader\.com\.br"/); }
 console.log(`Legal PASS: ${routeFiles.length} rotas públicas, conteúdo auditável e ${Object.keys(pkg.dependencies).length} dependências de runtime inventariadas.`);
