@@ -6,6 +6,7 @@ import { initialCatalogReference } from './catalogReference.generated';
 import { landingCss } from './landingStyles';
 import { MedalDefs, Medal } from './AldusMedal';
 import { PressHero } from './PressHero';
+import { SocialLinks } from './socialLinks';
 import { pressCss } from './pressStyles';
 import { useLandingScrollEffects } from './landingScrollEffects';
 
@@ -82,6 +83,6 @@ export function LandingDocument({signedIn=false,catalog,contactEmail=null}:Landi
    <section id="perguntas" className="al-container al-section al-faq-section" data-reveal><div><p className="al-eyebrow">ANTES DA PRÓXIMA PÁGINA</p><h2>Boas perguntas.<br/><em>Respostas claras.</em></h2><p>A leitura começa com confiança.</p></div><div className="al-faq">{faqs.map(([question,answer])=><details key={question}><summary>{question}<span aria-hidden="true">+</span></summary><p>{answer}</p></details>)}</div></section>
    <section className="al-final al-container" data-reveal><Medal/><p className="al-eyebrow">UM NOVO CAPÍTULO</p><h2>Sua próxima leitura<br/>começa <em>aqui.</em></h2><p>Traga seus livros. Encontre seu ritmo.<br/>O resto começa na primeira página.</p><a className="al-button" href={cta}>{ctaText} <Arrow/></a></section>
   </main>
-  <footer className="al-container al-footer"><div><a href="/" className="al-brand"><Medal/><span>Aldus Reader</span></a><p>Leia. Organize. Descubra.</p></div><nav aria-label="Informações legais"><a href="/legal/privacy">Privacidade</a><a href="/legal/terms">Termos de uso</a><a href="/legal/copyright">Direitos autorais</a><a href={contactEmail?`mailto:${contactEmail}`:'/legal/about'}>Contato</a></nav><p className="al-footer-note">© {new Date().getFullYear()} Aldus Reader. Respeite os direitos de cada obra.</p></footer>
+  <footer className="al-container al-footer"><div><a href="/" className="al-brand"><Medal/><span>Aldus Reader</span></a><p>Leia. Organize. Descubra.</p><SocialLinks/></div><nav aria-label="Informações legais"><a href="/legal/privacy">Privacidade</a><a href="/legal/terms">Termos de uso</a><a href="/legal/copyright">Direitos autorais</a><a href={contactEmail?`mailto:${contactEmail}`:'/legal/about'}>Contato</a></nav><p className="al-footer-note">© {new Date().getFullYear()} Aldus Reader. Respeite os direitos de cada obra.</p></footer>
  </div>;
 }

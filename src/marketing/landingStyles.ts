@@ -21,6 +21,7 @@ export const landingCss = `
 .al-faq summary>span{flex:none;transition:transform .18s ease}
 .al-final{background:linear-gradient(135deg,#ead1b9,#e6c3a5);border-color:#d8b698}
 .al-footer-note{font-size:11px;line-height:1.7}
+.al-social{display:flex;gap:6px;margin-top:16px;margin-left:-11px}.al-social a{display:grid;place-items:center;width:44px;height:44px;border-radius:50%;color:var(--al-muted);transition:color .16s ease,background .16s ease}.al-social a:hover{color:var(--al-accent);background:#253d350d}
 /* Shorter, smaller entrances keep the surrounding page responsive to quick scrolls. */
 .al-enter{animation-duration:.65s;animation-timing-function:cubic-bezier(.22,1,.36,1)}
 [data-reveal]{transition:opacity .44s ease,transform .44s cubic-bezier(.22,1,.36,1)}

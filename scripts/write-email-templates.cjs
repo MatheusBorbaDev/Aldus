@@ -4,6 +4,10 @@
 const fs = require('node:fs'), path = require('node:path');
 const SITE = 'https://aldusreader.com.br';
 const OUT = path.join(__dirname, '..', 'supabase', 'templates');
+// Redes do Aldus (mesma lista de src/marketing/socialLinks.tsx; conferido em test-email-templates). Ícones PNG em public/email/.
+const SOCIAL = [['instagram', 'Instagram', 'https://www.instagram.com/aldus_reader/'], ['tiktok', 'TikTok', 'https://www.tiktok.com/@aldusreader'],
+  ['x', 'X', 'https://x.com/Aldusreader'], ['facebook', 'Facebook', 'https://www.facebook.com/61596730780151/']];
+const socialRow = SOCIAL.map(([id, label, url]) => `<a href="${url}" style="display:inline-block;margin:0 7px;"><img src="${SITE}/email/social-${id}.png" width="22" height="22" alt="${label}" style="display:block;border:0;width:22px;height:22px;"></a>`).join('');
 const c = { night: '#1B1C30', cream: '#F7F4EE', card: '#FFFDF9', ink: '#1F2D2B', soft: '#68716D', line: '#DDD8CF', accent: '#A64E32', medalCream: '#F2E6CF' };
 const serif = "Georgia, 'Times New Roman', serif", sans = "-apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif";
 
@@ -37,7 +41,8 @@ function layout({ preheader, title, intro, action, after, why }) {
         </td></tr>
       </table>
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;">
-        <tr><td align="center" style="font-family:${sans};font-size:12px;line-height:18px;color:${c.soft};padding:18px 8px 0;">
+        <tr><td align="center" style="padding:20px 8px 0;">${socialRow}</td></tr>
+        <tr><td align="center" style="font-family:${sans};font-size:12px;line-height:18px;color:${c.soft};padding:12px 8px 0;">
           Aldus Reader · <a href="${SITE}" style="color:${c.soft};">aldusreader.com.br</a> · Dúvidas: <a href="mailto:suporte@aldusreader.com.br" style="color:${c.soft};">suporte@aldusreader.com.br</a>
         </td></tr>
       </table>
@@ -83,7 +88,7 @@ const TEMPLATES = {
     after: `<div style="font-family:${serif};font-size:32px;letter-spacing:6px;color:${c.night};text-align:center;background:${c.cream};border-radius:10px;padding:16px 0;">{{ .Token }}</div>`,
     why: `Código para {{ .Email }}. Ele vale por pouco tempo. ${ignore}` }) },
 };
-module.exports = { TEMPLATES };
+module.exports = { TEMPLATES, SOCIAL };
 if (require.main === module) {
   fs.mkdirSync(OUT, { recursive: true });
   for (const [name, t] of Object.entries(TEMPLATES)) fs.writeFileSync(path.join(OUT, `${name}.html`), t.html);
