@@ -12,6 +12,7 @@ import { libraryAccountScope } from "@/src/data/library/LibraryAccountScope";
 import { sourceIdentity } from "@/src/domain/types/sourceCatalog";
 import type { ScrapedLink } from "@/src/domain/types/search";
 import type { UserSource } from "@/src/domain/types/sources";
+import type { LibraryBook } from "@/src/domain/entities/LibraryBook";
 import { sameWork, VestibularBook, vestibularDownloadQuery } from "@/src/domain/study/vestibularReadings";
 
 /**
@@ -19,6 +20,8 @@ import { sameWork, VestibularBook, vestibularDownloadQuery } from "@/src/domain/
  * para download... que fosse possível fazer isso tudo direto pelo Aldus"). Primeiro: arquivos gratuitos da mesma obra no Project Gutenberg
  * (domínio público) e nas fontes desta conta (Drive, bibliotecas por link), com "Baixar e adicionar". Depois: a ficha do catálogo
  * (Quero ler, Lendo, Lido). Só sai do aparelho o título e o sobrenome do autor buscados.
+ * 25/11/2026 (dono: "procura na biblioteca do próprio usuário também?"): antes de tudo, a mesma obra já na Biblioteca desta conta
+ * (com arquivo: "Abrir para ler"; sem arquivo: aviso de que está na estante). A busca local não sai do aparelho.
  */
 type Found = ScrapedLink & { publicDomain: boolean };
 const sourceRepository = new UserSourceRepository();
@@ -27,12 +30,16 @@ const fileBase = (title: string) => title.normalize("NFKD").replace(/[̀-ͯ]/g, 
 export function VestibularBookPanel({ book }: { book: VestibularBook }) {
   const { palette } = useAppTheme();
   const [found, setFound] = useState<Found[] | null>(null), [searchError, setSearchError] = useState(false);
+  const [owned, setOwned] = useState<LibraryBook[]>([]);
   const [busy, setBusy] = useState<string | null>(null), [message, setMessage] = useState<{ url: string; text: string; bookId?: string } | null>(null);
   const sources = useRef<UserSource[]>([]);
   const jobs = useDownloadStore(state => state.jobs), enqueue = useDownloadStore(state => state.enqueue);
 
   useEffect(() => {
     const controller = new AbortController();
+    appDependencies.bookRepository.listActive()
+      .then(books => { if (!controller.signal.aborted) setOwned(books.filter(item => !item.isDeleted && sameWork(item, book))); })
+      .catch(() => undefined);
     (async () => {
       try {
         const account = libraryAccountScope.userId;
@@ -79,6 +86,15 @@ export function VestibularBookPanel({ book }: { book: VestibularBook }) {
 
   return (
     <View style={[styles.panel, { borderColor: palette.border }]}>
+      {owned.map(item => (
+        <View key={item.id} style={[styles.offer, { backgroundColor: palette.accentSoft ?? palette.surface }]}>
+          <AppText variant="label">Já está na sua Biblioteca</AppText>
+          <AppText variant="bodySmall" tone="secondary">{item.title} · {item.author}{item.kind === "record" ? " · na estante, sem arquivo" : ""}</AppText>
+          {item.kind === "record"
+            ? <AppText variant="bodySmall" tone="secondary">Se houver arquivo gratuito abaixo, você pode baixá-lo.</AppText>
+            : <Button label="Abrir para ler" icon="book-outline" variant="primary" onPress={() => router.push(`/reader/${item.id}` as never)} />}
+        </View>
+      ))}
       {found === null ? <AppText variant="bodySmall" tone="secondary">Procurando arquivo gratuito em domínio público…</AppText> : null}
       {found?.map(item => {
         const job = jobs[item.url], working = busy === item.url || job?.status === "queued" || job?.status === "downloading";

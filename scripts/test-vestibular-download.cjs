@@ -3,6 +3,7 @@ const assert = require('node:assert/strict');
 const React = require('../.expo/auth-test-tools/node_modules/react');
 const { act, create } = require('../.expo/auth-test-tools/node_modules/react-test-renderer');
 global.IS_REACT_ACT_ENVIRONMENT = true;
+let library = [];
 const routes = [], queries = [], enqueued = []; let results = [], failSearch = false, jobResult = { status: 'completed', importedBookId: 'book-1' };
 const owner = 'user-a';
 const sources = [{ id: 'drive-a', name: 'Meu Drive', enabled: true, status: 'active', ownerId: owner, kind: 'google-drive' },
@@ -17,7 +18,7 @@ const load = require('./community-test-loader.cjs')({
   'expo-router': { router: { push: target => routes.push(target) } },
   '@/src/ui': { AppText: ({ children }) => React.createElement('Text', null, children), Button: ({ label, onPress, disabled }) => React.createElement('Button', { label, onPress, disabled }) },
   '@/src/presentation/contexts/AppThemeContext': { useAppTheme: () => ({ palette: { border: '#ddd', surface: '#fff' } }) },
-  '@/src/presentation/services/dependencies': { appDependencies: { searchBooks: {
+  '@/src/presentation/services/dependencies': { appDependencies: { bookRepository: { listActive: async () => library }, searchBooks: {
     executeDetailed: async (query, plugins) => { queries.push(query); usedPlugins = plugins.map(p => p.name); if (failSearch) return { results: [], sources: [{ sourceName: 'Gutendex', status: 'error' }] }; return { results, sources: [{ sourceName: 'Gutendex', status: 'success' }] }; },
     resolveAcquisition: async item => item,
   } } },
@@ -69,5 +70,16 @@ const book = { position: 1, title: 'Iracema', author: 'José de Alencar', note: 
   failSearch = true; await act(async () => { tree = create(React.createElement(VestibularBookPanel, { book })); }); await flush();
   assert.ok(text(tree.toJSON()).includes('Não foi possível consultar as fontes'));
   await act(async () => tree.unmount());
-  console.log('PASS vestibular download: title+surname query, own-account sources only, same work only (author, epub/pdf), public domain first, download and add then open, failure said, nothing found said, catalog still offered.');
+  // 25/11 (owner): the user's own Library comes first: a file opens to read; a shelf record says so; other works are ignored.
+  failSearch = false; results = [];
+  library = [{ id: 'own-1', title: 'Iracema', author: 'José de Alencar', isDeleted: false }, { id: 'rec-1', title: 'Iracema: Lenda do Ceará', author: 'José de Alencar', kind: 'record', isDeleted: false },
+    { id: 'gone', title: 'Iracema', author: 'José de Alencar', isDeleted: true }, { id: 'other', title: 'Senhora', author: 'José de Alencar', isDeleted: false }];
+  await act(async () => { tree = create(React.createElement(VestibularBookPanel, { book })); }); await flush();
+  let own = text(tree.toJSON());
+  assert.equal((own.match(/Já está na sua Biblioteca/g) || []).length, 2, 'file and shelf record, not the deleted copy or another work');
+  assert.ok(own.indexOf('Já está na sua Biblioteca') < own.indexOf('Não achamos arquivo gratuito'), 'Library first');
+  assert.ok(own.includes('na estante, sem arquivo'));
+  await act(async () => btn(tree, 'Abrir para ler').props.onPress()); assert.equal(routes.at(-1), '/reader/own-1');
+  await act(async () => tree.unmount());
+  console.log('PASS vestibular download: own Library first (file opens, shelf record said), title+surname query, own-account sources only, same work only (author, epub/pdf), public domain first, download and add then open, failure said, nothing found said, catalog still offered.');
 })().catch(error => { console.error(error); process.exitCode = 1; });
