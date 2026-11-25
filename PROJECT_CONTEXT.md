@@ -161,6 +161,7 @@ Teste no PC não comprova Android físico, sessão real nem deploy.
 - **Leituras de vestibular:** no ar (Fuvest 2026–29, Unicamp 2027–29, UFRGS 2027, UFPR 2027, fontes oficiais). PENDENTE: UEL
   inativa (lista oficial só em PDF que não abriu; dono confere e publica pelo Admin, depois `active=true`); UFPR sem `watch_url`; robô
   não obteve resposta da página da UFRGS na 1ª leitura (rever em alguns dias); NÃO TESTADO logado no app nem no Android (precisa APK).
+- **Convite da beta (25/11):** `marketing/emails/convite-beta.html` (estilo convite de casamento, nome pela Brevo `contact.FIRSTNAME`, site + APK sob pedido com aviso de segurança). AGUARDANDO aprovação do dono; NÃO ENVIADO; falta a lista de candidatos.
 - **Comunidade:** dono pediu repaginação completa (25/11: "botões sem sentido", confusa); não iniciada, mostrar proposta antes.
 - **Aparelho (precisa de celular no cabo):** v13–v18 e a landing nunca vistas num celular; Drive não traz livros soltos fora de
   subpastas (não são atalhos; precisa de log); tocar na aba Biblioteca não volta ao topo no Android (`useScrollToTop` não rola).

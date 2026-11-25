@@ -1,0 +1,105 @@
+<!doctype html>
+<!--
+  Convite para quem se candidatou à beta do Aldus (25/11/2026, pedido do dono: "bonito, elegante, como um convite de casamento").
+  Personalização no formato da Brevo: {{ contact.FIRSTNAME | default : "leitora, leitor" }}. NÃO ENVIAR sem aprovação do dono.
+  HTML de e-mail: tabelas e estilo inline; a única imagem é a medalha do próprio site.
+-->
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>Você está convidado para a beta do Aldus</title>
+</head>
+<body style="margin:0;padding:0;background:#EFE8DA;">
+  <div style="display:none;max-height:0;overflow:hidden;opacity:0;">Um convite para abrir as páginas do Aldus Reader antes de todo mundo.</div>
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#EFE8DA;">
+    <tr><td align="center" style="padding:40px 14px;">
+
+      <!-- O cartão: papel creme com moldura dupla, como um convite impresso -->
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#FBF7EF;border:1px solid #C9B48A;">
+        <tr><td style="padding:10px;">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #C9B48A;">
+            <tr><td align="center" style="padding:44px 36px 12px;">
+
+              <img src="https://aldusreader.com.br/email/aldus-medalha.png" width="84" height="84" alt="Aldus Reader" style="display:block;border:0;width:84px;height:84px;">
+
+              <div style="font-family:Georgia,'Times New Roman',serif;font-size:12px;letter-spacing:5px;color:#A64E32;padding-top:26px;">CONVITE</div>
+
+              <div style="font-family:Georgia,'Times New Roman',serif;font-size:15px;font-style:italic;color:#6E5A47;padding-top:22px;line-height:24px;">
+                Com alegria, a equipe do Aldus Reader convida
+              </div>
+
+              <div style="font-family:Georgia,'Times New Roman',serif;font-size:34px;line-height:42px;color:#1B1C30;padding-top:14px;">
+                {{ contact.FIRSTNAME | default : "você" }}
+              </div>
+
+              <div style="font-family:Georgia,'Times New Roman',serif;font-size:15px;font-style:italic;color:#6E5A47;padding-top:14px;line-height:24px;">
+                para abrir as primeiras páginas da
+              </div>
+
+              <div style="font-family:Georgia,'Times New Roman',serif;font-size:26px;line-height:34px;color:#1B1C30;padding-top:8px;letter-spacing:1px;">
+                Beta do Aldus Reader
+              </div>
+
+              <!-- Ornamento -->
+              <div style="font-family:Georgia,'Times New Roman',serif;font-size:20px;color:#C9B48A;padding:22px 0 6px;letter-spacing:10px;">&#10086;</div>
+
+            </td></tr>
+
+            <tr><td style="padding:8px 44px 0;">
+              <p style="font-family:Georgia,'Times New Roman',serif;font-size:16px;line-height:27px;color:#2B2A28;margin:0 0 16px;text-align:center;">
+                Você se candidatou para conhecer o Aldus antes de todo mundo, e chegou a hora. O Aldus é um lugar para ler seus EPUB e PDF,
+                grifar o que importa, guardar notas e estudar o que leu, com tudo acompanhando você entre o celular e o computador.
+              </p>
+              <p style="font-family:Georgia,'Times New Roman',serif;font-size:16px;line-height:27px;color:#2B2A28;margin:0 0 26px;text-align:center;">
+                A porta de entrada já está aberta no site: basta criar sua conta e começar.
+              </p>
+            </td></tr>
+
+            <tr><td align="center" style="padding:0 0 30px;">
+              <a href="https://aldusreader.com.br/auth/signup" style="display:inline-block;background:#1B1C30;color:#F2E6CF;font-family:Georgia,'Times New Roman',serif;font-size:16px;letter-spacing:1px;text-decoration:none;padding:15px 34px;border:1px solid #1B1C30;">Entrar no Aldus</a>
+              <div style="font-family:Georgia,'Times New Roman',serif;font-size:13px;color:#8A7A66;padding-top:12px;">aldusreader.com.br</div>
+            </td></tr>
+
+            <!-- O aplicativo -->
+            <tr><td style="padding:0 44px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-top:1px solid #E2D6BC;border-bottom:1px solid #E2D6BC;">
+                <tr><td style="padding:24px 4px;">
+                  <div style="font-family:Georgia,'Times New Roman',serif;font-size:12px;letter-spacing:4px;color:#A64E32;text-align:center;padding-bottom:12px;">O APLICATIVO PARA ANDROID</div>
+                  <p style="font-family:Georgia,'Times New Roman',serif;font-size:15px;line-height:25px;color:#2B2A28;margin:0 0 12px;text-align:center;">
+                    O aplicativo está passando pelas últimas verificações e deve chegar à loja em breve.
+                    Se quiser recebê-lo antes, é só responder a este e-mail pedindo o download.
+                  </p>
+                  <p style="font-family:Georgia,'Times New Roman',serif;font-size:14px;line-height:23px;color:#6E5A47;margin:0;text-align:center;font-style:italic;">
+                    Como ele ainda não está na loja, o Android mostrará avisos de segurança durante a instalação.
+                    Isso é esperado nesta fase. Instale apenas o arquivo enviado por nós.
+                  </p>
+                </td></tr>
+              </table>
+            </td></tr>
+
+            <tr><td align="center" style="padding:28px 44px 44px;">
+              <p style="font-family:Georgia,'Times New Roman',serif;font-size:15px;line-height:25px;color:#2B2A28;margin:0 0 18px;">
+                Por ser uma beta, algumas partes ainda vão mudar. Cada impressão sua ajuda a decidir o que vem primeiro.
+              </p>
+              <div style="font-family:Georgia,'Times New Roman',serif;font-size:15px;font-style:italic;color:#6E5A47;">Com carinho,</div>
+              <div style="font-family:Georgia,'Times New Roman',serif;font-size:19px;color:#1B1C30;padding-top:6px;letter-spacing:1px;">Equipe do Aldus Reader</div>
+            </td></tr>
+          </table>
+        </td></tr>
+      </table>
+
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;">
+        <tr><td align="center" style="font-family:Georgia,'Times New Roman',serif;font-size:12px;line-height:19px;color:#8A7A66;padding:20px 10px 0;">
+          Você recebeu este convite porque se candidatou à beta do Aldus Reader.<br>
+          Dúvidas: <a href="mailto:contato@aldusreader.com.br" style="color:#8A7A66;">contato@aldusreader.com.br</a> ·
+          <a href="https://aldusreader.com.br/legal/privacy" style="color:#8A7A66;">Privacidade</a> ·
+          <a href="{{ unsubscribe }}" style="color:#8A7A66;">Não quero mais receber</a>
+        </td></tr>
+      </table>
+
+    </td></tr>
+  </table>
+</body>
+</html>
