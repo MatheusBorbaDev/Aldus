@@ -153,5 +153,16 @@ const load = require('./community-test-loader.cjs')({
   await act(async () => tree.unmount());
   // 25/11/2026 (owner's screenshot): on the PC the reader opened two pages inside the 430 px phone frame. The frame is for non-PC windows only.
   assert.match(require('fs').readFileSync('app/_layout.tsx','utf8'), /usePhoneFrame = Platform\.OS === "web" && width > 480 && formFactor !== "desktop" && String\(segments\[0\]\) === 'reader'/);
+  // 25/11/2026 (owner): PC reader as a centred sheet with a margin; two pages, one page or scrolling.
+  const { desktopReaderFrame, desktopReaderLayout, DESKTOP_PAGE_WIDTH } = load('src/presentation/layout/desktopReaderFrame.ts');
+  assert.equal(desktopReaderLayout('paged', 'two', true), 'spread'); assert.equal(desktopReaderLayout('paged', 'two', false), 'single', 'two pages only when they fit');
+  assert.equal(desktopReaderLayout('paged', 'one', true), 'single'); assert.equal(desktopReaderLayout('scroll', 'two', true), 'scroll');
+  for (const layout of ['spread', 'single', 'scroll']) for (const width of [1024, 1366, 1920]) {
+    const f = desktopReaderFrame({ width, height: 700, layout });
+    assert.equal(f.left + f.width + f.right, width, 'fills the row'); assert.ok(Math.abs(f.left - f.right) <= 1, 'centred');
+    assert.ok(f.width <= DESKTOP_PAGE_WIDTH[layout] && f.left >= 48, 'margin on the sides');
+    assert.equal(f.top + f.height + f.bottom, 700); assert.ok(layout === 'scroll' ? f.top === 0 : f.top >= 24, 'breathing room above the page');
+  }
+  assert.ok(desktopReaderFrame({ width: 1366, height: 700, layout: 'single' }).width < desktopReaderFrame({ width: 1366, height: 700, layout: 'spread' }).width);
   console.log('PASS desktop layout: Android status bar scrim (height of the bar, background colour, no touch; none on Web or without a bar); Study/Community columns (grid skips empty children, split aside 420 px, phone keeps one column); periodic web sync (90 s, visible and online only, stops); reader side sheets (contents left, others right, full height); reader keys (Space/PageDown/Shift+Space/PageUp, not while typing); Ctrl/Shift selection (range both ways, stale anchor), double click window, Cmd as Ctrl; PC only for Web + window >= 1024 + mouse (narrow PC window, touch tablet, phone site and Android keep the touch layout); sidebar with labelled sections, hidden Estudo, search to the catalog, honest sync status. Component test, not a browser capture.');
 })().catch(error => { console.error(error); process.exitCode = 1; });

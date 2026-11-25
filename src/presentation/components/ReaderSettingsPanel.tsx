@@ -327,6 +327,23 @@ export function ReaderSettingsPanel({
                 </View>
               </Field>
 
+              {/* PC (25/11/2026, dono): livro aberto ou uma página centralizada; na rolagem a folha já fica centralizada. */}
+              {sheet && !isOriginalPdf && settings.readingFlow !== "scroll" ? (
+                <Field label="Páginas na tela" palette={palette}>
+                  <View accessibilityRole="radiogroup" style={styles.segmented}>
+                    {([["two", "Duas páginas", "book-outline"], ["one", "Uma página", "document-outline"]] as const).map(([value, label, icon]) => {
+                      const selected = (settings.desktopPages ?? "two") === value;
+                      return <Pressable key={value} accessibilityRole="radio" accessibilityLabel={label} accessibilityState={{ checked: selected }} aria-checked={selected}
+                        onPress={() => settings.setDesktopPages?.(value)}
+                        style={[styles.autoChip, styles.flowChoice, { borderColor: selected ? palette.accent : palette.separator, borderWidth: selected ? 2 : 1 }]}>
+                        <Ionicons name={selected ? "checkmark" : icon} size={16} color={palette.text} />
+                        <Text style={{ color: palette.text, fontSize: 14, fontWeight: selected ? "600" : "400" }}>{label}</Text>
+                      </Pressable>;
+                    })}
+                  </View>
+                </Field>
+              ) : null}
+
               <View accessibilityRole="tablist" style={[styles.tabs, { borderColor: palette.separator }]}>
                 {availableSections.map(item => {
                   const selected = expanded && activeSection === item.id;

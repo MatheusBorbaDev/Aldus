@@ -96,7 +96,7 @@ Teste = `scripts/test-<nome>.cjs` (quais estão no `test:critical`: lista em `sc
 | Rolagem contínua (PDF Original) | `dom/reader/pdfScroll.ts` (`createPdfScroller`) | `comp/PdfPageViewer.{web,native}.tsx` | pdf-scroll, `test:reader:pdf:web` |
 | PDF Original | `comp/PdfPageViewer.{web,native}.tsx` | `comp/pdfjsRuntime.web.ts`, `comp/pdfjs.worker.ts`, `comp/PdfModeChooser.tsx` | `test:reader:pdf:web` |
 | Leitura Livre (PDF Reflow), prévia, OCR | `comp/PdfReflowProcessor.{web,native}.tsx`, `data/local/PdfReflowDocumentBuilder.ts` | `comp/reader/PdfReflowPreviewReader.tsx`, `data/local/{pdfReflowPreview,pdfReflowQuality,reflowSerialization,pdfOcr.native}.ts`, `comp/reflowOperation.ts`, cache `data/repositories/*PdfReflowCacheRepository.ts`, `modules/aldus-pdf-ocr` | pdf-reflow, reflow-preview, reflow-assembly-scaling, `test:reader:reflow:web` |
-| Duas páginas e painéis laterais no PC | `EpubReaderDocument.ts` (`reader-spread`, `updateTypography`) | `src/presentation/layout/{formFactor,desktopSheet}.ts`; moldura de celular do leitor (fora do PC) em `app/_layout.tsx` (`usePhoneFrame`) | desktop-layout, `test:desktop:web` |
+| Duas páginas, folha centralizada e painéis laterais no PC | `EpubReaderDocument.ts` (`reader-spread`, `updateTypography`) | `src/presentation/layout/{formFactor,desktopSheet,desktopReaderFrame}.ts`; escolha "Páginas na tela" em `ReaderSettingsPanel.tsx` (`desktopPages` no `ReaderSettingsContext`); moldura de celular do leitor (fora do PC) em `app/_layout.tsx` (`usePhoneFrame`) | desktop-layout, `test:desktop:web` |
 | Ler em voz alta | `src/presentation/hooks/useReadAloud.ts` | `dom/reader/speechText.ts` | read-aloud |
 | Brilho e motion cues | `src/presentation/hooks/useNativeReaderBrightness.ts`, `comp/MotionCues{Control,Overlay}.tsx` | `src/presentation/stores/motionCuesStore.ts` | native-brightness, motion-cues |
 | HTML do livro (segurança, imagens) | `dom/reader/sanitizeBookHtml.ts`, `comp/ChapterRenderer.tsx` | | book-html-security |
@@ -177,6 +177,9 @@ Teste no PC não comprova Android físico, sessão real nem deploy.
 
 ## 9. Log (mais recente primeiro; máx. 5 entradas de até 3 linhas)
 
+- **25/11** — Leitor no PC (EPUB e Leitura Livre): folha centralizada com margem e sombra; "Páginas na tela": duas ou uma; rolar
+  centralizado. Cada página repete o respiro de cima/baixo (`box-decoration-break`, vale também no Android, NÃO TESTADO lá).
+  Testes de navegador do leitor PASS; NÃO TESTADO logado no site.
 - **25/11** — Leitor no PC: abria as duas páginas dentro da moldura de celular (430 px), espremido e cortado (captura do dono).
   A moldura agora só vale fora do PC (`useFormFactor` em `app/_layout.tsx`). NÃO TESTADO logado no navegador; dono confere.
 - **25/11** — Site: depois do login (Google, senha ou cadastro) ia para `/`, que no site é a landing. Agora vai para `/auth/continue`,
@@ -186,5 +189,3 @@ Teste no PC não comprova Android físico, sessão real nem deploy.
 - **25/11** — Cloudflare: o site já é estático (Expo export, sem SSR/API). `wrangler.jsonc` + `write-cloudflare-assets.cjs`
   (`_headers`, `_redirects` das 23 rotas → `/app`); `validate-web-env`/`build-info` reconhecem o Workers Builds. `wrangler dev` local:
   rotas, cabeçalhos e `test:marketing:web` inteiro PASS. NÃO publicado; Vercel intacta. Passos do dono em §7.
-- **25/11** — Dono pediu contexto enxuto com mapa de localização. Este arquivo foi reescrito: mapa por recurso (§5), estado e
-  pendências atuais, regra de atualizar em toda alteração; versão anterior arquivada em `historico/2026-11-25-project-context-ate-23-11.md`.

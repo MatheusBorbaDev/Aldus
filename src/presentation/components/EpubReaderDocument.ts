@@ -125,6 +125,7 @@ export function createEpubReaderDocument(chapters: StoredChapter[], options: Rea
   html.reader-spread:not(.reader-scroll) #reader-content {
     column-width: auto !important;
     column-count: 2 !important;
+    column-rule: 1px solid rgba(127, 127, 127, 0.16) !important;
   }
   /* Rolagem contínua (Fase E, 16/11/2026): o livro vira uma coluna vertical; as "páginas" passam a ser telas virtuais. */
   html.reader-scroll #reader-viewport {
@@ -147,6 +148,9 @@ export function createEpubReaderDocument(chapters: StoredChapter[], options: Rea
     box-sizing: border-box !important;
     padding: 24px ${pagePadding}px 32px ${pagePadding}px !important;
     break-inside: auto !important;
+    /* 25/11/2026: cada página (coluna) repete o respiro de cima e de baixo, não só a primeira do capítulo. */
+    -webkit-box-decoration-break: clone !important;
+    box-decoration-break: clone !important;
     color: inherit !important;
     background: transparent !important;
     background-color: transparent !important;

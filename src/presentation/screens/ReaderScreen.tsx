@@ -56,6 +56,7 @@ import { ReaderControls } from "@/src/presentation/components/ReaderControls";
 import { ReaderSettingsPanel } from "@/src/presentation/components/ReaderSettingsPanel";
 import { DocumentReaderAdapter } from "@/src/presentation/components/reader/DocumentReaderAdapter";
 import { documentSafeInsets, readerFeedbackTop } from "@/src/presentation/components/reader/ReaderGeometry";
+import { desktopReaderFrame, desktopReaderLayout } from "@/src/presentation/layout/desktopReaderFrame";
 import { readerUiDiagnostic, ReaderUiContext } from "@/src/utils/readerUiDiagnostics";
 import { readerNavigationDiagnostic, ReaderNavigationOrigin } from "@/src/utils/readerNavigationDiagnostics";
 import { EpubNavigationRequest, EpubPageInfo } from "@/src/presentation/components/EpubPageViewerProps";
@@ -120,7 +121,9 @@ export function ReaderScreen({ bookId }: Props) {
   // ao trecho do topo (não ao número da página). Duas páginas só quando ainda cabem ao lado do painel.
   const dockLeft = desktopReader && readerPanel === "contents" ? DESKTOP_SHEET_WIDTH : 0;
   const dockRight = desktopReader && ((readerPanel !== null && readerPanel !== "contents") || studyVisible) ? DESKTOP_SHEET_WIDTH : 0;
-  const spreadPages = desktopReader && width - dockLeft - dockRight >= SPREAD_MIN_WIDTH;
+  // 25/11/2026 (dono): no PC dá para escolher uma página centralizada em vez do livro aberto.
+  const spreadFits = desktopReader && width - dockLeft - dockRight >= SPREAD_MIN_WIDTH;
+  const spreadPages = spreadFits && (settings.desktopPages ?? "two") === "two";
   const [studyAnchor, setStudyAnchor] = useState<ReadingAnchor | null>(null);
   const [studyRequest, setStudyRequest] = useState<ReaderStudyRequest | null>(null);
   const [studyLoading, setStudyLoading] = useState(false);
@@ -1115,8 +1118,14 @@ export function ReaderScreen({ bookId }: Props) {
     closeSelectionPopup();
     studySelectionIntent.current = true; setStudyAnchor(anchor); setStudySelectionCaptured(true); setStudyFeedback(null); setStudyVisible(true);
   };
+  // PC: EPUB e Leitura Livre numa folha centralizada com margem (o PDF Original tem seu próprio enquadramento).
+  const desktopSheet = desktopReader && (isEpub || isReflowPdf)
+    ? desktopReaderFrame({ width: width - dockLeft - dockRight, height, layout: desktopReaderLayout(settings.readingFlow ?? "paged", settings.desktopPages ?? "two", spreadFits) })
+    : null;
   const readerDocument = (
-    <View style={[styles.documentSurface, documentSafeInsets(Platform.OS, insets), dockLeft || dockRight ? { left: dockLeft, right: dockRight } : null, { opacity: Platform.OS === "web" ? documentBrightnessFactor : 1 }]}>
+    <View style={[styles.documentSurface, documentSafeInsets(Platform.OS, insets), dockLeft || dockRight ? { left: dockLeft, right: dockRight } : null,
+      desktopSheet ? [styles.desktopSheet, { left: dockLeft + desktopSheet.left, right: dockRight + desktopSheet.right, top: desktopSheet.top, bottom: desktopSheet.bottom, backgroundColor: activePalette.background }] : null,
+      { opacity: Platform.OS === "web" ? documentBrightnessFactor : 1 }]}>
       {!(isReflowPdf && !pdfReflowDocument) ? <DocumentReaderAdapter
         mimeType={bookMimeType}
         filePath={bookFilePath}
@@ -1402,6 +1411,13 @@ const styles = StyleSheet.create({
   documentSurface: {
     ...StyleSheet.absoluteFill,
     backgroundColor: "transparent",
+  },
+  desktopSheet: {
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: "rgba(127, 127, 127, 0.18)",
+    overflow: "hidden",
+    boxShadow: "0px 6px 28px rgba(0, 0, 0, 0.16)",
   },
   backButton: {
     marginTop: 16,

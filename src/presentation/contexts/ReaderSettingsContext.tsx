@@ -40,6 +40,9 @@ interface ReaderSettingsValue {
   /** EPUB e Leitura Livre: páginas ou rolagem contínua (Fase E). Padrão: páginas. */
   readingFlow: "paged" | "scroll";
   setReadingFlow: (value: "paged" | "scroll") => void;
+  /** PC, modo páginas (25/11/2026, dono): duas páginas como livro aberto ou uma página centralizada. Padrão: duas. */
+  desktopPages: "two" | "one";
+  setDesktopPages: (value: "two" | "one") => void;
   palette: ReaderPalette;
   fontFamily: string;
   marginSize: number;
@@ -82,6 +85,7 @@ export function ReaderSettingsProvider({ children }: PropsWithChildren) {
   const [paperTexture, setPaperTexture] = useState<PaperTexture>("none");
   const [pageTurn, setPageTurn] = useState<PageTurn>("slide");
   const [readingFlow, setReadingFlow] = useState<"paged" | "scroll">("paged");
+  const [desktopPages, setDesktopPages] = useState<"two" | "one">("two");
   const appTheme = useResolvedAppTheme();
   const appPalette = useAppPaletteName();
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -115,6 +119,7 @@ export function ReaderSettingsProvider({ children }: PropsWithChildren) {
           paperTexture: PaperTexture;
           pageTurn: PageTurn;
           readingFlow: "paged" | "scroll";
+          desktopPages: "two" | "one";
         }>;
 
         if (parsed.theme && parsed.theme in readerThemes) setTheme(parsed.theme);
@@ -132,6 +137,7 @@ export function ReaderSettingsProvider({ children }: PropsWithChildren) {
         if (isPaperTexture(parsed.paperTexture)) setPaperTexture(parsed.paperTexture);
         if (isPageTurn(parsed.pageTurn)) setPageTurn(parsed.pageTurn);
         if (isPdfFlow(parsed.readingFlow)) setReadingFlow(parsed.readingFlow);
+        if (parsed.desktopPages === "two" || parsed.desktopPages === "one") setDesktopPages(parsed.desktopPages);
       } catch {
         // Ignore invalid persisted settings and keep defaults.
       } finally {
@@ -165,8 +171,9 @@ export function ReaderSettingsProvider({ children }: PropsWithChildren) {
       paperTexture,
       pageTurn,
       readingFlow,
+      desktopPages,
     })));
-  }, [alignment, brightness, paperTexture, pageTurn, readingFlow, followAppTheme, font, fontSize, hideReadingCounts, lineHeight, margin, maxWidth, paragraphSpacing, ready, theme, trackSave, useSystemBrightness]);
+  }, [alignment, brightness, paperTexture, pageTurn, readingFlow, desktopPages, followAppTheme, font, fontSize, hideReadingCounts, lineHeight, margin, maxWidth, paragraphSpacing, ready, theme, trackSave, useSystemBrightness]);
 
   const value = useMemo<ReaderSettingsValue>(() => {
     const resolveTheme = <T extends ReaderTheme>(selected: T) => resolveReaderTheme(selected, followAppTheme, appTheme);
@@ -194,6 +201,8 @@ export function ReaderSettingsProvider({ children }: PropsWithChildren) {
     setPageTurn: (value) => { if (isPageTurn(value)) setPageTurn(value); },
     readingFlow,
     setReadingFlow: (value) => { if (isPdfFlow(value)) setReadingFlow(value); },
+    desktopPages,
+    setDesktopPages: (value) => { if (value === "two" || value === "one") setDesktopPages(value); },
     palette: readerChromePalette(readerThemes[effective], appPalette),
     fontFamily: fontFamilies[font],
     marginSize: marginSizes[margin],
@@ -210,7 +219,7 @@ export function ReaderSettingsProvider({ children }: PropsWithChildren) {
     setHideReadingCounts,
     saveError,
   };
-  }, [alignment, appPalette, appTheme, brightness, pageTurn, paperTexture, readingFlow, followAppTheme, font, fontSize, hideReadingCounts, lineHeight, margin, maxWidth, paragraphSpacing, saveError, theme, useSystemBrightness]);
+  }, [alignment, appPalette, appTheme, brightness, pageTurn, paperTexture, readingFlow, desktopPages, followAppTheme, font, fontSize, hideReadingCounts, lineHeight, margin, maxWidth, paragraphSpacing, saveError, theme, useSystemBrightness]);
 
   return <ReaderSettingsContext.Provider value={value}>{children}</ReaderSettingsContext.Provider>;
 }
