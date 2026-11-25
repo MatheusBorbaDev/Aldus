@@ -178,6 +178,8 @@ Teste no PC não comprova Android físico, sessão real nem deploy.
 
 ## 9. Log (mais recente primeiro; máx. 5 entradas de até 3 linhas)
 
+- **25/11** — Cadastro: erro preso ao campo e com o nome dele (`signupFieldErrors`, `AuthInput error`); usuário digitado vira
+  formato aceito (`usernameAsTyped`: espaço→_, sem acento). Tema: padrão Clássico claro; "system" só se escolhido (`APP_THEME_CHOSEN_KEY`).
 - **25/11** — Aviso da versão: sem lista de novidades durante a beta; título "Boas-vindas ao Aldus", guia de 6 itens "Como o Aldus
   funciona" e o bloco da beta com o link. Id `2026-11-25.1` (aparece de novo para todos). Texto aprovado pelo dono e publicado no site.
 - **25/11** — Leitor no PC (EPUB e Leitura Livre): folha centralizada com margem e sombra; "Páginas na tela": duas ou uma; rolar
@@ -187,5 +189,3 @@ Teste no PC não comprova Android físico, sessão real nem deploy.
   A moldura agora só vale fora do PC (`useFormFactor` em `app/_layout.tsx`). NÃO TESTADO logado no navegador; dono confere.
 - **25/11** — Site: depois do login (Google, senha ou cadastro) ia para `/`, que no site é a landing. Agora vai para `/auth/continue`,
   que usa a mesma decisão de entrada do Android (`AccountEntry`: perfil, conta, biblioteca). Android inalterado.
-- **25/11** — Site: login, cadastro e demais páginas `auth` abrem direto no formulário, sem a frase de abertura (dono: "Sim, tirar");
-  `publicWebRoutes.ts` + `test-release-notes`. Android inalterado. Após entrar, o app abre com a frase como antes.

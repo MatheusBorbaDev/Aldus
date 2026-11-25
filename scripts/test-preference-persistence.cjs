@@ -70,6 +70,19 @@ const load = require('./community-test-loader.cjs')({
   assert.ok(!storage.writes.some(([key]) => key === theme.APP_PALETTE_STORAGE_KEY), 'a failed read never writes the default palette');
   await act(async () => tree.unmount());
 
+  // 3a. 25/11/2026 (owner): opens on the original Clássico light. An auto-saved "system" (old default) no longer turns a dark phone green;
+  // "system" chosen on purpose, and explicit dark, still apply.
+  for (const [stored, chosen, expected] of [[null, null, 'light'], ['system', null, 'light'], ['system', '1', 'system'], ['dark', null, 'dark']]) {
+    storage.writes = []; storage.getItem = async key => key === theme.APP_THEME_CHOSEN_KEY ? chosen : key === '@kindle/appTheme' ? stored : null; storage.setItem = async () => undefined;
+    tree = await mount(theme.AppThemeProvider, ProbeTheme); await flush();
+    assert.equal(themeValue.mode, expected, `${stored}/${chosen}`); assert.equal(themeValue.paletteName, 'classic');
+    await act(async () => tree.unmount());
+  }
+  storage.writes = []; storage.getItem = async () => null; tree = await mount(theme.AppThemeProvider, ProbeTheme); await flush();
+  await act(async () => themeValue.setMode('system')); await flush();
+  assert.ok(storage.writes.some(([key, value]) => key === theme.APP_THEME_CHOSEN_KEY && value === '1'), 'a real choice is marked');
+  await act(async () => tree.unmount());
+
   // 3b. App palette (Clássico / Moderno, 16/11/2026): device preference under its own key, written only on an explicit choice.
   const { appPalettes } = load('src/theme/tokens.ts');
   storage.writes = []; storage.getItem = async key => key === theme.APP_PALETTE_STORAGE_KEY ? 'petroleum' : 'dark';

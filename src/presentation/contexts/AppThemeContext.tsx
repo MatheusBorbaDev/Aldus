@@ -17,6 +17,12 @@ interface AppThemeContextValue {
 }
 
 const APP_THEME_STORAGE_KEY = "@kindle/appTheme";
+/**
+ * 25/11/2026 (dono: "o aldus tá abrindo direto no tema verde, quero que ele abra no tema original"): o padrão passa a ser o Clássico
+ * claro. Antes o padrão "system" era gravado sozinho na primeira abertura; por isso "system" só vale se a pessoa o escolheu de fato
+ * (marca abaixo, gravada só por escolha). Claro ou escuro escolhidos continuam valendo.
+ */
+export const APP_THEME_CHOSEN_KEY = "@aldus/app-theme-chosen.v1";
 /** Chave nova (16/11/2026); as legadas `@kindle/*` não são reaproveitadas. */
 export const APP_PALETTE_STORAGE_KEY = "@aldus/app-palette.v1";
 export const APP_THEME_SAVE_ERROR = "Não foi possível salvar o tema neste aparelho. Ele vale até você fechar o app.";
@@ -25,7 +31,7 @@ const AppThemeContext = createContext<AppThemeContextValue | null>(null);
 export function AppThemeProvider({ children }: PropsWithChildren) {
   const systemScheme = useColorScheme();
   const resolvedSystemScheme = systemScheme === "light" || systemScheme === "dark" ? systemScheme : null;
-  const [mode, setModeState] = useState<AppThemeMode>("system");
+  const [mode, setModeState] = useState<AppThemeMode>("light");
   const [ready, setReady] = useState(false);
   const [paletteName, setPaletteState] = useState<AppPaletteName>("classic");
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -34,14 +40,14 @@ export function AppThemeProvider({ children }: PropsWithChildren) {
   const trackPaletteSave = useMemo(() => latestWriteTracker(failed => setPaletteSaveError(failed ? APP_THEME_SAVE_ERROR : null)), []);
   // A paleta só é gravada por escolha explícita; ler e falhar nunca grava o padrão por cima.
   const paletteTouched = useRef(false);
-  // Leitura falhou: o padrão "system" não sobrescreve o tema salvo; só uma escolha do usuário grava (onda 5).
+  // Leitura falhou: o padrão não sobrescreve o tema salvo; só uma escolha do usuário grava (onda 5).
   const skipUnchangedSave = useRef(false);
 
   useEffect(() => {
     let disposed = false;
-    void AsyncStorage.getItem(APP_THEME_STORAGE_KEY).then((stored) => {
+    void Promise.all([AsyncStorage.getItem(APP_THEME_STORAGE_KEY), AsyncStorage.getItem(APP_THEME_CHOSEN_KEY).catch(() => null)]).then(([stored, chosen]) => {
       if (disposed) return;
-      if (stored === "light" || stored === "dark" || stored === "system") {
+      if (stored === "light" || stored === "dark" || (stored === "system" && chosen === "1")) {
         setModeState(stored);
       }
       setReady(true);
@@ -73,6 +79,7 @@ export function AppThemeProvider({ children }: PropsWithChildren) {
     palette,
     setMode: async (nextMode: AppThemeMode) => {
       setModeState(nextMode);
+      void AsyncStorage.setItem(APP_THEME_CHOSEN_KEY, "1").catch(() => undefined);
     },
     paletteName,
     setPaletteName: (next: AppPaletteName) => {
