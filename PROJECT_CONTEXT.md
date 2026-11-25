@@ -157,7 +157,7 @@ Teste no PC não comprova Android físico, sessão real nem deploy.
   Sync" desligado para o `robots.txt` ficar igual) e nameservers no Registro.br; (2) FEITO: Worker importando `MatheusBorbaDev/Aldus`
   (app da Cloudflare só nesse repositório). Nome `aldus-reader`, build `npm run build`, deploy `npx wrangler@4.160.1 deploy`; (3) build
   variables: FEITO `SUPABASE_URL`, `LEGAL_CONTROLLER_NAME`, `LEGAL_CONTACT_EMAIL`, `SITE_URL=https://aldusreader.com.br`; dono colou as 3 restantes (7/7); (4) FEITO: `*.workers.dev` testado; (5) FEITO: domínio raiz e `www` no Worker, à espera da
-  delegação .br; (6) FEITO: Supabase Auth com as 4 URLs de retorno de `aldusreader.com.br` e `www` (8→12; Site URL intacta); (7) FALTA: Google Cloud: domínio novo
+  delegação .br; (6) FEITO: Supabase Auth com as 4 URLs de retorno de `aldusreader.com.br` e `www` (8→12; Site URL intacta); (7) FEITO 25/11: cliente Web OAuth com as 4 origens JS (domínio, www, workers.dev, Vercel) e `EXPO_PUBLIC_GOOGLE_DRIVE_WEB_CLIENT_ID` na Cloudflare e na Vercel (Drive no site nunca tinha sido configurado); FALTA: domínio novo
   na marca do OAuth (e na chave do Books, se tiver restrição por site); (8) só então desligar a Vercel.
 - **Aparelho (precisa de celular no cabo):** v13–v18 e a landing nunca vistas num celular; Drive não traz livros soltos fora de
   subpastas (não são atalhos; precisa de log); tocar na aba Biblioteca não volta ao topo no Android (`useScrollToTop` não rola).
