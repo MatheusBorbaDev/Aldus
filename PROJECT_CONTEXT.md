@@ -123,7 +123,7 @@ Teste = `scripts/test-<nome>.cjs` (quais estão no `test:critical`: lista em `sc
 | Login, cadastro, Google, username | `src/presentation/contexts/AuthContext.tsx`, `comp/AuthForm.tsx`; destino após entrar: `comp/AccountEntry.tsx` (Android em `/`, site em `/auth/continue`, via `homeAfterAuth` de `publicWebRoutes.ts`) | `data/remote/auth*.ts`, `dom/auth/authRules.ts`, `app/auth/*`, `supabase/functions/username-login` | auth, marketing, release-notes, `test:auth:web`; `docs/context/auth.md` |
 | Conta, excluir conta | `app/account/*` | `data/remote/accountDeletionService.ts`, `dom/account/accountDeletion.ts`, `supabase/functions/account-delete` | account-delete |
 | Ajustes, preferências, versão | `src/presentation/screens/SettingsScreen.tsx`, `app/(tabs)/settings.tsx`, `app/preferences.tsx` | versão/commit `src/legal/appMetadata.ts` | settings-navigation, preference-persistence |
-| Abertura do app (frases), novidades, página da beta | `comp/AppLoadingScreen.tsx`, `comp/ReleaseNotesModal.tsx`, `app/beta.tsx`; quais páginas do site abrem sem a frase: `src/presentation/services/publicWebRoutes.ts` (legal, beta, auth) | `dom/brand/releaseNotes.ts`, `src/legal/beta{Feedback,Limitations}.ts` | release-notes, beta-preparation |
+| Abertura do app (frases), aviso de boas-vindas da beta (guia "Como o Aldus funciona", antes novidades), página da beta | `comp/AppLoadingScreen.tsx`, `comp/ReleaseNotesModal.tsx`, `app/beta.tsx`; quais páginas do site abrem sem a frase: `src/presentation/services/publicWebRoutes.ts` (legal, beta, auth) | `dom/brand/releaseNotes.ts`, `src/legal/beta{Feedback,Limitations}.ts` | release-notes, beta-preparation |
 | Navegação, abas, design system | `app/(tabs)/_layout.tsx`, `src/ui/*` (`Screen` com `StatusBarScrim`) | `src/theme/{tokens,appUi}.ts`, `comp/{AppUi,SettingsLayout,TopHeader}.tsx` | ui-primitives, app-design; `docs/context/design-system.md` |
 | Flashcards, Estudo, Batalha | `app/(tabs)/study.tsx`, `src/presentation/screens/FlashcardStudyScreen.tsx` | `dom/study/*`, `comp/flashcards/*`, `data/local/Flashcard*`, `data/remote/FlashcardBattleRepository.ts`, `app/battle.tsx`, `app/decks`, `app/study`, lembrete `src/presentation/services/reviewReminder.ts` | flashcards, flashcard-*; skill study-flashcards |
 | Comunidade (perfil, pessoas, clubes, fóruns) | `src/community/presentation/*`, `app/community/*`, `app/(tabs)/community.tsx` | `src/community/{domain,application,data}/*`, migrations `*community*` | community-*; `docs/context/community-estudo.md` |
@@ -177,6 +177,8 @@ Teste no PC não comprova Android físico, sessão real nem deploy.
 
 ## 9. Log (mais recente primeiro; máx. 5 entradas de até 3 linhas)
 
+- **25/11** — Aviso da versão: sem lista de novidades durante a beta; título "Boas-vindas ao Aldus", guia de 6 itens "Como o Aldus
+  funciona" e o bloco da beta com o link. Id `2026-11-25.1` (aparece de novo para todos). Texto público: aguardando o dono aprovar.
 - **25/11** — Leitor no PC (EPUB e Leitura Livre): folha centralizada com margem e sombra; "Páginas na tela": duas ou uma; rolar
   centralizado, com margem curta (14 px em cima/embaixo, 24 dos lados; dono achou 36/48 grande demais). Cada página repete o respiro de cima/baixo (`box-decoration-break`, vale também no Android, NÃO TESTADO lá).
   Testes de navegador do leitor PASS; NÃO TESTADO logado no site.
@@ -186,6 +188,3 @@ Teste no PC não comprova Android físico, sessão real nem deploy.
   que usa a mesma decisão de entrada do Android (`AccountEntry`: perfil, conta, biblioteca). Android inalterado.
 - **25/11** — Site: login, cadastro e demais páginas `auth` abrem direto no formulário, sem a frase de abertura (dono: "Sim, tirar");
   `publicWebRoutes.ts` + `test-release-notes`. Android inalterado. Após entrar, o app abre com a frase como antes.
-- **25/11** — Cloudflare: o site já é estático (Expo export, sem SSR/API). `wrangler.jsonc` + `write-cloudflare-assets.cjs`
-  (`_headers`, `_redirects` das 23 rotas → `/app`); `validate-web-env`/`build-info` reconhecem o Workers Builds. `wrangler dev` local:
-  rotas, cabeçalhos e `test:marketing:web` inteiro PASS. NÃO publicado; Vercel intacta. Passos do dono em §7.

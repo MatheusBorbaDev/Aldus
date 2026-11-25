@@ -34,7 +34,7 @@ export function ReleaseNotesModal() {
             <View style={styles.head}>
               <Image source={require("../../../assets/brand/medalha-noite.png")} style={styles.medal} accessible={false} />
               <View style={{ flex: 1 }}>
-                <Text accessibilityRole="header" style={[styles.title, { color: palette.text }]}>Novidades do Aldus</Text>
+                <Text accessibilityRole="header" style={[styles.title, { color: palette.text }]}>{RELEASE_NOTES.title}</Text>
                 <Text style={[styles.date, { color: palette.secondaryText }]}>{RELEASE_NOTES.date}</Text>
               </View>
             </View>
@@ -49,7 +49,7 @@ export function ReleaseNotesModal() {
                 <Ionicons name="arrow-forward" size={16} color={palette.accent} />
               </Pressable>
             </View>
-            <Text style={[styles.section, { color: palette.secondaryText }]}>O QUE MUDOU</Text>
+            <Text style={[styles.section, { color: palette.secondaryText }]}>{RELEASE_NOTES.heading}</Text>
             <View style={styles.items}>
               {RELEASE_NOTES.items.map(item => (
                 <View key={item} style={styles.item}>

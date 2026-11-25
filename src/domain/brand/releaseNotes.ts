@@ -1,22 +1,25 @@
 /**
- * Novidades mostradas uma vez por versão ao abrir o app (pedido do dono em 18/11/2026: "pop upzinho bonitinho de patch notes",
+ * Aviso mostrado uma vez por versão ao abrir o app (pedido do dono em 18/11/2026: "pop upzinho bonitinho de patch notes",
  * com o aviso de beta e o link para o texto de limitações). Só entra o que está de fato nesta versão; o que é só Android é dito.
  */
-export interface ReleaseNotes { id: string; date: string; items: readonly string[] }
+/**
+ * 25/11/2026 (dono: "apaga o que tem no texto de novidades, por enquanto ... enquanto tá no beta, dá uma leve explicação de como o
+ * app funciona"): durante a beta o aviso traz um guia curto no lugar da lista de mudanças. Cada item descreve o que existe hoje.
+ */
+export interface ReleaseNotes { id: string; date: string; title: string; heading: string; items: readonly string[] }
 
 export const RELEASE_NOTES: ReleaseNotes = {
-  id: "2026-11-18.2",
-  date: "18 de novembro de 2026",
+  id: "2026-11-25.1",
+  date: "25 de novembro de 2026",
+  title: "Boas-vindas ao Aldus",
+  heading: "COMO O ALDUS FUNCIONA",
   items: [
-    "Cara nova: ícone e abertura do Aldus, e uma capa desenhada para cada livro que não tem capa.",
-    "Buscar qualquer livro: vitrine por categorias, sugestões “Para você” feitas no seu aparelho e livros guardados sem o arquivo, em todos os seus aparelhos.",
-    "Nota e resenha pessoais, progresso de livros sem arquivo e importação da sua estante do Goodreads (CSV).",
-    "Grifos na Leitura Livre: segure o dedo sobre uma palavra de um PDF na Leitura Livre para grifar, anotar ou criar um card, como no EPUB.",
-    "Google Drive: no Android, o acesso se renova sozinho, sem pedir para reconectar a toda hora. E agora você escolhe a pasta navegando, sem colar link.",
-    "Grifar ficou mais simples: cores, Nota, Card e Ajustar numa barra compacta, com início e fim do trecho ajustáveis.",
-    "O card de trecho traz a capa do livro e o capítulo, e a tela de compartilhar ficou mais clara.",
-    "Animação de folhear mais leve, e o grifo passou a funcionar em todas as páginas de livros longos.",
-    "Excluir conta: em Conta → Excluir conta, com confirmação em dois passos.",
+    "Seus livros: o Aldus abre EPUB e PDF que você já tem, do aparelho, do Google Drive ou do acervo de domínio público que vem com o app. Tudo fica na Biblioteca.",
+    "Ler: toque nas laterais da página para avançar ou voltar e no meio para mostrar os controles. Em Aparência você escolhe letra, tema, margens e se prefere virar páginas ou rolar.",
+    "Grifar: segure o dedo sobre uma palavra e arraste até o fim do trecho. Depois escolha a cor, escreva uma nota ou crie um card.",
+    "PDF: o Original mostra a página como foi impressa; a Leitura Livre transforma o PDF em texto corrido, para ajustar a letra como num EPUB.",
+    "Descobrir: busque qualquer livro, veja sugestões e guarde na estante até os que você não tem em arquivo.",
+    "Sua conta: progresso, grifos e notas acompanham você no celular e no navegador. A sincronização ainda está em teste, então guarde uma cópia dos seus arquivos.",
   ],
 };
 

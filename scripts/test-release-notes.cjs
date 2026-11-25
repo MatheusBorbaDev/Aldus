@@ -28,7 +28,8 @@ const flush = () => act(async () => { for (let i = 0; i < 5; i++) await Promise.
   // First open: shown with every item, the beta notice and the link.
   await mount();
   const shown = text(tree.root);
-  assert.ok(shown.includes('Novidades do Aldus') && shown.includes(RELEASE_NOTES.date));
+  assert.ok(shown.includes('Boas-vindas ao Aldus') && shown.includes('COMO O ALDUS FUNCIONA') && shown.includes(RELEASE_NOTES.date));
+  assert.ok(!shown.includes('Novidades do Aldus') && !shown.includes('O QUE MUDOU'));
   for (const item of RELEASE_NOTES.items) assert.ok(shown.includes(item), 'item shown: ' + item.slice(0, 30));
   assert.ok(shown.includes('Esta é uma versão beta'));
   await press('Entendi'); assert.equal(text(tree.root), '', 'closed'); assert.equal(store.get(RELEASE_NOTES_SEEN_KEY), RELEASE_NOTES.id);
@@ -53,10 +54,11 @@ const flush = () => act(async () => { for (let i = 0; i < 5; i++) await Promise.
   assert.match(section('Seus livros'), /aba Descobrir você busca qualquer livro[\s\S]*em todos os seus aparelhos[\s\S]*Google Books e do Open Library/);
   assert.doesNotMatch(JSON.stringify(betaLimitationsDocument), /ficam só no aparelho/);
   assert.ok(!betaLimitationsDocument.sections.some(s => s.heading === 'Em construção'), 'nothing listed as planned that is already delivered');
-  assert.ok(RELEASE_NOTES.items.some(item => item.startsWith('Buscar qualquer livro') && /todos os seus aparelhos/.test(item)));
-  assert.ok(RELEASE_NOTES.items.some(item => item.startsWith('Nota e resenha pessoais')));
-  assert.ok(RELEASE_NOTES.items.every(item => !/só neste aparelho/.test(item)), 'no outdated local-only claim');
-  assert.ok(RELEASE_NOTES.items.some(item => item.startsWith('Grifos na Leitura Livre')), 'owner-approved item (18/11)');
+  // 25/11 (owner): during the beta the pop-up explains how the app works instead of listing changes; the beta notice and link stay.
+  assert.equal(RELEASE_NOTES.title, 'Boas-vindas ao Aldus'); assert.equal(RELEASE_NOTES.heading, 'COMO O ALDUS FUNCIONA');
+  for (const start of ['Seus livros', 'Ler', 'Grifar', 'PDF', 'Descobrir', 'Sua conta']) assert.ok(RELEASE_NOTES.items.some(item => item.startsWith(start + ':')), start);
+  assert.ok(RELEASE_NOTES.items.every(item => !/só neste aparelho|Cara nova|Excluir conta/.test(item)), 'no change log left');
+  assert.ok(RELEASE_NOTES.items.some(item => /sincronização ainda está em teste/.test(item)), 'same caveat as the beta page');
   // Loading screen quote (public domain, credited).
   await act(async () => { tree = create(React.createElement(AppLoadingScreen)); });
   const loading = text(tree.root);

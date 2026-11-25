@@ -93,7 +93,7 @@ const FEATURES = [
   { id: 'default-cover', pedido: '18/11: capa padrao Aldus para livro sem capa (aprovada)', markers: ['terracota', '#8A3B25', 'trelica'] },
   { id: 'drive-quiet-header', pedido: '18/11: Drive "feio, dificil de acessar": aviso numa faixa fina e ordenacao num menu', markers: ['Reconecte o Google Drive para atualizar.', 'Os livros já listados continuam aqui.'] },
   { id: 'build-revision', pedido: '18/11: "nao mudou nada": cada APK mostra o commit em Ajustes > Versao', markers: [], androidMarkers: ['[0-9a-f]{7,12}'] },
-  { id: 'release-notes', pedido: '18/11: aviso de novidades com aviso de beta e link para as limitações', markers: ['Novidades do Aldus', 'O que esperar desta beta', 'release-notes-seen'], routes: ['beta'] },
+  { id: 'release-notes', pedido: '18/11: aviso com aviso de beta e link para as limitações; 25/11: na beta, guia curto de como o app funciona no lugar das novidades', markers: ['Boas-vindas ao Aldus', 'COMO O ALDUS FUNCIONA', 'O que esperar desta beta', 'release-notes-seen'], routes: ['beta'] },
   { id: 'loading-quote', pedido: '18/11: frase de livro na tela de carregamento', markers: ["O livro caindo n'alma", 'Castro Alves'] },
   { id: 'account-delete', pedido: '17/11: excluir conta no app (betas públicas)', markers: ['Excluir conta', 'EXCLUIR MINHA CONTA', 'Continuar para a exclusão', 'account-delete'], routes: ['account/delete'] },
   { id: 'legal-antipiracy', pedido: 'FASE 1: texto antipirataria nos termos', markers: ['não vende nem empresta livros'] },
