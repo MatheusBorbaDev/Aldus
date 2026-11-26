@@ -163,7 +163,7 @@ Teste no PC não comprova Android físico, sessão real nem deploy.
 - **Leituras de vestibular:** no ar (Fuvest 2026–29, Unicamp 2027–29, UFRGS 2027, UFPR 2027, fontes oficiais). PENDENTE: UEL
   inativa (lista oficial só em PDF que não abriu; dono confere e publica pelo Admin, depois `active=true`); UFPR sem `watch_url`; robô
   não obteve resposta da página da UFRGS na 1ª leitura (rever em alguns dias); NÃO TESTADO logado no app nem no Android (precisa APK).
-- **Convite da beta (25/11):** `marketing/emails/convite-beta.html` (estilo convite de casamento, nome pela Brevo `contact.FIRSTNAME`, site + APK sob pedido com aviso de segurança). AGUARDANDO aprovação do dono; NÃO ENVIADO; falta a lista de candidatos.
+- **Convite da beta:** `marketing/emails/convite-beta.html` na Brevo (atributo `contact.NOME`; remetente contato@). 25/11 teste a 3 contas: entregue, mas caiu no Spam (domínio novo). 26/11: domínio verificado no Google Postmaster Tools (TXT na Cloudflare); envio em levas de 10 aprovado pelo dono: leva 1 enviada 26/11 (campanha #2); PENDENTE leva 2 e 3 (listas a criar a partir do Forms), um dia de intervalo, conferindo Spam/Postmaster.
 - **Comunidade:** dono pediu repaginação completa (25/11: "botões sem sentido", confusa); não iniciada, mostrar proposta antes.
 - **Aparelho (precisa de celular no cabo):** v13–v18 e a landing nunca vistas num celular; Drive não traz livros soltos fora de
   subpastas (não são atalhos; precisa de log); tocar na aba Biblioteca não volta ao topo no Android (`useScrollToTop` não rola).
@@ -184,6 +184,8 @@ Teste no PC não comprova Android físico, sessão real nem deploy.
 
 ## 9. Log (mais recente primeiro; máx. 5 entradas de até 3 linhas)
 
+- **26/11** — Convite da beta: teste caiu no Spam do Gmail (entregue 3/3; DKIM/DMARC ok, domínio sem reputação). Domínio verificado
+  no Google Postmaster Tools; 1ª leva de 10 inscritos enviada pela Brevo. Placeholder do nome trocado para `contact.NOME` (Brevo em pt-BR).
 - **25/11** — Card de trecho: versos e parágrafos saíam colados ("apagariaMas"). O leitor manda junto da âncora uma cópia legível
   (`studyReadable`: quebra entre blocos e em `<br>`), o card mantém as quebras (`readableQuote`, `validateQuoteForCard`) e desenha cada linha. Âncora inalterada. NÃO TESTADO no aparelho.
 - **25/11** — Vestibular: tocar numa obra abre painel com arquivo em domínio público primeiro (Gutendex + fontes da conta, só a mesma obra;
@@ -192,5 +194,3 @@ Teste no PC não comprova Android físico, sessão real nem deploy.
   migrations + robô diário (pg_net/pg_cron) aplicados no Supabase e 9 listas oficiais carregadas. UEL oculta até conferir o PDF.
 - **25/11** — Cadastro: erro preso ao campo e com o nome dele (`signupFieldErrors`, `AuthInput error`); usuário digitado vira
   formato aceito (`usernameAsTyped`: espaço→_, sem acento). Tema: padrão Clássico claro; "system" só se escolhido (`APP_THEME_CHOSEN_KEY`).
-- **25/11** — Aviso da versão: sem lista de novidades durante a beta; título "Boas-vindas ao Aldus", guia de 6 itens "Como o Aldus
-  funciona" e o bloco da beta com o link. Id `2026-11-25.1` (aparece de novo para todos). Texto aprovado pelo dono e publicado no site.
