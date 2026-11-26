@@ -2,14 +2,14 @@
 // simulated (0.52 x font size per character), so this proves layout rules, not the rendered look on a device.
 const assert = require('node:assert/strict');
 const load = require('./community-test-loader.cjs')();
-const { QUOTE_CARD_MAX_CHARACTERS, QUOTE_CARD_FORMATS, QUOTE_CARD_TEMPLATES, QUOTE_CARD_RENDERER, buildQuoteCardSpec, validateQuoteForCard } = load('src/domain/reader/quoteCard.ts');
+const { QUOTE_CARD_MAX_CHARACTERS, QUOTE_CARD_FORMATS, QUOTE_CARD_TEMPLATES, QUOTE_CARD_RENDERER, buildQuoteCardSpec, validateQuoteForCard, readableQuote } = load('src/domain/reader/quoteCard.ts');
 const { appPalettes } = load('src/theme/tokens.ts');
 const lum = hex => { const c = hex.slice(1).match(/../g).map(v => parseInt(v, 16) / 255).map(v => v <= .03928 ? v / 12.92 : ((v + .055) / 1.055) ** 2.4); return .2126 * c[0] + .7152 * c[1] + .0722 * c[2]; };
 const contrast = (a, b) => { const v = [lum(a), lum(b)].sort((x, y) => y - x); return (v[0] + .05) / (v[1] + .05); };
 
 // Rules.
 assert.equal(QUOTE_CARD_MAX_CHARACTERS, 400, "owner's limit");
-assert.deepEqual(validateQuoteForCard('  Ao   verme\nque  '), { ok: true, quote: 'Ao verme que' });
+assert.deepEqual(validateQuoteForCard('  Ao   verme\n\n que  '), { ok: true, quote: 'Ao verme\nque' }, 'spaces collapse inside a line; line breaks stay (25/11)');
 assert.equal(validateQuoteForCard('   ').ok, false);
 const long = validateQuoteForCard('a'.repeat(401)); assert.equal(long.ok, false); assert.match(long.message, /até 400 caracteres \(este trecho tem 401\)/);
 assert.equal(validateQuoteForCard('a'.repeat(400)).ok, true, '400 is accepted, nothing is cut');
@@ -24,6 +24,30 @@ for (const paletteName of Object.keys(appPalettes)) for (const { value: template
 const hidden = buildQuoteCardSpec({ quote: 'Trecho', title: 'Livro', author: 'Autor', showBook: false, format: 'story', template: 'night', paletteName: 'ink' });
 assert.equal(hidden.book, null); assert.equal(hidden.author, null); assert.equal(hidden.brand, true, 'the Aldus mark is always on the card (owner, 16/11)');
 assert.equal(hidden.background, appPalettes.ink.dark.background, 'night uses the chosen palette');
+
+// 25/11/2026: verses and paragraphs came out glued ("apagariaMas"). The reader sends a readable copy with the breaks.
+assert.equal(readableQuote('eu as apagariaMas são', 'eu as apagaria\nMas são'), 'eu as apagaria\nMas são');
+assert.equal(readableQuote('Ao verme\n    que', 'Ao verme que'), 'Ao verme que', 'HTML formatting newlines are not line breaks');
+assert.equal(readableQuote('Ao verme\n    que', null), 'Ao verme que', 'no readable copy: one line, as before');
+assert.equal(readableQuote('texto da âncora', 'outro\ntexto'), 'texto da âncora', 'a readable copy with other letters is ignored');
+{
+  // The real WebView functions over a minimal DOM: <p>A<br>B</p><p>C</p>, plus a source newline inside a text node.
+  const { readerAnchorDocumentScript } = load('src/presentation/components/ReaderAnchorDocument.ts');
+  const source = readerAnchorDocumentScript();
+  const pick = name => { const start = source.indexOf('function ' + name + '('); let depth = 0, i = source.indexOf('{', start); for (; i < source.length; i++) { if (source[i] === '{') depth++; else if (source[i] === '}' && --depth === 0) break; } return source.slice(start, i + 1); };
+  const block = brs => ({ getElementsByTagName: tag => (tag === 'br' ? new Array(brs) : []) });
+  const p1 = block(1), p2 = block(0);
+  const text = (value, parent, brBefore) => ({ length: value.length, textContent: value, brBefore, parentElement: { closest: () => parent } });
+  const nodes = [text('Se as mentiras fossem\n  escritas, eu as apagaria', p1), text('Mas são faladas', p1, true), text('Que eu possa', p2)];
+  const fakeDocument = { createRange: () => { let end; return { setStart() {}, setEnd(node) { end = node; }, cloneContents: () => ({ querySelector: q => (q === 'br' && end.brBefore ? {} : null) }) }; } };
+  const fns = new Function('document', 'STUDY_BLOCKS', pick('studyBreaks') + pick('studyBrBetween') + pick('studyReadable') + '; return { studyReadable };')(fakeDocument, 'p');
+  let raw = ''; const model = { nodes: [] }; for (const node of nodes) { model.nodes.push({ node, start: raw.length }); raw += node.textContent; } model.text = raw;
+  const readable = fns.studyReadable(model, 0, raw.length);
+  assert.equal(readable, 'Se as mentiras fossem   escritas, eu as apagaria\nMas são faladas\nQue eu possa', '<br> and a new paragraph become line breaks; the HTML newline becomes a space');
+  assert.equal(readableQuote(raw, readable), readable, 'the readable copy has the anchor letters');
+  const card = validateQuoteForCard(readableQuote(raw, readable));
+  assert.equal(card.ok && card.quote, 'Se as mentiras fossem escritas, eu as apagaria\nMas são faladas\nQue eu possa');
+}
 
 // Renderer with a recording context.
 const renderQuoteCard = new Function(QUOTE_CARD_RENDERER + '; return renderQuoteCard;')();
@@ -56,6 +80,11 @@ assert.ok(fits(max, ctx), '400 characters in the square card stay inside');
 assert.ok(out.fontSize < results.square, 'longer trecho, smaller letter');
 assert.ok(ctx.drawn.some(d => d.text === 'ALDUS'), 'brand always drawn');
 const bookLines = ctx.drawn.filter(d => /^T+-?…?$/.test(d.text)); assert.equal(bookLines.length, 2); assert.ok(bookLines[1].text.endsWith('…'), 'long title clamped to two lines');
+{
+  const verses = renderQuoteCard(fakeContext(), buildQuoteCardSpec({ quote: 'Se as mentiras fossem escritas, eu as apagaria\nMas são faladas\nQue eu possa me arrepender', title: null, author: null, showBook: true, format: 'square', template: 'night', paletteName: 'classic' }), makeCanvas);
+  assert.ok(verses.lines.some(l => l.startsWith('Mas são')) && verses.lines.some(l => l.startsWith('Que eu')), 'each verse starts its own line');
+  assert.ok(verses.lines.every(l => !/apagariaMas|faladasQue/.test(l)), 'verses are never glued');
+}
 const word = renderQuoteCard(fakeContext(), buildQuoteCardSpec({ quote: 'x'.repeat(120), title: null, author: null, showBook: true, format: 'square', template: 'light', paletteName: 'ink' }), makeCanvas);
 assert.ok(word.lines.length > 1 && word.lines.slice(0, -1).every(l => l.endsWith('-')), 'a word wider than the card is hyphen-split, not overflowing');
 // Cover beside the book (18/11): decoded image drawn inside the card, text moved right, chapter in italic; a wide cover is cropped.

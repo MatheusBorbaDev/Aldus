@@ -155,10 +155,15 @@ export function readerAnchorDocumentScript(): string {
     var breaks={};
     for(var i=1;i<model.nodes.length;i++){
       var before=model.nodes[i-1].node.parentElement.closest(STUDY_BLOCKS),after=model.nodes[i].node.parentElement.closest(STUDY_BLOCKS);
-      if(before!==after)breaks[model.nodes[i].start]=true;
+      // Parágrafo novo ou <br> dentro do mesmo bloco (poemas, letras): o texto cru do modelo junta as linhas sem espaço.
+      if(before!==after || (after && after.getElementsByTagName('br').length && studyBrBetween(model.nodes[i-1].node,model.nodes[i].node)))breaks[model.nodes[i].start]=true;
     }
     model.breaks=breaks;return breaks;
   }
+  function studyBrBetween(prev,next){var r=document.createRange();r.setStart(prev,prev.length);r.setEnd(next,0);return !!r.cloneContents().querySelector('br');}
+  // Texto para leitura humana (card de trecho): as mesmas letras da âncora, com quebra de linha entre parágrafos e linhas.
+  // A âncora em si continua com o texto cru, porque posições e conferência dependem dele.
+  function studyReadable(model,start,end){var breaks=studyBreaks(model),out='';for(var i=start;i<end;i++){if(i>start && breaks[i])out+='\\n';var c=model.text[i];out+=/\\s/.test(c)?' ':c;}return out;}
   function studyWordAround(model,at){
     var text=model.text,breaks=studyBreaks(model),start=at,end=at;
     while(start>0 && studyIsWord(text[start-1]) && !breaks[start])start--;
@@ -206,7 +211,7 @@ export function readerAnchorDocumentScript(): string {
     if(!quote.trim()||quote.length>10000)throw new Error('Selecione de 1 a 10 mil caracteres.');
     var range=studyRange(model,start,end);if(!range)throw new Error('Este trecho não pode ser selecionado.');
     var path=[],node=range.startContainer;while(node && node!==section){path.unshift(Array.prototype.indexOf.call(node.parentNode.childNodes,node));node=node.parentNode;}
-    return {anchor:{version:1,kind:'epub-text',chapterId:section.getAttribute('data-chapter-id'),start:start,end:end,quote:quote,prefix:model.text.slice(Math.max(0,start-64),start),suffix:model.text.slice(end,end+64),path:path},range:range};
+    return {anchor:{version:1,kind:'epub-text',chapterId:section.getAttribute('data-chapter-id'),start:start,end:end,quote:quote,prefix:model.text.slice(Math.max(0,start-64),start),suffix:model.text.slice(end,end+64),path:path},range:range,text:studyReadable(model,start,end)};
   }
   function studyShowSelection(range){
     var selection=window.getSelection();if(!selection)return;
@@ -230,11 +235,11 @@ export function readerAnchorDocumentScript(): string {
       var endAt=endElement && endElement.closest && endElement.closest('.epub-chapter')===section?studyTextBoundary(range.endContainer,range.endOffset,section,true):studyTextBoundary(section,section.childNodes.length,section,true);
       var model=studyText(section),first=startAt && model.nodes.find(function(e){return e.node===startAt.node;}),last=endAt && model.nodes.find(function(e){return e.node===endAt.node;});
       if(!first || !last)throw new Error('Este trecho não pode ser selecionado.');
-      var captured=studyAnchorFor(section,model,first.start+startAt.offset,last.start+endAt.offset).anchor;
+      var capturedResult=studyAnchorFor(section,model,first.start+startAt.offset,last.start+endAt.offset),captured=capturedResult.anchor;
       var key=captured.chapterId+':'+captured.start+':'+captured.end;
       if(window.__studyLastCapture===key)return true;
       window.__studyLastCapture=key;
-      studyReply(request,{status:'captured',anchor:captured});
+      studyReply(request,{status:'captured',anchor:captured,text:capturedResult.text});
     }catch(error){studyReply(request,{status:'error',message:error.message});}
     return true;
   }
@@ -316,7 +321,7 @@ export function readerAnchorDocumentScript(): string {
     var result=studyAnchorFor(picked.section,picked.model,picked.start,picked.end);
     window.__studySelectionRequest=request;window.__studyLastCapture=result.anchor.chapterId+':'+result.anchor.start+':'+result.anchor.end;
     studySelectionStyle(true);studyShowSelection(result.range);
-    studyReply(request,{status:'captured',anchor:result.anchor});
+    studyReply(request,{status:'captured',anchor:result.anchor,text:result.text});
   }
   `;
 }

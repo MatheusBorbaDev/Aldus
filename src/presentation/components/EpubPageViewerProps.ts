@@ -6,7 +6,7 @@ import { ReaderNavigationOrigin } from "@/src/utils/readerNavigationDiagnostics"
 /** `studySelectAt`: pressionar e segurar em (x, y) do documento seleciona a palavra; `studyDragTo`: o dedo arrastado estende o trecho até (x, y) (`final` ao soltar); `studyAdjust`: aumenta/diminui o trecho pelas pontas ou pega a frase. */
 export type ReaderStudyAdjust = "growStart" | "growEnd" | "shrinkStart" | "shrinkEnd" | "sentence";
 export interface ReaderStudyRequest { id: number; type: "studyCapture" | "studyNavigate" | "studySelection" | "studySelectAt" | "studyAdjust" | "studyDragTo"; anchor?: TextReadingAnchor; enabled?: boolean; x?: number; y?: number; op?: ReaderStudyAdjust; final?: boolean }
-export interface ReaderStudyResult { id: number; type: "study"; status: "captured" | "exact" | "relocated" | "ambiguous" | "missing" | "error" | "rendered" | "unsupported"; anchor?: TextReadingAnchor; pageNumber?: number; message?: string; missing?: number; ambiguous?: number }
+export interface ReaderStudyResult { id: number; type: "study"; status: "captured" | "exact" | "relocated" | "ambiguous" | "missing" | "error" | "rendered" | "unsupported"; anchor?: TextReadingAnchor; /** Trecho legível (quebras de linha entre parágrafos e linhas); a âncora guarda o texto cru. */ text?: string; pageNumber?: number; message?: string; missing?: number; ambiguous?: number }
 
 export interface EpubPageInfo {
   pageNumber: number;

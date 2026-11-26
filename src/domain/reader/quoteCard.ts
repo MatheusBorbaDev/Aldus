@@ -57,9 +57,25 @@ export function quoteCardColors(template: QuoteCardTemplate, paletteName: AppPal
     : { background: light.background, text: light.text, secondary: light.secondaryText, accent: light.accent };
 }
 
-/** Trecho normalizado (espaços colapsados) ou a mensagem que explica por que não pode virar card. */
+/**
+ * Trecho do card com as quebras de linha do livro (25/11/2026: versos e parágrafos saíam colados, "apagariaMas"). O leitor
+ * manda, além da âncora (texto cru, que não pode mudar), o mesmo trecho com "\n" só entre parágrafos e linhas (os espaços e
+ * quebras de formatação do HTML viram espaço). Só é aceito se tiver exatamente as mesmas letras da âncora; senão o card usa
+ * o texto cru numa linha só, como antes.
+ */
+export function readableQuote(raw: string, readable: string | null | undefined): string {
+  const letters = (text: string) => text.replace(/\s+/g, "");
+  return typeof readable === "string" && letters(readable) === letters(raw) ? readable : raw.replace(/\s+/g, " ");
+}
+
+/** Espaços colapsados dentro de cada linha; linhas vazias somem; as quebras entre linhas ficam. */
+function normalizeQuote(quote: string): string {
+  return quote.split(/\r?\n/).map(line => line.replace(/\s+/g, " ").trim()).filter(Boolean).join("\n");
+}
+
+/** Trecho normalizado ou a mensagem que explica por que não pode virar card. */
 export function validateQuoteForCard(quote: string): { ok: true; quote: string } | { ok: false; message: string } {
-  const clean = quote.replace(/\s+/g, " ").trim();
+  const clean = normalizeQuote(quote);
   if (!clean) return { ok: false, message: "Selecione um trecho para criar o card." };
   if (clean.length > QUOTE_CARD_MAX_CHARACTERS) {
     return { ok: false, message: `O card aceita até ${QUOTE_CARD_MAX_CHARACTERS} caracteres (este trecho tem ${clean.length}). Use “Tirar a última” no grifo para encurtar.` };
@@ -98,6 +114,8 @@ function renderQuoteCard(ctx, spec, makeCanvas, cover) {
     tctx.putImageData(img, 0, 0); ctx.fillStyle = ctx.createPattern(tile, 'repeat'); ctx.fillRect(0, 0, W, H);
   }
   function wrap(text, size, font, maxWidth) {
+    var paragraphs = String(text).split('\\n');
+    if (paragraphs.length > 1) { var all = []; for (var p = 0; p < paragraphs.length; p++) all = all.concat(wrap(paragraphs[p], size, font, maxWidth)); return all; }
     ctx.font = font.replace('SIZE', size); var words = text.split(' '), lines = [], line = '';
     for (var w = 0; w < words.length; w++) {
       var word = words[w];

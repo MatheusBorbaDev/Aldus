@@ -19,6 +19,7 @@ import { chapterLanguage } from "@/src/presentation/components/EpubReaderDocumen
 import { ReaderFeedbackBanner } from "@/src/presentation/components/reader/ReaderFeedbackBanner";
 import { HighlightSelectionPopup } from "@/src/presentation/components/reader/HighlightSelectionPopup";
 import { QuoteCardModal } from "@/src/presentation/components/reader/QuoteCardModal";
+import { readableQuote } from "@/src/domain/reader/quoteCard";
 import { createStudyHighlight, highlightsForReaderMode } from "@/src/domain/usecases/StudyHighlights";
 import { studyColorNames } from "@/src/presentation/components/StudyPanelControls";
 import type { HighlightColor } from "@/src/domain/repositories/HighlightRepository";
@@ -135,7 +136,7 @@ export function ReaderScreen({ bookId }: Props) {
   // documento continua armada (as alças recapturam) e os toques de página ficam suspensos.
   // Toque longo nas zonas de toque ainda com o dedo na tela: as zonas seguem montadas para o arraste chegar ao documento.
   const [textGesture, setTextGesture] = useState(false);
-  const [selectionPopup, setSelectionPopup] = useState<{ anchor: TextReadingAnchor | null; error: string | null; busy: boolean } | null>(null);
+  const [selectionPopup, setSelectionPopup] = useState<{ anchor: TextReadingAnchor | null; text?: string | null; error: string | null; busy: boolean } | null>(null);
   const [selectionNotice, setSelectionNotice] = useState<string | null>(null);
   const [quoteCard, setQuoteCard] = useState<string | null>(null);
   const popupIntent = useRef(false);
@@ -158,7 +159,7 @@ export function ReaderScreen({ bookId }: Props) {
       let anchor: TextReadingAnchor | null = null;
       try { const parsed = result.anchor ? parseReadingAnchor(result.anchor) : null; anchor = parsed && parsed.kind === "epub-text" ? parsed : null; } catch { anchor = null; }
       setStudySelecting(false);
-      setSelectionPopup(current => result.status === "captured" && anchor ? { anchor, error: null, busy: false }
+      setSelectionPopup(current => result.status === "captured" && anchor ? { anchor, text: typeof result.text === "string" ? result.text : null, error: null, busy: false }
         : { anchor: current?.anchor ?? null, error: result.message ?? "Não foi possível selecionar este trecho.", busy: false });
       return;
     }
@@ -1222,7 +1223,7 @@ export function ReaderScreen({ bookId }: Props) {
         {studySelecting ? <View style={{ position: "absolute", bottom: Math.max(insets.bottom, 12) + 64, left: 16, right: 16, zIndex: 30, backgroundColor: activePalette.panel, padding: 12, borderRadius: 8 }}><Text style={{ color: activePalette.text }}>{Platform.OS === "web" ? "Arraste sobre o texto. Solte para escolher a cor." : "Toque e segure uma palavra. Ajuste a seleção e solte para escolher a cor."}</Text>{studyFeedback ? <Text accessibilityRole="alert" style={{ color: activePalette.text }}>{studyFeedback}</Text> : null}<Pressable accessibilityRole="button" style={{ minHeight: 44, justifyContent: "center" }} onPress={() => { studySelectionIntent.current = false; setStudySelectionCaptured(false); setStudySelecting(false); setStudyVisible(true); setStudyRequest({ id: ++studySequence.current, type: "studySelection", enabled: false }); }}><Text style={{ color: activePalette.accent, paddingVertical: 10 }}>Cancelar seleção</Text></Pressable></View> : null}
         {selectionPopup ? <HighlightSelectionPopup quote={selectionPopup.anchor?.quote ?? null} error={selectionPopup.error} busy={selectionPopup.busy} palette={activePalette}
           bottom={Math.max(insets.bottom, 12) + 12} onColor={color => void saveSelection(color)} onAdjust={adjustSelection} onNote={noteSelection}
-          onShare={() => { if (selectionPopup.anchor) setQuoteCard(selectionPopup.anchor.quote); }} onCancel={closeSelectionPopup} /> : null}
+          onShare={() => { if (selectionPopup.anchor) setQuoteCard(readableQuote(selectionPopup.anchor.quote, selectionPopup.text)); }} onCancel={closeSelectionPopup} /> : null}
         {quoteCard !== null ? <QuoteCardModal quote={quoteCard} title={bookTitle} author={currentBook?.author ?? null} cover={currentBook?.coverImagePath ?? null} chapter={chapterTitle && chapterTitle !== "Abrindo livro..." ? chapterTitle : null} paletteName={appPaletteName ?? "classic"} palette={activePalette} onClose={() => setQuoteCard(null)} /> : null}
         {studyVisible && currentBook ? <StudyBookmarksPanel book={currentBook} capture={studyAnchor} chapterTitle={chapterTitle} loading={studyLoading} feedback={studyStorageError ?? studyFeedback ?? studyRenderFeedback}
           highlights={modeHighlights} highlightMode={highlightMode} onHighlightsSaved={reloadHighlights}
