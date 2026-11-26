@@ -7,22 +7,22 @@ const categories: Record<DriveErrorCode, DriveErrorCategory> = {
   unsupported: "INVALID_FOLDER", configuration: "UNKNOWN", busy: "UNKNOWN", "account-mismatch": "AUTH_REQUIRED",
 };
 const messages: Record<DriveErrorCode, string> = {
-  disconnected: "Drive desconectado. Use Conectar ou Reconectar em Minhas bibliotecas.",
-  expired: "A autorização do Drive expirou ou foi revogada. Reconecte o Drive.",
-  cancelled: "A autorização do Google Drive foi cancelada. Toque em Reconectar para tentar novamente.",
-  "popup-blocked": "O navegador bloqueou a janela de autorização Google. Permita pop-ups para este site e toque em Reconectar.",
-  "auth-denied": "O Google não concedeu a autorização Drive. Confira o consentimento e se sua conta está autorizada a usar o aplicativo.",
-  "api-disabled": "A API Google Drive está desabilitada para este aplicativo. A configuração do serviço precisa ser concluída pelo responsável.",
-  permission: "Esta conta Google não tem permissão para acessar a pasta ou baixar este arquivo. Confira o compartilhamento da pasta.",
-  "not-found": "Pasta ou arquivo não encontrado, ou não visível para esta conta Google.",
+  disconnected: "Não foi possível ler esta pasta agora. Confira o link e tente atualizar novamente.",
+  expired: "O Google recusou a consulta. Tente atualizar novamente em instantes.",
+  cancelled: "A operação foi cancelada.",
+  "popup-blocked": "Não foi possível concluir a operação. Tente novamente.",
+  "auth-denied": "O Google recusou a leitura desta pasta pelo link. No Google Drive, abra o compartilhamento da pasta e escolha “Qualquer pessoa com o link”.",
+  "api-disabled": "A leitura do Google Drive está desativada nesta versão do Aldus. Avise o suporte.",
+  permission: "A pasta ou o arquivo não está aberto para leitura pelo link. No Google Drive, abra o compartilhamento da pasta e escolha “Qualquer pessoa com o link”.",
+  "not-found": "Pasta ou arquivo não encontrado. Confira se o link está completo e se a pasta está compartilhada com “Qualquer pessoa com o link”.",
   "rate-limit": "Limite de consultas do Drive atingido. Aguarde e tente atualizar novamente.",
   network: "Não foi possível contatar o Drive. Confira a rede e tente novamente.",
   api: "Não foi possível concluir a consulta ao Drive. A causa não foi identificada; tente atualizar novamente.",
   "invalid-folder": "Informe um link de pasta válido do Google Drive.",
   unsupported: "O destino não é uma pasta do Google Drive. Use uma pasta real; atalhos para arquivos não são percorridos.",
-  configuration: "Não foi possível preparar a conexão com o Google Drive neste aplicativo.",
-  busy: "Já existe uma autorização Drive em andamento. Conclua ou cancele a janela do Google e tente novamente.",
-  "account-mismatch": "Esta biblioteca foi conectada com outra conta Google. Toque em Reconectar e escolha a mesma conta, ou remova a biblioteca e adicione de novo com a conta nova.",
+  configuration: "A leitura do Google Drive não está configurada nesta versão do Aldus. Avise o suporte.",
+  busy: "Já existe uma consulta ao Drive em andamento. Aguarde e tente novamente.",
+  "account-mismatch": "Não foi possível ler esta pasta agora. Confira o link e tente atualizar novamente.",
 };
 export class DriveError extends Error {
   readonly category: DriveErrorCategory;

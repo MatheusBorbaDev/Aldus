@@ -12,7 +12,7 @@ export const driveDownloadResolver: DownloadRequestResolver = {
     if (!source) throw new DriveError("disconnected");
     return googleDrive.downloadRequest(source, job.drive.fileId, signal);
   },
-  checkStatus: (job: DownloadJob, status: number, headers?: Record<string, string>) => {
-    if (job.drive) googleDrive.checkDownloadStatus(job.drive.sourceId, status, headers?.Authorization?.replace(/^Bearer /, ""));
+  checkStatus: (job: DownloadJob, status: number) => {
+    if (job.drive) googleDrive.checkDownloadStatus(job.drive.sourceId, status);
   },
 };

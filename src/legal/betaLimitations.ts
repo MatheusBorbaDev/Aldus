@@ -26,7 +26,7 @@ export const betaLimitationsDocument: LegalDocument = {
     { heading: "Conta e acesso", bullets: [
       "Cadastro por e-mail tem limite nesta fase. O serviço de e-mail que usamos durante a beta envia poucas mensagens por hora. Se o e-mail de confirmação ou de nova senha não chegar, espere um pouco e tente de novo, ou entre com sua conta Google.",
       "Entrar pelo @usuário pode não funcionar ainda. Use o e-mail ou a conta Google.",
-      "Google Drive: enquanto o app não passa pela verificação do Google, só as contas cadastradas como testadoras conseguem conectar o Drive. Se quiser usar o Drive, peça para incluirmos o seu e-mail.",
+      "Google Drive: o Aldus lê pastas pelo link. No Drive, compartilhe a pasta como “Qualquer pessoa com o link” antes de colar o link no app.",
       "Excluir a conta: em Conta → Excluir conta. Os dados da conta saem do servidor; as cópias guardadas no aparelho continuam lá até você remover o app.",
     ] },
     { heading: "Servidor", paragraphs: [

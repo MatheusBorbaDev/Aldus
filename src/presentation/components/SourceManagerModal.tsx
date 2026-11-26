@@ -11,8 +11,7 @@ import { useAppTheme } from '@/src/presentation/contexts/AppThemeContext';
 import { appDependencies } from '@/src/presentation/services/dependencies';
 import { useSourceStore } from '@/src/presentation/stores/sourceStore';
 import { googleDrive } from '@/src/data/drive/driveDependencies';
-import { driveFolderLink, parseDriveFolder } from '@/src/data/drive/driveFolder';
-import { DriveFolderPicker } from './DriveFolderPicker';
+import { parseDriveFolder } from '@/src/data/drive/driveFolder';
 import { sourceCatalogs } from '@/src/data/sources/sourceCatalogDependencies';
 import { DriveError } from '@/src/data/drive/DriveErrors';
 import { sourceOperationId } from '@/src/utils/sourceDiagnostics';
@@ -33,16 +32,12 @@ function SourceManagerContent({ visible, onClose, sourceId = null, action = 'man
   const [mode, setMode] = useState<'add' | 'manage' | 'edit'>(sourceId ? 'manage' : 'add');
   const [name, setName] = useState(''), [url, setUrl] = useState(''), [kind, setKind] = useState<SourceKind>('google-drive');
   const currentUrl = url;
-  // The folder picker is the main way to choose a Drive folder; pasting a link stays available.
-  const [pasteLink, setPasteLink] = useState(false);
-  const [advanced, setAdvanced] = useState(false), [connected, setConnected] = useState(false), [ready, setReady] = useState(false);
+  const [advanced, setAdvanced] = useState(false);
   const [manageOptions, setManageOptions] = useState(false);
-  const [preparationError, setPreparationError] = useState<string | null>(null), [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [prepared, setPrepared] = useState<SourceCatalog | null>(null), [progress, setProgress] = useState<SourceOperationProgress | null>(null);
   const [busy, setBusy] = useState(false), [cancellable, setCancellable] = useState(true), [notice, setNotice] = useState<string | null>(null);
   const [confirmation, setConfirmation] = useState<'remove' | 'disconnect' | 'toggle' | null>(null);
-  // Google account confirmed by the last connection in this modal; saved with the library so access can renew silently.
-  const driveAccount = useRef<string | null>(null);
   const draft = useRef({ id: '', createdAt: 0 }), operation = useRef<Operation | null>(null), alive = useRef(true);
   const flowId = useRef(sourceOperationId()), preparedId = useRef<string | null>(null);
   const discardPrepared = () => { if (preparedId.current) sourceCatalogs.cancel(preparedId.current); preparedId.current = null; setPrepared(null); };
@@ -56,23 +51,14 @@ function SourceManagerContent({ visible, onClose, sourceId = null, action = 'man
     setBusy(false); setManageOptions(false); setError(null); setNotice(null); setProgress(null); setPrepared(null);
     if (!visible) return;
     const current = sourceId ? useSourceStore.getState().sources.find(source => source.id === sourceId && sourceVisibleInAccount(source, accountId)) : undefined;
-    driveAccount.current = null;
     draft.current = { id: current?.id ?? `source-draft-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`, createdAt: current?.createdAt ?? Date.now() };
     setName(current?.name ?? ''); setUrl(current?.url ?? ''); setKind(current?.kind ?? initialKind);
     setMode(current ? action === 'edit' ? 'edit' : 'manage' : sourceId ? 'manage' : 'add');
     setAdvanced(!!current && current.kind !== 'google-drive' && current.kind !== 'json' && action === 'edit');
-    setConnected(!!current && googleDrive.authorization.connected(current.id));
-    setConfirmation(action === 'remove' || action === 'disconnect' || action === 'toggle' ? action : null);
+    setConfirmation(action === 'remove' || action === 'toggle' ? action : null);
     void load();
     return () => { operation.current?.controller.abort(); operation.current = null; if (preparedId.current) sourceCatalogs.cancel(preparedId.current); preparedId.current = null; };
   }, [visible, sourceId, action, initialKind, accountId, load]);
-  const prepareAuthorization = () => {
-    setReady(false); setPreparationError(null);
-    void googleDrive.authorization.prepare().then(() => { if (alive.current) setReady(true); }).catch(failure => {
-      if (alive.current) setPreparationError(failure instanceof DriveError ? failure.message : 'Não foi possível preparar a conexão. Tente novamente.');
-    });
-  };
-  useEffect(() => { if (visible && (kind === 'google-drive' || target?.kind === 'google-drive')) prepareAuthorization(); }, [visible, kind, target?.kind]);
   const close = () => { if (operation.current && !cancellable) return; operation.current?.controller.abort(); discardPrepared(); onClose(); };
   const active = (op: Operation) => alive.current && operation.current === op && !op.controller.signal.aborted;
   const run = async (phase: SourceOperationProgress['phase'], task: (op: Operation) => Promise<void>, canCancel = true) => {
@@ -87,7 +73,6 @@ function SourceManagerContent({ visible, onClose, sourceId = null, action = 'man
         const cancelled = controller.signal.aborted || (failure as Error)?.name === 'AbortError' || failure instanceof DriveError && failure.code === 'cancelled';
         setProgress({ operationId: context.operationId, phase: cancelled ? 'cancelled' : 'error' });
         if (!cancelled) setError(failure instanceof DriveError || failure instanceof SourceFormError ? failure.message : 'Não foi possível concluir a operação. Confira a conexão, o endereço e as permissões. Seus dados foram preservados; tente novamente.');
-        if (kind === 'google-drive') setConnected(googleDrive.authorization.connected(draft.current.id));
       }
     } finally {
       if (operation.current === op) { operation.current = null; if (alive.current) { setBusy(false); if (controller.signal.aborted) setProgress({ operationId: context.operationId, phase: 'cancelled' }); } }
@@ -105,20 +90,11 @@ function SourceManagerContent({ visible, onClose, sourceId = null, action = 'man
     }
     return { ...(target ?? {}), id: draft.current.id, ownerId: accountId, name: cleanName || 'Minha biblioteca', url: url.trim(), kind,
       folderId: folder?.folderId, resourceKey: folder?.resourceKey ?? (folder && target?.folderId === folder.folderId ? target.resourceKey : undefined),
-      driveAccountId: kind === 'google-drive' ? driveAccount.current ?? target?.driveAccountId : undefined, enabled: true, status: 'active', lastError: null, lastCheckedAt: Date.now(), createdAt: draft.current.createdAt };
+      driveAccountId: undefined, enabled: true, status: 'active', lastError: null, lastCheckedAt: Date.now(), createdAt: draft.current.createdAt };
   };
-  const connect = () => void run('authorizing', async op => {
-    discardPrepared();
-    // This call starts synchronously from the click, preserving the GIS popup gesture.
-    const source: UserSource = { id: draft.current.id, name: name.trim() || 'Minha biblioteca', url, kind: 'google-drive', enabled: true, createdAt: draft.current.createdAt, ownerId: accountId };
-    const googleAccount = await googleDrive.connect({ ...source, driveAccountId: target?.driveAccountId }, op.controller.signal, op.context);
-    if (active(op)) driveAccount.current = googleAccount;
-    if (active(op)) { setConnected(true); setNotice('Drive conectado nesta sessão. Agora informe a pasta da sua biblioteca.'); }
-  });
   const searchBooks = (chosenUrl?: string) => void run('verifying', async op => {
     discardPrepared();
     const source = candidate(false, chosenUrl);
-    if (!googleDrive.authorization.connected(source.id)) throw new DriveError('disconnected');
     const folder = await googleDrive.describeRoot(source, op.controller.signal, op.context);
     if (!active(op)) return;
     if (!name.trim()) { source.name = folder.name || 'Minha biblioteca'; setName(source.name); }
@@ -128,7 +104,6 @@ function SourceManagerContent({ visible, onClose, sourceId = null, action = 'man
   const savePrepared = () => void run('saving', async op => {
     const source = candidate(true);
     if (!prepared || prepared.sourceId !== source.id || prepared.sourceIdentity !== sourceIdentity(source)) throw new SourceFormError('Busque os livros desta pasta antes de salvar.');
-    if (!googleDrive.authorization.connected(source.id)) throw new DriveError('expired');
     if (target) await update(source.id, source, op.controller.signal, { prepared, context: op.context });
     else await add(source, op.controller.signal, { prepared, context: op.context });
     if (active(op)) { preparedId.current = null; setMode('manage'); setPrepared(null); setNotice('Biblioteca salva. Importe os livros que você quiser ler.'); }
@@ -149,13 +124,12 @@ function SourceManagerContent({ visible, onClose, sourceId = null, action = 'man
   const refreshTarget = () => {
     if (!target) return;
     const source = { ...target, enabled: true, status: 'active' as const, lastError: null, lastCheckedAt: Date.now() };
-    void run(source.kind === 'google-drive' && !googleDrive.authorization.connected(source.id) ? 'authorizing' : 'verifying', async op => {
-      if (source.kind === 'google-drive' && !googleDrive.authorization.connected(source.id)) source.driveAccountId = await googleDrive.connect(source, op.controller.signal, op.context);
+    void run('verifying', async op => {
       if (sourceCapabilities(source).supportsCatalog) {
         const catalog = await sourceCatalogs.prepare(source, op.controller.signal, op.context);
         await update(source.id, source, op.controller.signal, { prepared: catalog, context: op.context });
       } else { await checkAdvanced(source, op); await update(source.id, source, op.controller.signal, { context: op.context }); }
-      if (active(op)) { setConnected(source.kind === 'google-drive' && googleDrive.authorization.connected(source.id)); setNotice('Biblioteca atualizada. Seus livros importados foram preservados.'); }
+      if (active(op)) setNotice('Biblioteca atualizada. Seus livros importados foram preservados.');
     });
   };
   const confirm = () => {
@@ -163,17 +137,13 @@ function SourceManagerContent({ visible, onClose, sourceId = null, action = 'man
     const choice = confirmation;
     void run('saving', async op => {
       if (choice === 'remove') { await remove(target.id); if (active(op)) onClose(); return; }
-      if (choice === 'disconnect') {
-        const revoked = await googleDrive.disconnect(target.id); if (!active(op)) return;
-        await update(target.id, { enabled: false, status: 'error', lastError: revoked ? 'Drive desconectado. Livros importados preservados.' : 'Desconectado neste dispositivo. A revogação no Google não foi confirmada. Confira os aplicativos conectados na sua conta Google.' }, op.controller.signal);
-        if (active(op)) { setConnected(false); setNotice('Conexão encerrada. Catálogo e livros importados preservados.'); }
-      } else if (target.enabled) { await update(target.id, { enabled: false }, op.controller.signal); if (active(op)) setNotice('Biblioteca desativada. Seus livros importados foram preservados.'); }
+      if (target.enabled) { await update(target.id, { enabled: false }, op.controller.signal); if (active(op)) setNotice('Biblioteca desativada. Seus livros importados foram preservados.'); }
       if (active(op)) setConfirmation(null);
     }, false);
   };
   const enterEdit = () => { if (!target) return; discardPrepared(); flowId.current = sourceOperationId(); setName(target.name); setUrl(target.url); setKind(target.kind); setMode('edit'); setAdvanced(target.kind !== 'google-drive' && target.kind !== 'json'); setError(null); setNotice(null); };
   const changeUrl = (value: string) => { discardPrepared(); setUrl(value); setError(null); setNotice(null); };
-  const changeKind = (value: SourceKind) => { discardPrepared(); setKind(value); setError(null); setNotice(null); setConnected(value === 'google-drive' && googleDrive.authorization.connected(draft.current.id)); };
+  const changeKind = (value: SourceKind) => { discardPrepared(); setKind(value); setError(null); setNotice(null); };
   const primary = (label: string, onPress: () => void, disabled = false) => <Pressable accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ disabled: busy || disabled }} disabled={busy || disabled} onPress={onPress} style={[styles.primary, { backgroundColor: palette.accent, opacity: busy || disabled ? .5 : 1 }]}><Text style={styles.primaryText}>{label}</Text></Pressable>;
   const secondary = (label: string, onPress: () => void, danger = false) => <Pressable accessibilityRole="button" accessibilityLabel={label} disabled={busy} onPress={onPress} style={[styles.secondary, { borderColor: palette.border }]}><Text style={{ color: danger ? palette.accent : palette.text, fontWeight: '600' }}>{label}</Text></Pressable>;
   const field = (label: string, value: string, change: (value: string) => void, placeholder: string, isUrl = false) => <View style={styles.field}><Text style={[styles.label, { color: palette.text }]}>{label}</Text><TextInput accessibilityLabel={label} value={value} editable={!busy} onChangeText={change} placeholder={placeholder} placeholderTextColor={palette.secondaryText} autoCapitalize={isUrl ? 'none' : 'sentences'} autoCorrect={!isUrl} keyboardType={isUrl ? 'url' : 'default'} style={[styles.input, { color: palette.text, borderColor: palette.border, backgroundColor: palette.surface }]} /></View>;
@@ -185,35 +155,30 @@ function SourceManagerContent({ visible, onClose, sourceId = null, action = 'man
     <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
       {sourceId && !target ? <Text accessibilityRole="alert" style={{ color: palette.secondaryText }}>Esta biblioteca não está disponível nesta conta. Nenhum dado foi removido.</Text> : <>
         {mode === 'manage' && target ? <><View style={[styles.panel, { backgroundColor: palette.surface, borderColor: palette.border }]}><Ionicons name={target.kind === 'google-drive' ? 'logo-google' : 'library-outline'} size={27} color={palette.accent} /><Text style={[styles.summaryName, { color: palette.text }]}>{target.name}</Text><Text style={{ color: palette.secondaryText }}>{sourceLibraryTypeLabel(target.kind)}{catalog ? ` · ${catalog.items.length.toLocaleString('pt-BR')} ${catalog.items.length === 1 ? 'livro' : 'livros'}` : ' · Ainda não atualizada'}</Text></View>
-          {confirmation ? <View style={[styles.panel, { borderColor: palette.accent }]}><Text accessibilityRole="header" style={[styles.heading, { color: palette.text }]}>{confirmation === 'remove' ? 'Remover esta biblioteca?' : confirmation === 'disconnect' ? 'Desconectar o Google Drive?' : 'Desativar esta biblioteca?'}</Text><Text style={{ color: palette.secondaryText, lineHeight: 21 }}>{confirmation === 'remove' ? 'A configuração e o catálogo desta biblioteca serão removidos desta conta. Livros já importados, notas e progresso serão preservados.' : confirmation === 'disconnect' ? 'O catálogo local e os livros importados permanecem. Revogar o acesso no Google pode afetar outras bibliotecas conectadas à mesma conta e aplicativo.' : 'A biblioteca deixa de participar das buscas. O catálogo local e os livros importados permanecem preservados.'}</Text>{primary(confirmation === 'remove' ? 'Confirmar remoção da biblioteca' : confirmation === 'disconnect' ? 'Confirmar desconexão' : 'Confirmar desativação', confirm)}{secondary('Cancelar alteração', () => setConfirmation(null))}</View> : <>
+          {confirmation ? <View style={[styles.panel, { borderColor: palette.accent }]}><Text accessibilityRole="header" style={[styles.heading, { color: palette.text }]}>{confirmation === 'remove' ? 'Remover esta biblioteca?' : 'Desativar esta biblioteca?'}</Text><Text style={{ color: palette.secondaryText, lineHeight: 21 }}>{confirmation === 'remove' ? 'A configuração e o catálogo desta biblioteca serão removidos desta conta. Livros já importados, notas e progresso serão preservados.' : 'A biblioteca deixa de participar das buscas. O catálogo local e os livros importados permanecem preservados.'}</Text>{primary(confirmation === 'remove' ? 'Confirmar remoção da biblioteca' : 'Confirmar desativação', confirm)}{secondary('Cancelar alteração', () => setConfirmation(null))}</View> : <>
             {sourceCapabilities(target).supportsCatalog ? primary('Abrir biblioteca', () => { close(); router.push({ pathname: '/sources/[sourceId]', params: { sourceId: target.id } } as never); }) : <Text style={{ color: palette.secondaryText }}>Este catálogo oferece somente pesquisa. Seus resultados continuam na área de busca.</Text>}
-            {secondary(target.kind === 'google-drive' && !googleDrive.authorization.connected(target.id) ? 'Reconectar Google Drive' : !target.enabled ? 'Ativar e atualizar biblioteca' : sourceCapabilities(target).supportsCatalog ? 'Atualizar biblioteca' : 'Testar conexão', refreshTarget)}
+            {secondary(!target.enabled ? 'Ativar e atualizar biblioteca' : sourceCapabilities(target).supportsCatalog ? 'Atualizar biblioteca' : 'Testar conexão', refreshTarget)}
             <Pressable accessibilityRole="button" accessibilityLabel="Mais opções da biblioteca" accessibilityState={{ expanded: manageOptions }} onPress={() => setManageOptions(!manageOptions)} disabled={busy} style={styles.disclosure}><Text style={{ color: palette.secondaryText }}>Mais opções</Text><Ionicons name={manageOptions ? 'chevron-up' : 'chevron-down'} size={17} color={palette.secondaryText} /></Pressable>
-            {manageOptions ? <View style={styles.actionGrid}>{secondary('Editar biblioteca', enterEdit)}{secondary(target.enabled ? 'Desativar biblioteca' : 'Ativar biblioteca', () => target.enabled ? setConfirmation('toggle') : refreshTarget())}{target.kind === 'google-drive' ? secondary('Desconectar Google Drive', () => setConfirmation('disconnect')) : null}{secondary('Remover biblioteca', () => setConfirmation('remove'), true)}</View> : null}
+            {manageOptions ? <View style={styles.actionGrid}>{secondary('Editar biblioteca', enterEdit)}{secondary(target.enabled ? 'Desativar biblioteca' : 'Ativar biblioteca', () => target.enabled ? setConfirmation('toggle') : refreshTarget())}{secondary('Remover biblioteca', () => setConfirmation('remove'), true)}</View> : null}
           </>}</> : null}
         {mode === 'add' ? <View style={styles.addChoices}><Pressable accessibilityRole="button" accessibilityLabel="Adicionar com Google Drive" accessibilityState={{ selected: kind === 'google-drive' }} disabled={busy} onPress={() => { changeKind('google-drive'); setAdvanced(false); }} style={[styles.choice, { backgroundColor: palette.surface, borderColor: kind === 'google-drive' ? palette.accent : palette.border }]}><Ionicons name="logo-google" size={19} color={palette.accent} /><Text style={{ color: palette.text, fontWeight: '600' }}>Google Drive</Text></Pressable><Pressable accessibilityRole="button" accessibilityLabel="Adicionar biblioteca por link" disabled={busy} onPress={() => { changeKind('json'); setAdvanced(false); }} style={styles.linkChoice}><Text style={{ color: palette.accent }}>Adicionar por link</Text></Pressable></View> : null}
         {mode !== 'manage' && kind === 'json' && !advanced ? <View style={[styles.panel, { borderColor: palette.border }]}><Text accessibilityRole="header" style={[styles.heading, { color: palette.text }]}>Biblioteca por link</Text><Text style={[styles.help, { color: palette.secondaryText }]}>Adicione o endereço de um catálogo de livros. Nenhum arquivo será baixado automaticamente.</Text>{field('Nome da biblioteca', name, setName, 'Ex.: Minhas leituras')}{field('Link da biblioteca', url, changeUrl, 'https://catalogo.exemplo/biblioteca', true)}{primary(mode === 'edit' ? 'Salvar alterações' : 'Salvar biblioteca por link', saveAdvanced)}<Text style={[styles.help, { color: palette.secondaryText }]}>Se o catálogo usa OPDS ou uma página de pesquisa, escolha seu formato em Configuração avançada.</Text></View> : null}
         {mode !== 'manage' && kind === 'google-drive' ? <>
-          <View style={styles.intro}><Ionicons name="logo-google" size={26} color={palette.accent} /><Text accessibilityRole="header" style={[styles.heading, { color: palette.text }]}>Sua pasta vira uma biblioteca.</Text><Text style={{ color: palette.secondaryText, lineHeight: 21 }}>Conecte o Drive, escolha uma pasta e encontre seus EPUB e PDF. Os arquivos só são baixados quando você escolhe importar um livro.</Text></View>
-          <View style={styles.steps} accessibilityLabel="Etapas para adicionar biblioteca"><Step number="1" title="Conectar" complete={connected} palette={palette} /><Step number="2" title="Buscar livros" complete={!!prepared} palette={palette} /><Step number="3" title="Salvar" complete={false} palette={palette} /></View>
-          <View style={[styles.panel, { borderColor: palette.border, backgroundColor: palette.surface }]}><Text style={[styles.label, { color: palette.text }]}>{connected ? 'Google Drive conectado nesta sessão' : '1. Conecte seu Google Drive'}</Text><Text style={[styles.help, { color: palette.secondaryText }]}>A conexão é separada do login no Aldus. A permissão do Google permite ler e baixar arquivos de todo o Drive. O Aldus mostra os nomes das suas pastas para você escolher e só lê a pasta escolhida e as subpastas dela.</Text>{primary(connected ? 'Conectar outra conta Google' : 'Conectar Google Drive', connect, !ready)}{!ready ? <Text style={[styles.help, { color: palette.secondaryText }]}>{preparationError ?? 'Preparando conexão segura…'}</Text> : null}{preparationError ? secondary('Tentar preparar conexão novamente', prepareAuthorization) : null}</View>
-          {connected && !pasteLink ? <DriveFolderPicker sourceId={draft.current.id} disabled={busy} onChoose={folder => {
-            const link = driveFolderLink({ folderId: folder.id, resourceKey: folder.resourceKey });
-            changeUrl(link);
-            searchBooks(link);
-          }} /> : null}
-          {connected ? <Pressable accessibilityRole="button" accessibilityLabel={pasteLink ? 'Escolher a pasta navegando' : 'Colar link de uma pasta'} disabled={busy} onPress={() => setPasteLink(!pasteLink)} style={styles.linkChoice}><Text style={{ color: palette.accent }}>{pasteLink ? 'Escolher a pasta navegando' : 'Prefiro colar o link de uma pasta'}</Text></Pressable> : null}
-          {connected && pasteLink ? <View style={[styles.panel, { borderColor: palette.border }]}>{field('Link da pasta do Google Drive', url, changeUrl, 'Cole o link da pasta', true)}<Text style={[styles.help, { color: palette.secondaryText }]}>Abra a pasta no Google Drive e copie o link. A pasta precisa estar acessível à conta Google conectada.</Text>{primary(prepared ? 'Buscar livros novamente' : 'Buscar livros', () => searchBooks(), !url.trim())}</View> : null}
+          <View style={styles.intro}><Ionicons name="logo-google" size={26} color={palette.accent} /><Text accessibilityRole="header" style={[styles.heading, { color: palette.text }]}>Sua pasta vira uma biblioteca.</Text><Text style={{ color: palette.secondaryText, lineHeight: 21 }}>Cole o link de uma pasta do Google Drive e encontre seus EPUB e PDF. O Aldus não acessa a sua conta Google: lê só a pasta do link e as subpastas dela. Os arquivos só são baixados quando você escolhe importar um livro.</Text></View>
+          <View style={styles.steps} accessibilityLabel="Etapas para adicionar biblioteca"><Step number="1" title="Colar o link" complete={!!parsedLink(url)} palette={palette} /><Step number="2" title="Buscar livros" complete={!!prepared} palette={palette} /><Step number="3" title="Salvar" complete={false} palette={palette} /></View>
+          <View style={[styles.panel, { borderColor: palette.border, backgroundColor: palette.surface }]}>{field('Link da pasta do Google Drive', url, changeUrl, 'https://drive.google.com/drive/folders/…', true)}<Text style={[styles.help, { color: palette.secondaryText }]}>No Google Drive, abra o compartilhamento da pasta, escolha “Qualquer pessoa com o link” e copie o link. Quem tiver o link consegue ver os arquivos da pasta.</Text>{primary(prepared ? 'Buscar livros novamente' : 'Buscar livros', () => searchBooks(), !url.trim())}</View>
           {prepared ? <View style={[styles.panel, { borderColor: palette.border, backgroundColor: palette.surface }]}><Text accessibilityRole="header" style={[styles.heading, { color: palette.text }]}>Biblioteca encontrada</Text><Text style={{ color: palette.secondaryText }}>{prepared.items.length.toLocaleString('pt-BR')} {prepared.items.length === 1 ? 'livro encontrado' : 'livros encontrados'} · {Math.max(0, (prepared.folders?.length ?? 1) - 1).toLocaleString('pt-BR')} subpastas</Text>{prepared.items.length ? prepared.items.slice(0, 3).map(item => <Text key={item.remoteBookId} numberOfLines={1} style={{ color: palette.text, fontSize: 12 }}>• {item.title}</Text>) : <Text style={{ color: palette.secondaryText }}>A pasta é válida, mas ainda não contém EPUB ou PDF. Você pode salvá-la e atualizar depois.</Text>}{field('Nome da biblioteca', name, setName, 'Ex.: Minhas leituras')}{primary(mode === 'edit' ? 'Salvar alterações' : 'Salvar biblioteca', savePrepared)}<Text style={[styles.help, { color: palette.secondaryText }]}>Esta busca consultou apenas informações dos arquivos. Nada foi importado para sua biblioteca pessoal.</Text></View> : null}
           {mode === 'edit' && !prepared ? field('Nome da biblioteca', name, setName, 'Nome da biblioteca') : null}
         </> : null}
-        {mode !== 'manage' ? <View style={[styles.advanced, { borderTopColor: palette.border }]}><Pressable accessibilityRole="button" accessibilityLabel="Configuração avançada" accessibilityState={{ expanded: advanced }} disabled={busy} onPress={() => setAdvanced(!advanced)} style={styles.disclosure}><Text style={{ color: palette.secondaryText, fontWeight: '600' }}>Configuração avançada</Text><Ionicons name={advanced ? 'chevron-up' : 'chevron-down'} size={17} color={palette.secondaryText} /></Pressable>{advanced ? <View style={{ gap: 14 }}><Text style={[styles.help, { color: palette.secondaryText }]}>Para catálogos JSON, OPDS e páginas de busca. Configurações existentes são preservadas até você salvar.</Text><View style={styles.kindOptions}>{(['google-drive', 'json', 'opds', 'html'] as SourceKind[]).map(value => <Pressable key={value} accessibilityRole="button" accessibilityLabel={`Tipo: ${sourceTypeLabel(value)}`} accessibilityState={{ selected: kind === value }} disabled={busy} onPress={() => changeKind(value)} style={[styles.kind, { borderColor: kind === value ? palette.accent : palette.border, backgroundColor: kind === value ? palette.surfaceSecondary : palette.surface }]}><Text style={{ color: palette.text, fontSize: 12 }}>{value === 'google-drive' ? 'Google Drive' : value.toUpperCase()}</Text></Pressable>)}</View>{kind !== 'google-drive' ? <>{!['json', 'opds', 'html'].includes(kind) ? <Text style={{ color: palette.secondaryText }}>Tipo existente: {sourceTypeLabel(kind)}. Será mantido se você não escolher outro.</Text> : null}{field('Nome da biblioteca', name, setName, 'Ex.: Catálogo de estudos')}{field('Endereço do catálogo', url, changeUrl, 'https://catalogo.exemplo/busca?q={query}', true)}<Text style={[styles.help, { color: palette.secondaryText }]}>{kind === 'json' ? 'Um JSON sem {query} pode oferecer uma biblioteca completa de EPUB e PDF. Catálogos de busca permanecem somente pesquisa. Na Web, o servidor precisa permitir CORS.' : 'O endereço pode usar {query}. OPDS e HTML permanecem catálogos de pesquisa. Na Web, o servidor precisa permitir CORS.'}</Text>{primary(mode === 'edit' ? 'Salvar alterações' : 'Salvar catálogo', saveAdvanced)}</> : <Text style={[styles.help, { color: palette.secondaryText }]}>O campo de pasta também aceita seu identificador. Tokens não são salvos pelo Aldus. O índice de metadados permanece neste dispositivo; revogar o acesso pode afetar outras bibliotecas da mesma conta Google.</Text>}</View> : null}</View> : null}
+        {mode !== 'manage' ? <View style={[styles.advanced, { borderTopColor: palette.border }]}><Pressable accessibilityRole="button" accessibilityLabel="Configuração avançada" accessibilityState={{ expanded: advanced }} disabled={busy} onPress={() => setAdvanced(!advanced)} style={styles.disclosure}><Text style={{ color: palette.secondaryText, fontWeight: '600' }}>Configuração avançada</Text><Ionicons name={advanced ? 'chevron-up' : 'chevron-down'} size={17} color={palette.secondaryText} /></Pressable>{advanced ? <View style={{ gap: 14 }}><Text style={[styles.help, { color: palette.secondaryText }]}>Para catálogos JSON, OPDS e páginas de busca. Configurações existentes são preservadas até você salvar.</Text><View style={styles.kindOptions}>{(['google-drive', 'json', 'opds', 'html'] as SourceKind[]).map(value => <Pressable key={value} accessibilityRole="button" accessibilityLabel={`Tipo: ${sourceTypeLabel(value)}`} accessibilityState={{ selected: kind === value }} disabled={busy} onPress={() => changeKind(value)} style={[styles.kind, { borderColor: kind === value ? palette.accent : palette.border, backgroundColor: kind === value ? palette.surfaceSecondary : palette.surface }]}><Text style={{ color: palette.text, fontSize: 12 }}>{value === 'google-drive' ? 'Google Drive' : value.toUpperCase()}</Text></Pressable>)}</View>{kind !== 'google-drive' ? <>{!['json', 'opds', 'html'].includes(kind) ? <Text style={{ color: palette.secondaryText }}>Tipo existente: {sourceTypeLabel(kind)}. Será mantido se você não escolher outro.</Text> : null}{field('Nome da biblioteca', name, setName, 'Ex.: Catálogo de estudos')}{field('Endereço do catálogo', url, changeUrl, 'https://catalogo.exemplo/busca?q={query}', true)}<Text style={[styles.help, { color: palette.secondaryText }]}>{kind === 'json' ? 'Um JSON sem {query} pode oferecer uma biblioteca completa de EPUB e PDF. Catálogos de busca permanecem somente pesquisa. Na Web, o servidor precisa permitir CORS.' : 'O endereço pode usar {query}. OPDS e HTML permanecem catálogos de pesquisa. Na Web, o servidor precisa permitir CORS.'}</Text>{primary(mode === 'edit' ? 'Salvar alterações' : 'Salvar catálogo', saveAdvanced)}</> : <Text style={[styles.help, { color: palette.secondaryText }]}>O campo de pasta também aceita o identificador da pasta. O Aldus não acessa a sua conta Google; o índice de metadados permanece neste dispositivo.</Text>}</View> : null}</View> : null}
         {mode === 'edit' ? secondary('Cancelar edição', () => { discardPrepared(); setMode('manage'); setError(null); }) : null}
       </>}
       {notice ? <Text accessibilityLiveRegion="polite" style={[styles.feedback, { color: palette.secondaryText }]}>{notice}</Text> : null}
     </ScrollView>
   </View></View></Modal>;
 }
+/** Link de pasta reconhecido (ou null): marca a primeira etapa sem mostrar erro enquanto a pessoa ainda digita. */
+function parsedLink(value: string) { try { return value.trim() ? parseDriveFolder(value) : null; } catch { return null; } }
 function Step({ number, title, complete, palette }: { number: string; title: string; complete: boolean; palette: { accent: string; text: string; secondaryText: string; border: string } }) {
   return <View style={styles.step}><View style={[styles.stepNumber, { borderColor: complete ? palette.accent : palette.border, backgroundColor: complete ? palette.accent : 'transparent' }]}><Text style={{ color: complete ? '#fff' : palette.secondaryText, fontWeight: '700', fontSize: 12 }}>{complete ? '✓' : number}</Text></View><Text style={{ color: palette.text, fontSize: 11, flexShrink: 1 }}>{title}</Text></View>;
 }

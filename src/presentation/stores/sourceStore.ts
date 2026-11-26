@@ -94,7 +94,7 @@ export const useSourceStore = create<SourceState>((set, get) => ({
     if (!source) throw new Error("Esta biblioteca não está disponível na conta atual.");
     await sourceCatalogs.remove(id);
     scope.check();
-    if (source.kind === "google-drive") await googleDrive.disconnect(id);
+    if (source.kind === "google-drive") googleDrive.clearIndex(id);
     scope.check(); await repository.remove(id); scope.check();
     await get().load();
   },

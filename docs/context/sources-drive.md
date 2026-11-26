@@ -25,6 +25,13 @@ CORS da aquisição difere de CORS da busca; não usar proxy/no-cors para fingir
 
 ## 8. Google Drive
 
+> **26/11/2026 (substitui o texto abaixo sobre autorização):** o Drive é lido **só pelo link colado**, sem conta Google. A pasta precisa
+> estar compartilhada como "Qualquer pessoa com o link"; as consultas levam a chave pública do app (`EXPO_PUBLIC_GOOGLE_DRIVE_API_KEY`,
+> restrita à API do Drive, chave "Aldus - Drive por link" no projeto Google Cloud) no cabeçalho `X-Goog-Api-Key`, nunca na URL guardada.
+> Saíram: `DriveAuthorization`, `drivePlatformAuth`, o módulo nativo `aldus-drive-auth`, o seletor de pastas e o escopo `drive.readonly`
+> (removido também da tela de consentimento; a Central de verificação diz que não é necessária verificação). Pasta privada responde 404
+> e o app explica como compartilhar pelo link. Prova ao vivo 26/11: pasta de referência listada e um EPUB de 2,2 MB baixado só com a chave.
+
 Login Google Supabase autentica o Aldus; autorização Drive é outro contrato.
 Android: módulo aldus-drive-auth, AuthorizationClient/PendingIntent/ActivityResult, package
 e certificado corretos. Web: GIS token model, Client ID público e gesto de usuário.

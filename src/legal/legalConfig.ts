@@ -1,5 +1,5 @@
-export const LEGAL_DOCUMENT_VERSION = "0.12";
-export const LEGAL_EFFECTIVE_DATE = "19 de novembro de 2026";
+export const LEGAL_DOCUMENT_VERSION = "0.13";
+export const LEGAL_EFFECTIVE_DATE = "26 de novembro de 2026";
 export const LEGAL_REVIEW_STATUS = "Implementação jurídica inicial — revisão profissional pendente";
 
 const configuredController = process.env.EXPO_PUBLIC_LEGAL_CONTROLLER_NAME?.trim() ?? "";

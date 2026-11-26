@@ -28,7 +28,7 @@ O número é snapshot do serviço de advisories, não certificação de ausênci
 - src/presentation/: ReaderScreen, adapters, componentes, hooks, contextos e stores.
 - src/community/: domínio, aplicação, dados, adapters e apresentação isolados da Community.
 - src/admin/: contratos, adapter e apresentação do Aldus Admin; autorização efetiva por RPC.
-- modules/: módulos Expo locais aldus-drive-auth e aldus-pdf-ocr.
+- modules/: módulo Expo local aldus-pdf-ocr (aldus-drive-auth removido em 26/11/2026: Drive pelo link, sem conta Google).
 - supabase/: migrations imutáveis, Edge Functions, inventários read-only, scripts admin e testes.
 - Composição: src/presentation/services/dependencies.ts. Reutilizar seus repositories e serviços.
 - Native: SQLite kindle-reader.db, schema local v5, arquivos controlados e AsyncStorage.

@@ -28,7 +28,7 @@ const response = body => new Response(JSON.stringify(body), { headers: { 'Conten
   try {
     const load = loader({ '@/src/data/database/connection/database': { getDatabase: async () => database } });
     await load('src/data/database/migrations/MigrationRunner.ts').runMigrations(database);
-    const { DriveAuthorization } = load('src/data/drive/DriveAuthorization.ts'), { GoogleDriveService } = load('src/data/drive/GoogleDriveService.ts');
+    const { GoogleDriveService } = load('src/data/drive/GoogleDriveService.ts');
     const { SqliteSourceCatalogRepository } = load('src/data/sources/SqliteSourceCatalogRepository.ts');
     const { SourceCatalogService, querySourceCatalog } = load('src/data/sources/SourceCatalogService.ts');
     const { sourceFolderTrail, sourceFolderContents, enterSourceFolder, sourceFolderRoute, sourceTreeIndex } = load('src/domain/sources/sourceTree.ts');
@@ -43,10 +43,10 @@ const response = body => new Response(JSON.stringify(body), { headers: { 'Conten
     };
     let failFolder = null, movedOutside = false, shortcutMoved = false;
     const calls = [], metadataVisits = new Map();
-    const auth = new DriveAuthorization({ authorize: async () => ({ accessToken: 'fixture-only', expiresAt: Date.now() + 3600000 }) });
-    await auth.connect(source.id);
-    const drive = new GoogleDriveService(auth, async (raw, options) => {
-      const url = new URL(raw); calls.push(url); assert.equal(options.headers.Authorization, 'Bearer fixture-only');
+    // Drive pelo link (26/11/2026): chave do app no cabeçalho, nenhuma conta. `blocked` simula a pasta indisponível.
+    let blocked = false;
+    const drive = new GoogleDriveService(() => 'AIzaFixtureOnlyKey_0123456789abcdef', async (raw, options) => {
+      const url = new URL(raw); calls.push(url); assert.equal(options.headers['X-Goog-Api-Key'], 'AIzaFixtureOnlyKey_0123456789abcdef'); assert.equal(options.headers.Authorization, undefined);
       assert.equal(url.searchParams.get('alt'), null, 'Indexing/acquisition resolver does not download media');
       if (url.pathname.endsWith('/dom')) return response({ id: 'dom', capabilities: { canDownload: true }, parents: [movedOutside ? 'outside-unreachable' : 'b'] });
       if (url.pathname.endsWith('/shared-pdf')) { assert.equal(options.headers['X-Goog-Drive-Resource-Keys'], 'shared-pdf/pdf_key'); return response({ id: 'shared-pdf', capabilities: { canDownload: true }, parents: ['someone-elses-folder'] }); }
@@ -66,7 +66,7 @@ const response = body => new Response(JSON.stringify(body), { headers: { 'Conten
     });
     let repository = new SqliteSourceCatalogRepository();
     await drive.validateRoot(source); assert.equal(calls.length, 1); assert.equal(calls[0].searchParams.has('q'), false, 'Connection probe does not traverse the tree twice'); metadataVisits.clear();
-    const adapter = { list: (source, signal) => drive.list(source, signal, true), catalog: (source, signal) => drive.listCatalog(source, signal, true), authorizationRequired: () => !auth.connected(source.id) };
+    const adapter = { list: (source, signal) => drive.list(source, signal, true), catalog: (source, signal) => drive.listCatalog(source, signal, true), authorizationRequired: () => blocked };
     let catalogs = new SourceCatalogService(repository, adapter, async () => source);
     await catalogs.refresh(source); let snapshot = catalogs.view(source.id).catalog;
     assert.ok(snapshot); assert.equal(snapshot.schemaVersion, 2); assert.equal(snapshot.rootFolderId, rootId); assert.equal(snapshot.items.length, 7);
@@ -104,15 +104,15 @@ const response = body => new Response(JSON.stringify(body), { headers: { 'Conten
     assert.strictEqual(sourceTreeIndex(snapshot), index); assert.equal(index.searchFolders('emprestada')[0].id, 'alias1');
     console.log('PASS root books and file shortcuts to PDF/EPUB; ROOT/A/B navigation/back, source-wide fuzzy search/path, same-name IDs, external shortcuts/keys/shared Drive, alias and cycle deduplication; metadata only');
     await catalogs.recordImport(source.id, 'dom', 'already-imported');
-    const request = await drive.downloadRequest(source, 'dom'); assert.match(request.url, /dom\?alt=media/); assert.equal(request.headers.Authorization, 'Bearer fixture-only');
+    const request = await drive.downloadRequest(source, 'dom'); assert.match(request.url, /dom\?alt=media/); assert.equal(request.headers['X-Goog-Api-Key'], 'AIzaFixtureOnlyKey_0123456789abcdef'); assert.equal(request.headers.Authorization, undefined);
     movedOutside = true; await assert.rejects(drive.downloadRequest(source, 'dom'), error => error.code === 'not-found'); movedOutside = false;
     db.close(); db = new DatabaseSync(databaseFile); database = bridge(db); repository = new SqliteSourceCatalogRepository();
-    await auth.disconnect(source.id); catalogs = new SourceCatalogService(repository, adapter, async () => source);
+    blocked = true; catalogs = new SourceCatalogService(repository, adapter, async () => source);
     const beforeReload = calls.length; await catalogs.load(source); snapshot = catalogs.view(source.id).catalog;
     assert.equal(catalogs.view(source.id).status, 'auth_required'); assert.equal(calls.length, beforeReload);
     assert.equal(sourceFolderContents(snapshot, 'b').books[0].title, 'Dom Casmurro.epub'); assert.equal(querySourceCatalog(snapshot.items, 'Dom Casmuro', 'az')[0].remoteBookId, 'dom');
     assert.equal((await repository.links(source.id))[0].bookId, 'already-imported');
-    await auth.connect(source.id);
+    blocked = false;
     failFolder = 'b'; tree[rootId].push(folder('new-folder', 'Nova pasta')); tree['new-folder'] = [];
     await catalogs.refresh(source); assert.equal(catalogs.view(source.id).status, 'stale'); assert.deepEqual(await repository.get(source.id), snapshot, 'Deep failure preserves the entire old tree and books'); failFolder = null;
     tree.a[0] = folder('b', 'Pasta B renomeada'); tree.b[0] = book('dom', 'Dom Casmurro revisado.epub'); tree.c.push(book('new-book', 'Novo.pdf'));

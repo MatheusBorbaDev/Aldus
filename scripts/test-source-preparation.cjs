@@ -1,9 +1,8 @@
-// Actual Drive/catalog coordinators; HTTP, OAuth and persistence are controlled boundaries.
+// Actual Drive/catalog coordinators; HTTP and persistence are controlled boundaries. Drive pelo link (26/11/2026): sem OAuth.
 const assert = require('node:assert/strict');
 const makeLoader = require('./community-test-loader.cjs'), load = makeLoader();
 const { SourceCatalogService } = load('src/data/sources/SourceCatalogService.ts');
 const { GoogleDriveService } = load('src/data/drive/GoogleDriveService.ts');
-const { DriveAuthorization } = load('src/data/drive/DriveAuthorization.ts');
 const { DriveError } = load('src/data/drive/DriveErrors.ts');
 const { libraryAccountScope } = load('src/data/library/LibraryAccountScope.ts');
 const { sourceProgress, sourceOperationId, sourceOperationErrorCode } = load('src/utils/sourceDiagnostics.ts');
@@ -22,12 +21,9 @@ function setup(adapter = { list: async () => [link(1)], authorizationRequired: (
   const originalInfo = console.info, before = process.env.EXPO_PUBLIC_SOURCE_DIAGNOSTICS, traces = [];
   process.env.EXPO_PUBLIC_SOURCE_DIAGNOSTICS = '1'; console.info = (...args) => traces.push(args.join(' '));
   try {
-    let authorizations = 0, correlation, calls = 0, failure, failOnChild = false;
-    const authorization = new DriveAuthorization({ prepare: async () => {}, authorize: async (_signal, id) => { authorizations++; correlation = id; return { accessToken: 'PRIVATE_TOKEN_NEVER_TRACE', expiresAt: Date.now() + 3600000 }; }, revoke: async () => {} });
-    const drive = new GoogleDriveService(authorization, async raw => {
-      calls++; const url = new URL(raw);
-      // Connecting now identifies the Google account (Drive about.user.permissionId) before keeping the grant.
-      if (url.pathname.endsWith('/about')) { calls--; return Response.json({ user: { permissionId: 'fixture-account' } }); }
+    let calls = 0, failure, failOnChild = false;
+    const drive = new GoogleDriveService(() => 'PRIVATE_KEY_NEVER_TRACE_0123456789', async (raw, options) => {
+      calls++; const url = new URL(raw); assert.equal(options.headers.Authorization, undefined, 'No Google account token');
       if (failure) { const value = failure; failure = null; if (value === 'network') throw new Error('PRIVATE_PROVIDER_MESSAGE https://private.invalid/folder'); return Response.json({ error: { errors: [{ reason: value === 403 ? 'insufficientFilePermissions' : 'authError' }] } }, { status: value }); }
       if (url.pathname.endsWith(source.folderId)) return Response.json({ id: source.folderId, name: 'PRIVATE_FOLDER_NAME', mimeType: 'application/vnd.google-apps.folder' });
       if (url.pathname.endsWith('child_fixture')) {
@@ -36,12 +32,8 @@ function setup(adapter = { list: async () => [link(1)], authorizationRequired: (
       }
       return Response.json({ files: url.searchParams.get('q').includes('child_fixture') ? [book('second')] : [book('first'), { id: 'child_fixture', name: 'PRIVATE_CHILD_NAME', mimeType: 'application/vnd.google-apps.folder' }] });
     });
-    const test = setup({ catalog: (s, signal, context) => drive.listCatalog(s, signal, true, context), list: async () => { throw Error('parallel catalog path'); }, authorizationRequired: s => !authorization.connected(s.id) });
+    const test = setup({ catalog: (s, signal, context) => drive.listCatalog(s, signal, true, context), list: async () => { throw Error('parallel catalog path'); }, authorizationRequired: () => false });
     const events = [], context = { operationId: sourceOperationId(), onProgress: progress => events.push(progress) };
-    await drive.connect(source, undefined, context); assert.equal(correlation, context.operationId);
-    let nativeCorrelation;
-    const native = makeLoader({ 'react-native': { Platform: { OS: 'android' }, AppState: { currentState: 'active' } }, 'expo-modules-core': { requireOptionalNativeModule: () => ({ authorize: async id => { nativeCorrelation = id; return { accessToken: 'PRIVATE_NATIVE_TOKEN', expiresAt: Date.now() + 3600000 }; }, cancelAuthorization: async () => {} }) } })('src/data/drive/drivePlatformAuth.ts').drivePlatformAuth;
-    await native.authorize(undefined, context.operationId); assert.equal(nativeCorrelation, context.operationId, 'Native authorization keeps the source operation correlation');
     assert.deepEqual(await drive.describeRoot(source, undefined, context), { name: 'PRIVATE_FOLDER_NAME' });
     test.state.current = undefined; const prepared = await test.service.prepare(source, undefined, context);
     assert.equal(test.state.saves, 0); assert.equal(test.state.stored, null); assert.equal(test.service.view(source.id).catalog, null); terminal(test.service);
@@ -50,7 +42,7 @@ function setup(adapter = { list: async () => [link(1)], authorizationRequired: (
     assert.ok(events.every(event => event.operationId === context.operationId));
     const count = calls; test.state.current = { ...source, name: 'Nome escolhido depois da busca' };
     await test.service.commitPrepared(test.state.current, prepared, undefined, context);
-    assert.equal(calls, count, 'Commit must not issue a second crawl'); assert.equal(authorizations, 1);
+    assert.equal(calls, count, 'Commit must not issue a second crawl');
     assert.equal(test.state.saves, 1); assert.equal(test.state.stored.sourceName, test.state.current.name);
     assert.equal(events.at(-1).phase, 'success'); assert.equal(test.service.view(source.id).operation.phase, 'success');
     await assert.rejects(test.service.commitPrepared(source, prepared));
@@ -64,10 +56,9 @@ function setup(adapter = { list: async () => [link(1)], authorizationRequired: (
       assert.equal(test.state.stored, snapshot); assert.equal(test.state.saves, 1); terminal(test.service);
       assert.equal(test.service.view(source.id).status, value === 401 ? 'auth_required' : value === 'network' ? 'offline' : 'stale');
     }
-    assert.equal(authorizations, 1, 'Index errors never silently restart consent');
-    await drive.connect(source); const retry = await test.service.prepare(source); await test.service.commitPrepared(source, retry);
-    assert.equal(test.state.saves, 2); assert.equal(authorizations, 2, 'Only explicit reconnect grants authorization');
-    console.log('PASS correlated authorization/root name, draft search without source persistence, real folder/book counters, rename and one-crawl commit, safe network/permission/expired failures and explicit retry');
+    const retry = await test.service.prepare(source); await test.service.commitPrepared(source, retry);
+    assert.equal(test.state.saves, 2, 'An explicit retry after a failure saves the new index');
+    console.log('PASS root name by link, draft search without source persistence, real folder/book counters, rename and one-crawl commit, safe network/permission/expired failures and explicit retry');
 
     const cancelled = setup(), cancel = new AbortController(), cancelEvents = [];
     const draft = await cancelled.service.prepare(source, cancel.signal, { operationId: sourceOperationId(), onProgress: progress => cancelEvents.push(progress) });
@@ -113,7 +104,7 @@ function setup(adapter = { list: async () => [link(1)], authorizationRequired: (
     const prior = traces.length; sourceProgress({ operationId: 'https://private.invalid/id' }, 'saving'); assert.equal(traces.length, prior, 'Non-allowlisted correlation IDs never enter trace');
     assert.equal(sourceOperationErrorCode({ code: 'PRIVATE_INJECTED_CODE' }), 'unknown');
     sourceProgress({ operationId: sourceOperationId(), onProgress: event => { event.operationId = 'PRIVATE_MUTATED_ID'; event.token = 'PRIVATE_MUTATED_TOKEN'; } }, 'saving');
-    const trace = traces.join('\n'); assert.doesNotMatch(trace, /PRIVATE_|private\.invalid|folder_fixture|child_fixture|accessToken|Bearer|https?:\/\//);
+    const trace = traces.join('\n'); assert.doesNotMatch(trace, /PRIVATE_|private\.invalid|folder_fixture|child_fixture|accessToken|Bearer|PRIVATE_KEY|https?:\/\//);
     const diagnosticLine = traces.at(-2), diagnostic = JSON.parse(diagnosticLine.slice(diagnosticLine.indexOf('{'))); assert.equal(diagnostic.booksFound, 2); assert.equal(diagnostic.foldersScanned, undefined); assert.equal(diagnostic.foldersDiscovered, undefined); assert.equal(diagnostic.code, 'unknown');
     assert.ok(traces.some(line => line.includes('"phase":"saving"'))); assert.ok(traces.some(line => line.includes('"phase":"cancelled"')));
     const realNow = Date.now;

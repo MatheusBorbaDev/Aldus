@@ -224,7 +224,7 @@ Para Android, configure JAVA_HOME para o JDK 17 e ANDROID_HOME/ANDROID_SDK_ROOT 
 o SDK local, com platform-tools/ADB e as versões de SDK/NDK solicitadas pelo Gradle.
 O caminho padrão do SDK no Windows é `$env:LOCALAPPDATA\Android\Sdk`; não reutilize
 um `android/local.properties` com o caminho de outro usuário. Os dois módulos nativos
-`aldus-drive-auth` e `aldus-pdf-ocr` estão versionados e não precisam ser obtidos à parte.
+`aldus-pdf-ocr` está versionado e não precisam ser obtidos à parte.
 
 O ambiente Android verificado usa SDK/target 36, build-tools 36.0.0 e NDK
 27.1.12297006. Para incluir o emulador x86_64 além dos aparelhos ARM, a variável

@@ -39,8 +39,9 @@ prova de que uma etapa já ocorreu.
 ## Drive
 
 - Login Google no Supabase autentica o Aldus; Drive usa grant separado. Android usa
-  `aldus-drive-auth`/AuthorizationClient e certificado/package reais; Web usa GIS por gesto.
-  Scope existente é `drive.readonly`; não amplie escopo nem reutilize provider token de login.
+  Desde 26/11/2026 o Drive é lido só pelo link colado (pasta "Qualquer pessoa com o link"), com a chave pública do app
+  `EXPO_PUBLIC_GOOGLE_DRIVE_API_KEY` no cabeçalho `X-Goog-Api-Key`. Não volte a pedir escopo de conta (`drive.readonly`
+  exige auditoria anual do Google) nem reutilize provider token de login.
 - Grants em memória expiram e são invalidados na troca de conta. Retorno antigo de
   consentimento não autoriza a nova identidade. Snapshots persistidos DEVICE não ganham dono.
 - Crawl começa na raiz autorizada e percorre BFS paginada, subpastas/atalhos suportados,

@@ -118,7 +118,7 @@ Teste = `scripts/test-<nome>.cjs` (quais estão no `test:critical`: lista em `sc
 ### Fontes, Drive, conta e demais telas
 | Recurso | Comece por | Também | Teste |
 | --- | --- | --- | --- |
-| Google Drive (conectar, renovar, escolher pasta, atalhos) | `data/drive/GoogleDriveService.ts`, `data/drive/DriveAuthorization.ts` | `data/drive/{drivePlatformAuth,driveFolder,DriveDownloadResolver}.ts`, `comp/DriveFolderPicker.tsx`, `modules/aldus-drive-auth` (Kotlin) | `test:drive`, drive-renewal, drive-folder-picker; `docs/context/sources-drive.md` |
+| Google Drive pelo link público (sem conta Google; chave `EXPO_PUBLIC_GOOGLE_DRIVE_API_KEY`), atalhos | `data/drive/GoogleDriveService.ts` | `data/drive/{driveFolder,DriveDownloadResolver,DriveErrors,driveDependencies}.ts`, `comp/SourceManagerModal.tsx` | `test:drive`, source-ui, source-preparation; `docs/context/sources-drive.md` |
 | Suas fontes / catálogos OPDS | `comp/SourceLibraryScreen.tsx`, `app/sources/*` | `data/sources/*`, `data/scraping/*`, `src/presentation/hooks/useSource*.ts`, `comp/catalog/YourSources.tsx` | source-ui, `test:source-library:browser` |
 | Login, cadastro, Google, username | `src/presentation/contexts/AuthContext.tsx`, `comp/AuthForm.tsx`; destino após entrar: `comp/AccountEntry.tsx` (Android em `/`, site em `/auth/continue`, via `homeAfterAuth` de `publicWebRoutes.ts`) | `data/remote/auth*.ts`, `dom/auth/authRules.ts`, `app/auth/*`, `supabase/functions/username-login` | auth, marketing, release-notes, `test:auth:web`; `docs/context/auth.md` |
 | E-mails do Auth (cadastro, senha, link, troca, convite, código) | `scripts/write-email-templates.cjs` → `supabase/templates/*.html` + `subjects.json` | medalha `public/email/aldus-medalha.png`; APLICADOS 25/11 no painel Supabase → Auth → Emails (mudou o texto: rodar o script e colar de novo) | email-templates |
@@ -164,6 +164,11 @@ Teste no PC não comprova Android físico, sessão real nem deploy.
   inativa (lista oficial só em PDF que não abriu; dono confere e publica pelo Admin, depois `active=true`); UFPR sem `watch_url`; robô
   não obteve resposta da página da UFRGS na 1ª leitura (rever em alguns dias); NÃO TESTADO logado no app nem no Android (precisa APK).
 - **Convite da beta:** `marketing/emails/convite-beta.html` na Brevo (atributo `contact.NOME`; remetente contato@). 25/11 teste a 3 contas: entregue, mas caiu no Spam (domínio novo). 26/11: domínio verificado no Google Postmaster Tools (TXT na Cloudflare); envio em levas de 10 aprovado pelo dono: leva 1 enviada 26/11 (campanha #2); PENDENTE leva 2 e 3 (listas a criar a partir do Forms), um dia de intervalo, conferindo Spam/Postmaster.
+- **Distribuição Android e Drive (26/11):** código pronto (Drive por link). DONO: (1) colar `EXPO_PUBLIC_GOOGLE_DRIVE_API_KEY` nas
+  variáveis de build do Worker na Cloudflare (sem ela o site diz "Drive não configurado"); (2) criar conta no Android Developer Console
+  (limitada grátis ou completa US$ 25) e registrar `com.aldus.reader` com o SHA-256 `a8ee8ec1…0f4a`; o arquivo de prova de posse vai
+  em `android/app/src/main/assets/` e pede novo APK; (3) Play Console (US$ 25, 12 testadores por 14 dias). Marca do Google não
+  verificável enquanto o login passar por `*.supabase.co` (domínio próprio na Supabase é pago).
 - **Comunidade:** dono pediu repaginação completa (25/11: "botões sem sentido", confusa); não iniciada, mostrar proposta antes.
 - **Aparelho (precisa de celular no cabo):** v13–v18 e a landing nunca vistas num celular; Drive não traz livros soltos fora de
   subpastas (não são atalhos; precisa de log); tocar na aba Biblioteca não volta ao topo no Android (`useScrollToTop` não rola).
@@ -184,6 +189,9 @@ Teste no PC não comprova Android físico, sessão real nem deploy.
 
 ## 9. Log (mais recente primeiro; máx. 5 entradas de até 3 linhas)
 
+- **26/11** — Drive só pelo link colado (pedido do dono): sem conta Google, chave `EXPO_PUBLIC_GOOGLE_DRIVE_API_KEY` no cabeçalho; saíram
+  OAuth, módulo `aldus-drive-auth`, seletor de pastas e o escopo `drive.readonly` (também do consentimento: verificação "não necessária").
+  Política 0.13. Ao vivo: pasta de referência listada e EPUB baixado só com a chave. Site precisa da variável na Cloudflare (dono).
 - **26/11** — Convite da beta: teste caiu no Spam do Gmail (entregue 3/3; DKIM/DMARC ok, domínio sem reputação). Domínio verificado
   no Google Postmaster Tools; 1ª leva de 10 inscritos enviada pela Brevo. Placeholder do nome trocado para `contact.NOME` (Brevo em pt-BR).
 - **25/11** — Card de trecho: versos e parágrafos saíam colados ("apagariaMas"). O leitor manda junto da âncora uma cópia legível
@@ -192,5 +200,3 @@ Teste no PC não comprova Android físico, sessão real nem deploy.
   `sameWork`) e "Baixar e adicionar"; ficha do catálogo depois. Gutendex não respondeu daqui no teste ao vivo: download real NÃO TESTADO.
 - **25/11** — Leituras de vestibular: tela `app/vestibular.tsx` (Estudo visível a todos), dados com cópia no aparelho, seção no Admin,
   migrations + robô diário (pg_net/pg_cron) aplicados no Supabase e 9 listas oficiais carregadas. UEL oculta até conferir o PDF.
-- **25/11** — Cadastro: erro preso ao campo e com o nome dele (`signupFieldErrors`, `AuthInput error`); usuário digitado vira
-  formato aceito (`usernameAsTyped`: espaço→_, sem acento). Tema: padrão Clássico claro; "system" só se escolhido (`APP_THEME_CHOSEN_KEY`).

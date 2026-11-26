@@ -19,12 +19,8 @@ export const sourceCatalogAdapter: SourceCatalogAdapter = {
     if (parsed?.next || parsed?.nextPageToken || parsed?.continuation || parsed?.nextPageUrl || parsed?.pagination || parsed?.hasMore) throw new Error("Catálogo JSON paginado não suportado.");
     return new UserSourceSearchPlugin(source).parseResults(payload);
   },
-  authorizationRequired: source => {
-    if (source.kind !== "google-drive") return false;
-    // A source tied to a Google account renews its access silently when it is next used; only ask when that is impossible.
-    if (googleDrive.renewable(source)) return false;
-    try { googleDrive.authorization.token(source.id); return false; } catch { return true; }
-  },
+  // Drive pelo link público (26/11/2026): nenhuma fonte pede autorização de conta.
+  authorizationRequired: () => false,
 };
 export const sourceCatalogs = new SourceCatalogService(
   Platform.OS === "web" ? new IndexedDbSourceCatalogRepository() : new SqliteSourceCatalogRepository(),

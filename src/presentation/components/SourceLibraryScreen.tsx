@@ -15,7 +15,6 @@ import { BookCard } from "./BookCard";
 import { SourceManagerModal, SourceManagerAction } from "./SourceManagerModal";
 import { sourceLibraryTypeLabel, sourceProgressCounts, sourceProgressLabel, sourceUpdatedLabel, sourceVisibleInAccount, useSourceAccountGeneration, useSourceAccountId } from './sourcePresentation';
 import { SourceBookSheet } from "./SourceBookSheet";
-import { googleDrive } from "@/src/data/drive/driveDependencies";
 import { useSourceImports } from "@/src/presentation/hooks/useSourceImports";
 import { useDownloadStore } from "@/src/presentation/stores/downloadStore";
 import { sourceAcquisitionState, sourceItemJob } from "@/src/presentation/services/sourceAcquisition";
@@ -192,8 +191,8 @@ function SourceLibraryContent({ source }: { source: UserSource }) {
   const folderSummary = [plural(contents.books.length, "livro", "livros"), contents.folders.length ? plural(contents.folders.length, "pasta", "pastas") : null].filter(Boolean).join(" · ") + " nesta pasta";
   const updatedLabel = sourceUpdatedLabel(view.catalog?.lastUpdated);
   const sortLabel = sorts.find(([value]) => value === sort)?.[1] ?? "Título A–Z";
-  // "Conectado" só quando há acesso válido agora; uma biblioteca que renova sozinha não finge estar conectada antes da hora.
-  const connectedLabel = source.kind === "google-drive" && !reconnect && googleDrive.authorization.connected(source.id) ? "Conectado" : null;
+  // Drive pelo link (26/11/2026): não há conta conectada para anunciar.
+  const connectedLabel: string | null = null;
   const menuItems: ActionMenuItem[] = [
     { key: "manage", label: "Gerenciar biblioteca", icon: "settings-outline", onPress: () => setManaging("manage") },
     { key: "edit", label: "Editar biblioteca", icon: "create-outline", onPress: () => setManaging("edit") },

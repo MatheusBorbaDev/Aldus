@@ -77,8 +77,7 @@ const FEATURES = [
   { id: 'community-clubs', pedido: 'Community Etapa 3: clubes por convite e marcos', markers: ['Abrir clubes', 'Entrar no clube', 'Criar um clube', 'Até onde você leu', 'Publicar comentário', 'Gerar novo código', 'community_join_club'], routes: ['community/clubs', 'community/club/[id]'] },
   { id: 'community-forums', pedido: 'Community Etapa 3: fóruns com spoiler e moderação', markers: ['Abrir fóruns', 'Publicar tópico', 'Contém spoiler · mostrar', 'Enviar denúncia', 'community_report_content'], routes: ['community/forums', 'community/thread/[id]'] },
   // Termos
-  { id: 'drive-renewal', pedido: '18/11: Drive sem reconectar a toda hora (renovação silenciosa, mesma conta Google)', markers: ['account-mismatch', 'Esta biblioteca foi conectada com outra conta Google'] },
-  { id: 'drive-folder-picker', pedido: '18/11: escolher a pasta do Drive navegando, sem colar link', markers: ['Escolha uma pasta', 'Compartilhados comigo', 'Prefiro colar o link de uma pasta'] },
+  { id: 'drive-public-link', pedido: '26/11: Drive só pelo link colado, sem acessar a conta Google (substitui drive-renewal e drive-folder-picker, que dependiam da conta)', markers: ['Qualquer pessoa com o link', 'X-Goog-Api-Key', 'Link da pasta do Google Drive'] },
   { id: 'loading-continue', pedido: '18/11: frase de abertura espera o botao Continuar', markers: ['Continuar', "O livro caindo n'alma"] },
   { id: 'record-books-sync', pedido: '18/11: livro sem arquivo em todos os aparelhos (migration 20261118120000)', markers: ['quando a biblioteca sincronizar'] },
   { id: 'goodreads-import', pedido: '18/11: importar estante do Goodreads (CSV) com revisao', markers: ['Importar do Goodreads', 'Export Library', 'Desmarcar todos'], routes: ['import/goodreads'] },

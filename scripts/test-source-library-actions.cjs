@@ -9,10 +9,9 @@ function loader(mocks = {}) { const cache = new Map(); return function load(file
 const source = { id: 'drive-source', name: 'Pasta controlada', kind: 'google-drive', url: 'folder_123456789', folderId: 'folder_123456789', enabled: true, status: 'active', createdAt: 1 };
 const file = (id, name = `Livro ${id}.epub`) => ({ id, name, mimeType: 'application/epub+zip', size: '1234', modifiedTime: '2026-10-11T00:00:00Z', capabilities: { canDownload: true } });
 (async () => {
-  const base = loader(), { DriveAuthorization } = base('src/data/drive/DriveAuthorization.ts'), { GoogleDriveService } = base('src/data/drive/GoogleDriveService.ts');
+  const base = loader(), { GoogleDriveService } = base('src/data/drive/GoogleDriveService.ts');
   let remote = Array.from({ length: 20 }, (_, i) => file('file-'+i)), fault = 0, partial = false, offline = false, metadataRequests = 0;
-  const auth = new DriveAuthorization({ authorize: async () => ({ accessToken: 'fixture-only-token', expiresAt: Date.now()+3600000 }), clearToken: async () => {}, revoke: async () => {} });
-  const drive = new GoogleDriveService(auth, async url => {
+  const drive = new GoogleDriveService(() => 'AIzaFixtureOnlyKey_0123456789abcdef', async url => {
     const u = new URL(url); metadataRequests++; assert.equal(u.searchParams.get('alt'), null);
     if (offline) throw Error('raw unsafe network provider detail');
     if (fault) return new Response('', { status: fault });
@@ -35,12 +34,12 @@ const file = (id, name = `Livro ${id}.epub`) => ({ id, name, mimeType: 'applicat
   const { sourceCatalogs, sourceCatalogAdapter } = production('src/data/sources/sourceCatalogDependencies.ts');
   const storeLoader = loader({ '@react-native-async-storage/async-storage': storage, '@/src/data/drive/driveDependencies': { googleDrive:drive }, '@/src/data/sources/sourceCatalogDependencies': { sourceCatalogs } });
   const sources = storeLoader('src/presentation/stores/sourceStore.ts').useSourceStore;
-  await auth.connect(source.id); await sources.getState().add(source);
+  await sources.getState().add(source);
   assert.equal(sourceCatalogs.view(source.id).catalog.items.length, 20); assert.equal(metadataRequests, 11, 'folder plus ten pages');
   const snapshot = structuredClone(await sourceCatalogs.repository.get(source.id));
   partial = true; await sourceCatalogs.refresh(source); assert.deepEqual(await sourceCatalogs.repository.get(source.id), snapshot); partial = false;
-  for (const [status, state] of [[401,'auth_required'],[403,'stale'],[429,'stale']]) { fault=status; await auth.connect(source.id); await sourceCatalogs.refresh(source); assert.equal(sourceCatalogs.view(source.id).status,state); assert.deepEqual(await sourceCatalogs.repository.get(source.id),snapshot); }
-  fault=0; offline=true; await auth.connect(source.id); await sourceCatalogs.refresh(source); assert.equal(sourceCatalogs.view(source.id).status,'offline'); assert.deepEqual(await sourceCatalogs.repository.get(source.id),snapshot); offline=false;
+  for (const [status, state] of [[401,'auth_required'],[403,'stale'],[429,'stale']]) { fault=status; await sourceCatalogs.refresh(source); assert.equal(sourceCatalogs.view(source.id).status,state); assert.deepEqual(await sourceCatalogs.repository.get(source.id),snapshot); }
+  fault=0; offline=true; await sourceCatalogs.refresh(source); assert.equal(sourceCatalogs.view(source.id).status,'offline'); assert.deepEqual(await sourceCatalogs.repository.get(source.id),snapshot); offline=false;
   remote=[file('file-0','Dom Casmurro.epub'),file('new-file')]; await sourceCatalogs.refresh(source); assert.equal(sourceCatalogs.view(source.id).catalog.items.length,2); assert.equal(sourceCatalogs.view(source.id).catalog.items[0].title,'Dom Casmurro.epub');
   remote=[file('file-0')]; await sourceCatalogs.refresh(source); assert.equal(sourceCatalogs.view(source.id).catalog.items.length,1);
   remote=[]; await sourceCatalogs.refresh(source); assert.equal(sourceCatalogs.view(source.id).status,'empty');
